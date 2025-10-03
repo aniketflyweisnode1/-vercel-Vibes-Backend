@@ -1,7 +1,6 @@
 const BusinessCategory = require('../models/business_category.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new business category
@@ -18,15 +17,8 @@ const createBusinessCategory = asyncHandler(async (req, res) => {
 
     // Create business category
     const businessCategory = await BusinessCategory.create(businessCategoryData);
-
-    logger.info('Business category created successfully', { 
-      businessCategoryId: businessCategory._id, 
-      business_category_id: businessCategory.business_category_id 
-    });
-
     sendSuccess(res, businessCategory, 'Business category created successfully', 201);
   } catch (error) {
-    logger.error('Error creating business category', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -91,16 +83,8 @@ const getAllBusinessCategories = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Business categories retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, businessCategories, pagination, 'Business categories retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving business categories', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -119,12 +103,8 @@ const getBusinessCategoryById = asyncHandler(async (req, res) => {
     if (!businessCategory) {
       return sendNotFound(res, 'Business category not found');
     }
-
-    logger.info('Business category retrieved successfully', { businessCategoryId: businessCategory._id });
-
     sendSuccess(res, businessCategory, 'Business category retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving business category', { error: error.message, businessCategoryId: req.params.id });
     throw error;
   }
 });
@@ -157,12 +137,8 @@ const updateBusinessCategory = asyncHandler(async (req, res) => {
     if (!businessCategory) {
       return sendNotFound(res, 'Business category not found');
     }
-
-    logger.info('Business category updated successfully', { businessCategoryId: businessCategory._id });
-
     sendSuccess(res, businessCategory, 'Business category updated successfully');
   } catch (error) {
-    logger.error('Error updating business category', { error: error.message, businessCategoryId: req.params.id });
     throw error;
   }
 });
@@ -195,18 +171,8 @@ const updateBusinessCategoryByIdBody = asyncHandler(async (req, res) => {
     if (!businessCategory) {
       return sendNotFound(res, 'Business category not found');
     }
-
-    logger.info('Business category updated successfully by ID in body', { 
-      businessCategoryId: businessCategory._id, 
-      updatedBy: req.userId 
-    });
-
     sendSuccess(res, businessCategory, 'Business category updated successfully');
   } catch (error) {
-    logger.error('Error updating business category by ID in body', { 
-      error: error.message, 
-      businessCategoryId: req.body.id 
-    });
     throw error;
   }
 });
@@ -233,12 +199,8 @@ const deleteBusinessCategory = asyncHandler(async (req, res) => {
     if (!businessCategory) {
       return sendNotFound(res, 'Business category not found');
     }
-
-    logger.info('Business category deleted successfully', { businessCategoryId: businessCategory._id });
-
     sendSuccess(res, businessCategory, 'Business category deleted successfully');
   } catch (error) {
-    logger.error('Error deleting business category', { error: error.message, businessCategoryId: req.params.id });
     throw error;
   }
 });
@@ -305,20 +267,8 @@ const getBusinessCategoriesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Business categories retrieved by auth successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit),
-      userId: req.userId
-    });
-
     sendPaginated(res, businessCategories, pagination, 'Business categories retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving business categories by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -332,3 +282,4 @@ module.exports = {
   deleteBusinessCategory,
   getBusinessCategoriesByAuth
 };
+

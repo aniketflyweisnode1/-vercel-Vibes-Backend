@@ -1,7 +1,6 @@
 const TicketType = require('../models/ticket_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new ticket type
@@ -18,15 +17,8 @@ const createTicketType = asyncHandler(async (req, res) => {
 
     // Create ticket type
     const ticketType = await TicketType.create(ticketTypeData);
-
-    logger.info('Ticket type created successfully', { 
-      ticketTypeId: ticketType._id, 
-      ticket_type_id: ticketType.ticket_type_id 
-    });
-
     sendSuccess(res, ticketType, 'Ticket type created successfully', 201);
   } catch (error) {
-    logger.error('Error creating ticket type', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -92,16 +84,8 @@ const getAllTicketTypes = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Ticket types retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, ticketTypes, pagination, 'Ticket types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving ticket types', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -122,17 +106,8 @@ const getTicketTypeById = asyncHandler(async (req, res) => {
     if (!ticketType) {
       return sendNotFound(res, 'Ticket type not found');
     }
-
-    logger.info('Ticket type retrieved successfully', { 
-      ticketTypeId: ticketType._id 
-    });
-
     sendSuccess(res, ticketType, 'Ticket type retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving ticket type', { 
-      error: error.message, 
-      ticketTypeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -150,18 +125,8 @@ const getTicketTypeByAuth = asyncHandler(async (req, res) => {
     const ticketTypes = await TicketType.find({ 
       created_by: userId 
     }).sort({ created_at: -1 });
-
-    logger.info('Ticket types retrieved successfully for user', { 
-      userId, 
-      count: ticketTypes.length 
-    });
-
     sendSuccess(res, ticketTypes, 'Ticket types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving ticket types by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -194,17 +159,8 @@ const updateTicketType = asyncHandler(async (req, res) => {
     if (!ticketType) {
       return sendNotFound(res, 'Ticket type not found');
     }
-
-    logger.info('Ticket type updated successfully', { 
-      ticketTypeId: ticketType._id 
-    });
-
     sendSuccess(res, ticketType, 'Ticket type updated successfully');
   } catch (error) {
-    logger.error('Error updating ticket type', { 
-      error: error.message, 
-      ticketTypeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -231,17 +187,8 @@ const deleteTicketType = asyncHandler(async (req, res) => {
     if (!ticketType) {
       return sendNotFound(res, 'Ticket type not found');
     }
-
-    logger.info('Ticket type deleted successfully', { 
-      ticketTypeId: ticketType._id 
-    });
-
     sendSuccess(res, ticketType, 'Ticket type deleted successfully');
   } catch (error) {
-    logger.error('Error deleting ticket type', { 
-      error: error.message, 
-      ticketTypeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -254,3 +201,4 @@ module.exports = {
   updateTicketType,
   deleteTicketType
 };
+

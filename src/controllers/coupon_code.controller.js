@@ -1,7 +1,6 @@
 const CouponCode = require('../models/coupon_code.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new coupon code
@@ -18,15 +17,8 @@ const createCouponCode = asyncHandler(async (req, res) => {
 
     // Create coupon code
     const couponCode = await CouponCode.create(couponCodeData);
-
-    logger.info('Coupon code created successfully', { 
-      couponCodeId: couponCode._id, 
-      coupon_code_id: couponCode.coupon_code_id 
-    });
-
     sendSuccess(res, couponCode, 'Coupon code created successfully', 201);
   } catch (error) {
-    logger.error('Error creating coupon code', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -92,16 +84,8 @@ const getAllCouponCodes = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Coupon codes retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, couponCodes, pagination, 'Coupon codes retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving coupon codes', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -122,17 +106,8 @@ const getCouponCodeById = asyncHandler(async (req, res) => {
     if (!couponCode) {
       return sendNotFound(res, 'Coupon code not found');
     }
-
-    logger.info('Coupon code retrieved successfully', { 
-      couponCodeId: couponCode._id 
-    });
-
     sendSuccess(res, couponCode, 'Coupon code retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving coupon code', { 
-      error: error.message, 
-      couponCodeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -151,18 +126,8 @@ const getCouponCodeByAuth = asyncHandler(async (req, res) => {
     const couponCodes = await CouponCode.find({ 
       created_by: userId 
     }).sort({ created_at: -1 });
-
-    logger.info('Coupon codes retrieved successfully for user', { 
-      userId, 
-      count: couponCodes.length 
-    });
-
     sendSuccess(res, couponCodes, 'Coupon codes retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving coupon codes by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -195,17 +160,8 @@ const updateCouponCode = asyncHandler(async (req, res) => {
     if (!couponCode) {
       return sendNotFound(res, 'Coupon code not found');
     }
-
-    logger.info('Coupon code updated successfully', { 
-      couponCodeId: couponCode._id 
-    });
-
     sendSuccess(res, couponCode, 'Coupon code updated successfully');
   } catch (error) {
-    logger.error('Error updating coupon code', { 
-      error: error.message, 
-      couponCodeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -232,17 +188,8 @@ const deleteCouponCode = asyncHandler(async (req, res) => {
     if (!couponCode) {
       return sendNotFound(res, 'Coupon code not found');
     }
-
-    logger.info('Coupon code deleted successfully', { 
-      couponCodeId: couponCode._id 
-    });
-
     sendSuccess(res, couponCode, 'Coupon code deleted successfully');
   } catch (error) {
-    logger.error('Error deleting coupon code', { 
-      error: error.message, 
-      couponCodeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -255,3 +202,4 @@ module.exports = {
   updateCouponCode,
   deleteCouponCode
 };
+

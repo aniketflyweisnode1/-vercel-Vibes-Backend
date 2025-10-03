@@ -3,7 +3,6 @@ const User = require('../models/user.model');
 const VibeFundCampaign = require('../models/vibe_fund_campaign.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new vibe funding campaign contribution
@@ -27,15 +26,10 @@ const createVibeFundingCampaign = asyncHandler(async (req, res) => {
     fundingWithDetails.fundby_user = fundbyUser;
     fundingWithDetails.campaign = campaign;
 
-    logger.info('Vibe Funding Campaign created successfully', { 
-      fundingId: funding._id, 
-      vibe_funding_campaign_id: funding.vibe_funding_campaign_id 
-    });
-
-    sendSuccess(res, fundingWithDetails, 'Funding contribution created successfully', 201);
+ 
+      sendSuccess(res, fundingWithDetails, 'Funding contribution created successfully', 201);
   } catch (error) {
-    logger.error('Error creating vibe funding campaign', { error: error.message, stack: error.stack });
-    throw error;
+    throw error
   }
 });
 
@@ -122,16 +116,11 @@ const getAllVibeFundingCampaign = asyncHandler(async (req, res) => {
       hasPrevPage
     };
 
-    logger.info('Vibe Funding Campaigns retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
+    
 
     sendPaginated(res, fundingsWithDetails, pagination, 'Funding contributions retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vibe funding campaigns', { error: error.message, stack: error.stack });
-    throw error;
+  throw error
   }
 });
 
@@ -158,15 +147,12 @@ const getVibeFundingCampaignById = asyncHandler(async (req, res) => {
     fundingWithDetails.fundby_user = fundbyUser;
     fundingWithDetails.campaign = campaign;
 
-    logger.info('Vibe Funding Campaign retrieved successfully', { fundingId: funding._id });
 
-    sendSuccess(res, fundingWithDetails, 'Funding contribution retrieved successfully');
+
+      sendSuccess(res, fundingWithDetails, 'Funding contribution retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vibe funding campaign', { 
-      error: error.message, 
-      fundingId: req.params.id 
-    });
-    throw error;
+    
+    throw error
   }
 });
 
@@ -206,12 +192,12 @@ const updateVibeFundingCampaign = asyncHandler(async (req, res) => {
     fundingWithDetails.fundby_user = fundbyUser;
     fundingWithDetails.campaign = campaign;
 
-    logger.info('Vibe Funding Campaign updated successfully', { fundingId: funding._id });
+    
 
     sendSuccess(res, fundingWithDetails, 'Funding contribution updated successfully');
   } catch (error) {
-    logger.error('Error updating vibe funding campaign', { error: error.message });
-    throw error;
+    
+        throw error
   }
 });
 
@@ -238,15 +224,11 @@ const deleteVibeFundingCampaign = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Funding contribution not found');
     }
 
-    logger.info('Vibe Funding Campaign deleted successfully', { fundingId: funding._id });
+    
 
     sendSuccess(res, funding, 'Funding contribution deleted successfully');
   } catch (error) {
-    logger.error('Error deleting vibe funding campaign', { 
-      error: error.message, 
-      fundingId: req.params.id 
-    });
-    throw error;
+    throw error
   }
 });
 

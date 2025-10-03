@@ -2,7 +2,6 @@ const Notification = require('../models/notification.model');
 const User = require('../models/user.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new notification
@@ -19,15 +18,8 @@ const createNotification = asyncHandler(async (req, res) => {
 
     // Create notification
     const notification = await Notification.create(notificationData);
-
-    logger.info('Notification created successfully', { 
-      notificationId: notification._id, 
-      notification_id: notification.notification_id 
-    });
-
     sendSuccess(res, notification, 'Notification created successfully', 201);
   } catch (error) {
-    logger.error('Error creating notification', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -64,22 +56,11 @@ const createNotificationByRoleId = asyncHandler(async (req, res) => {
       const notification = await Notification.create(notificationData);
       notifications.push(notification);
     }
-
-    logger.info('Notifications created successfully by role', { 
-      roleId: role_id,
-      notificationCount: notifications.length,
-      createdBy: req.userId
-    });
-
     sendSuccess(res, {
       message: `Notifications sent to ${notifications.length} users`,
       notifications: notifications
     }, 'Notifications created successfully', 201);
   } catch (error) {
-    logger.error('Error creating notifications by role', { 
-      error: error.message, 
-      roleId: req.body.role_id 
-    });
     throw error;
   }
 });
@@ -115,20 +96,11 @@ const createNotificationSendAll = asyncHandler(async (req, res) => {
       const notification = await Notification.create(notificationData);
       notifications.push(notification);
     }
-
-    logger.info('Notifications created successfully for all users', { 
-      notificationCount: notifications.length,
-      createdBy: req.userId
-    });
-
     sendSuccess(res, {
       message: `Notifications sent to ${notifications.length} users`,
       notifications: notifications
     }, 'Notifications created successfully', 201);
   } catch (error) {
-    logger.error('Error creating notifications for all users', { 
-      error: error.message 
-    });
     throw error;
   }
 });
@@ -211,16 +183,8 @@ const getAllNotifications = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Notifications retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, notifications, pagination, 'Notifications retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving notifications', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -241,17 +205,8 @@ const getNotificationById = asyncHandler(async (req, res) => {
     if (!notification) {
       return sendNotFound(res, 'Notification not found');
     }
-
-    logger.info('Notification retrieved successfully', { 
-      notificationId: notification._id 
-    });
-
     sendSuccess(res, notification, 'Notification retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving notification', { 
-      error: error.message, 
-      notificationId: req.params.id 
-    });
     throw error;
   }
 });
@@ -284,17 +239,8 @@ const updateNotification = asyncHandler(async (req, res) => {
     if (!notification) {
       return sendNotFound(res, 'Notification not found');
     }
-
-    logger.info('Notification updated successfully', { 
-      notificationId: notification._id 
-    });
-
     sendSuccess(res, notification, 'Notification updated successfully');
   } catch (error) {
-    logger.error('Error updating notification', { 
-      error: error.message, 
-      notificationId: req.params.id 
-    });
     throw error;
   }
 });
@@ -321,17 +267,8 @@ const deleteNotification = asyncHandler(async (req, res) => {
     if (!notification) {
       return sendNotFound(res, 'Notification not found');
     }
-
-    logger.info('Notification deleted successfully', { 
-      notificationId: notification._id 
-    });
-
     sendSuccess(res, notification, 'Notification deleted successfully');
   } catch (error) {
-    logger.error('Error deleting notification', { 
-      error: error.message, 
-      notificationId: req.params.id 
-    });
     throw error;
   }
 });
@@ -345,3 +282,4 @@ module.exports = {
   updateNotification,
   deleteNotification
 };
+

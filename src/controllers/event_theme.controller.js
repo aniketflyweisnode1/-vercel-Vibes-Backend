@@ -1,7 +1,6 @@
 const EventTheme = require('../models/event_theme.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new event theme
@@ -16,12 +15,8 @@ const createEventTheme = asyncHandler(async (req, res) => {
     };
 
     const eventTheme = await EventTheme.create(eventThemeData);
-
-    logger.info('Event Theme created successfully', { eventThemeId: eventTheme._id, event_theme_id: eventTheme.event_theme_id });
-
     sendSuccess(res, eventTheme, 'Event Theme created successfully', 201);
   } catch (error) {
-    logger.error('Error creating event theme', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -77,12 +72,8 @@ const getAllEventTheme = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Event Theme retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, eventTheme, pagination, 'Event Theme retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event theme', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -101,12 +92,8 @@ const getEventThemeById = asyncHandler(async (req, res) => {
     if (!eventTheme) {
       return sendNotFound(res, 'Event Theme not found');
     }
-
-    logger.info('Event Theme retrieved successfully', { eventThemeId: eventTheme._id });
-
     sendSuccess(res, eventTheme, 'Event Theme retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event theme', { error: error.message, eventThemeId: req.params.id });
     throw error;
   }
 });
@@ -138,12 +125,8 @@ const updateEventTheme = asyncHandler(async (req, res) => {
     if (!eventTheme) {
       return sendNotFound(res, 'Event Theme not found');
     }
-
-    logger.info('Event Theme updated successfully', { eventThemeId: eventTheme._id });
-
     sendSuccess(res, eventTheme, 'Event Theme updated successfully');
   } catch (error) {
-    logger.error('Error updating event theme', { error: error.message });
     throw error;
   }
 });
@@ -170,12 +153,8 @@ const deleteEventTheme = asyncHandler(async (req, res) => {
     if (!eventTheme) {
       return sendNotFound(res, 'Event Theme not found');
     }
-
-    logger.info('Event Theme deleted successfully', { eventThemeId: eventTheme._id });
-
     sendSuccess(res, eventTheme, 'Event Theme deleted successfully');
   } catch (error) {
-    logger.error('Error deleting event theme', { error: error.message, eventThemeId: req.params.id });
     throw error;
   }
 });
@@ -233,12 +212,8 @@ const getEventThemeByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User event theme retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, eventTheme, pagination, 'User event theme retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user event theme', { error: error.message, userId: req.userId });
     throw error;
   }
 });

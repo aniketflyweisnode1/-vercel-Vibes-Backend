@@ -1,7 +1,6 @@
 const Drinks = require('../models/drinks.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new drinks
@@ -16,12 +15,8 @@ const createDrinks = asyncHandler(async (req, res) => {
     };
 
     const drinks = await Drinks.create(drinksData);
-
-    logger.info('Drinks created successfully', { drinksId: drinks._id, drinks_id: drinks.drinks_id });
-
     sendSuccess(res, drinks, 'Drinks created successfully', 201);
   } catch (error) {
-    logger.error('Error creating drinks', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -80,12 +75,8 @@ const getAllDrinks = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Drinks retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, drinks, pagination, 'Drinks retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving drinks', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -104,12 +95,8 @@ const getDrinksById = asyncHandler(async (req, res) => {
     if (!drinks) {
       return sendNotFound(res, 'Drinks not found');
     }
-
-    logger.info('Drinks retrieved successfully', { drinksId: drinks._id });
-
     sendSuccess(res, drinks, 'Drinks retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving drinks', { error: error.message, drinksId: req.params.id });
     throw error;
   }
 });
@@ -141,12 +128,8 @@ const updateDrinks = asyncHandler(async (req, res) => {
     if (!drinks) {
       return sendNotFound(res, 'Drinks not found');
     }
-
-    logger.info('Drinks updated successfully', { drinksId: drinks._id });
-
     sendSuccess(res, drinks, 'Drinks updated successfully');
   } catch (error) {
-    logger.error('Error updating drinks', { error: error.message });
     throw error;
   }
 });
@@ -173,12 +156,8 @@ const deleteDrinks = asyncHandler(async (req, res) => {
     if (!drinks) {
       return sendNotFound(res, 'Drinks not found');
     }
-
-    logger.info('Drinks deleted successfully', { drinksId: drinks._id });
-
     sendSuccess(res, drinks, 'Drinks deleted successfully');
   } catch (error) {
-    logger.error('Error deleting drinks', { error: error.message, drinksId: req.params.id });
     throw error;
   }
 });
@@ -239,12 +218,8 @@ const getDrinksByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User drinks retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, drinks, pagination, 'User drinks retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user drinks', { error: error.message, userId: req.userId });
     throw error;
   }
 });

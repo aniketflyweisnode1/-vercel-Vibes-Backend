@@ -173,7 +173,6 @@ const userSchema = new mongoose.Schema({
   versionKey: false
 });
 
-
 userSchema.plugin(AutoIncrement, { inc_field: 'user_id' });
 
 // Transform output to remove sensitive data

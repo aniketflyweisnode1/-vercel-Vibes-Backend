@@ -1,7 +1,6 @@
 const ServiceItems = require('../models/service_items.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new service item
@@ -17,15 +16,8 @@ const createServiceItem = asyncHandler(async (req, res) => {
 
     // Create service item
     const serviceItem = await ServiceItems.create(serviceItemData);
-
-    logger.info('Service item created successfully', { 
-      serviceItemId: serviceItem._id, 
-      service_items_id: serviceItem.service_items_id 
-    });
-
     sendSuccess(res, serviceItem, 'Service item created successfully', 201);
   } catch (error) {
-    logger.error('Error creating service item', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -97,16 +89,8 @@ const getAllServiceItems = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Service items retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, serviceItems, pagination, 'Service items retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving service items', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -125,12 +109,8 @@ const getServiceItemById = asyncHandler(async (req, res) => {
     if (!serviceItem) {
       return sendNotFound(res, 'Service item not found');
     }
-
-    logger.info('Service item retrieved successfully', { serviceItemId: serviceItem._id });
-
     sendSuccess(res, serviceItem, 'Service item retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving service item', { error: error.message, serviceItemId: req.params.id });
     throw error;
   }
 });
@@ -170,12 +150,8 @@ const updateServiceItem = asyncHandler(async (req, res) => {
     if (!serviceItem) {
       return sendNotFound(res, 'Service item not found');
     }
-
-    logger.info('Service item updated successfully', { serviceItemId: serviceItem._id });
-
     sendSuccess(res, serviceItem, 'Service item updated successfully');
   } catch (error) {
-    logger.error('Error updating service item', { error: error.message, serviceItemId: req.params.id });
     throw error;
   }
 });
@@ -186,3 +162,4 @@ module.exports = {
   getServiceItemById,
   updateServiceItem
 };
+

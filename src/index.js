@@ -138,5 +138,4 @@ router.use('/master/vibe-funding-campaign', vibeFundingCampaignRoutes);
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);
 
-
 module.exports = router;

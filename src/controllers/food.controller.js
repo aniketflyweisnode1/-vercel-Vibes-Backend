@@ -1,7 +1,6 @@
 const Food = require('../models/food.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new food
@@ -16,12 +15,8 @@ const createFood = asyncHandler(async (req, res) => {
     };
 
     const food = await Food.create(foodData);
-
-    logger.info('Food created successfully', { foodId: food._id, food_id: food.food_id });
-
     sendSuccess(res, food, 'Food created successfully', 201);
   } catch (error) {
-    logger.error('Error creating food', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -81,12 +76,8 @@ const getAllFood = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Food retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, food, pagination, 'Food retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving food', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -105,12 +96,8 @@ const getFoodById = asyncHandler(async (req, res) => {
     if (!food) {
       return sendNotFound(res, 'Food not found');
     }
-
-    logger.info('Food retrieved successfully', { foodId: food._id });
-
     sendSuccess(res, food, 'Food retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving food', { error: error.message, foodId: req.params.id });
     throw error;
   }
 });
@@ -142,12 +129,8 @@ const updateFood = asyncHandler(async (req, res) => {
     if (!food) {
       return sendNotFound(res, 'Food not found');
     }
-
-    logger.info('Food updated successfully', { foodId: food._id });
-
     sendSuccess(res, food, 'Food updated successfully');
   } catch (error) {
-    logger.error('Error updating food', { error: error.message });
     throw error;
   }
 });
@@ -174,12 +157,8 @@ const deleteFood = asyncHandler(async (req, res) => {
     if (!food) {
       return sendNotFound(res, 'Food not found');
     }
-
-    logger.info('Food deleted successfully', { foodId: food._id });
-
     sendSuccess(res, food, 'Food deleted successfully');
   } catch (error) {
-    logger.error('Error deleting food', { error: error.message, foodId: req.params.id });
     throw error;
   }
 });
@@ -241,12 +220,8 @@ const getFoodByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User food retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, food, pagination, 'User food retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user food', { error: error.message, userId: req.userId });
     throw error;
   }
 });

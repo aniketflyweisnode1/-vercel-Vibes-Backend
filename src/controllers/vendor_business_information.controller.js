@@ -1,7 +1,6 @@
 const VendorBusinessInformation = require('../models/vendor_business_information.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new vendor business information
@@ -19,15 +18,8 @@ const createVendorBusinessInformation = asyncHandler(async (req, res) => {
 
     // Create vendor business information
     const businessInfo = await VendorBusinessInformation.create(businessInfoData);
-
-    logger.info('Vendor business information created successfully', { 
-      businessInfoId: businessInfo._id, 
-      business_information_id: businessInfo.business_information_id 
-    });
-
     sendSuccess(res, businessInfo, 'Vendor business information created successfully', 201);
   } catch (error) {
-    logger.error('Error creating vendor business information', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -100,16 +92,8 @@ const getAllVendorBusinessInformation = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Vendor business information retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, businessInfo, pagination, 'Vendor business information retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vendor business information', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -130,15 +114,8 @@ const getVendorBusinessInformationById = asyncHandler(async (req, res) => {
     if (!businessInfo) {
       return sendNotFound(res, 'Vendor business information not found');
     }
-
-    logger.info('Vendor business information retrieved successfully', { businessInfoId: businessInfo._id });
-
     sendSuccess(res, businessInfo, 'Vendor business information retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vendor business information', { 
-      error: error.message, 
-      businessInfoId: req.params.id 
-    });
     throw error;
   }
 });
@@ -213,20 +190,8 @@ const getVendorBusinessInformationByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Vendor business information retrieved by auth successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit),
-      vendorId: req.userId
-    });
-
     sendPaginated(res, businessInfo, pagination, 'Vendor business information retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vendor business information by auth', { 
-      error: error.message, 
-      vendorId: req.userId 
-    });
     throw error;
   }
 });
@@ -259,15 +224,8 @@ const updateVendorBusinessInformation = asyncHandler(async (req, res) => {
     if (!businessInfo) {
       return sendNotFound(res, 'Vendor business information not found');
     }
-
-    logger.info('Vendor business information updated successfully', { businessInfoId: businessInfo._id });
-
     sendSuccess(res, businessInfo, 'Vendor business information updated successfully');
   } catch (error) {
-    logger.error('Error updating vendor business information', { 
-      error: error.message, 
-      businessInfoId: req.params.id 
-    });
     throw error;
   }
 });
@@ -300,18 +258,8 @@ const updateVendorBusinessInformationByIdBody = asyncHandler(async (req, res) =>
     if (!businessInfo) {
       return sendNotFound(res, 'Vendor business information not found');
     }
-
-    logger.info('Vendor business information updated successfully by ID in body', { 
-      businessInfoId: businessInfo._id, 
-      updatedBy: req.userId 
-    });
-
     sendSuccess(res, businessInfo, 'Vendor business information updated successfully');
   } catch (error) {
-    logger.error('Error updating vendor business information by ID in body', { 
-      error: error.message, 
-      businessInfoId: req.body.id 
-    });
     throw error;
   }
 });
@@ -338,15 +286,8 @@ const deleteVendorBusinessInformation = asyncHandler(async (req, res) => {
     if (!businessInfo) {
       return sendNotFound(res, 'Vendor business information not found');
     }
-
-    logger.info('Vendor business information deleted successfully', { businessInfoId: businessInfo._id });
-
     sendSuccess(res, businessInfo, 'Vendor business information deleted successfully');
   } catch (error) {
-    logger.error('Error deleting vendor business information', { 
-      error: error.message, 
-      businessInfoId: req.params.id 
-    });
     throw error;
   }
 });
@@ -360,3 +301,4 @@ module.exports = {
   updateVendorBusinessInformationByIdBody,
   deleteVendorBusinessInformation
 };
+

@@ -1,7 +1,6 @@
 const Country = require('../models/country.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new country
@@ -20,12 +19,8 @@ const createCountry = asyncHandler(async (req, res) => {
     const country = await Country.create(countryData);
 
     // Note: Number references cannot be populated directly
-
-    logger.info('Country created successfully', { countryId: country._id, country_id: country.country_id });
-
     sendSuccess(res, country, 'Country created successfully', 201);
   } catch (error) {
-    logger.error('Error creating country', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -90,16 +85,8 @@ const getAllCountries = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Countries retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, countries, pagination, 'Countries retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving countries', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -118,12 +105,8 @@ const getCountryById = asyncHandler(async (req, res) => {
     if (!country) {
       return sendNotFound(res, 'Country not found');
     }
-
-    logger.info('Country retrieved successfully', { countryId: country._id });
-
     sendSuccess(res, country, 'Country retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving country', { error: error.message, countryId: req.params.id });
     throw error;
   }
 });
@@ -156,12 +139,8 @@ const updateCountry = asyncHandler(async (req, res) => {
     if (!country) {
       return sendNotFound(res, 'Country not found');
     }
-
-    logger.info('Country updated successfully', { countryId: country._id });
-
     sendSuccess(res, country, 'Country updated successfully');
   } catch (error) {
-    logger.error('Error updating country', { error: error.message, countryId: req.params.id });
     throw error;
   }
 });
@@ -172,3 +151,4 @@ module.exports = {
   getCountryById,
   updateCountry
 };
+

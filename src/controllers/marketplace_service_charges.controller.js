@@ -1,7 +1,6 @@
 const MarketPlaceServiceCharges = require('../models/marketplace_service_charges.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new marketplace service charge
@@ -10,22 +9,15 @@ const logger = require('../../utils/logger');
  */
 const createMarketPlaceServiceCharges = asyncHandler(async (req, res) => {
   try {
-    console.log("pankaj", req.body);
+    
     const serviceChargesData = {
       ...req.body,
       created_by: req.userId || 1
     };
 
     const serviceCharges = await MarketPlaceServiceCharges.create(serviceChargesData);
-
-    logger.info('MarketPlace Service Charges created successfully', { 
-      serviceChargesId: serviceCharges._id, 
-      service_charges_id: serviceCharges.service_charges_id 
-    });
-
     sendSuccess(res, serviceCharges, 'MarketPlace Service Charges created successfully', 201);
   } catch (error) {
-    logger.error('Error creating marketplace service charges', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -96,16 +88,8 @@ const getAllMarketPlaceServiceCharges = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('MarketPlace Service Charges retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, serviceCharges, pagination, 'MarketPlace Service Charges retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving marketplace service charges', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -124,15 +108,8 @@ const getMarketPlaceServiceChargesById = asyncHandler(async (req, res) => {
     if (!serviceCharges) {
       return sendNotFound(res, 'MarketPlace Service Charges not found');
     }
-
-    logger.info('MarketPlace Service Charges retrieved successfully', { serviceChargesId: serviceCharges._id });
-
     sendSuccess(res, serviceCharges, 'MarketPlace Service Charges retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving marketplace service charges', { 
-      error: error.message, 
-      serviceChargesId: req.params.id 
-    });
     throw error;
   }
 });
@@ -164,12 +141,8 @@ const updateMarketPlaceServiceCharges = asyncHandler(async (req, res) => {
     if (!serviceCharges) {
       return sendNotFound(res, 'MarketPlace Service Charges not found');
     }
-
-    logger.info('MarketPlace Service Charges updated successfully', { serviceChargesId: serviceCharges._id });
-
     sendSuccess(res, serviceCharges, 'MarketPlace Service Charges updated successfully');
   } catch (error) {
-    logger.error('Error updating marketplace service charges', { error: error.message });
     throw error;
   }
 });
@@ -196,15 +169,8 @@ const deleteMarketPlaceServiceCharges = asyncHandler(async (req, res) => {
     if (!serviceCharges) {
       return sendNotFound(res, 'MarketPlace Service Charges not found');
     }
-
-    logger.info('MarketPlace Service Charges deleted successfully', { serviceChargesId: serviceCharges._id });
-
     sendSuccess(res, serviceCharges, 'MarketPlace Service Charges deleted successfully');
   } catch (error) {
-    logger.error('Error deleting marketplace service charges', { 
-      error: error.message, 
-      serviceChargesId: req.params.id 
-    });
     throw error;
   }
 });
@@ -262,20 +228,8 @@ const getMarketPlaceServiceChargesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User marketplace service charges retrieved successfully', { 
-      userId: req.userId, 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, serviceCharges, pagination, 'User marketplace service charges retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user marketplace service charges', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });

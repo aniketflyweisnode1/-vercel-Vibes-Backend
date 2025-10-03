@@ -2,7 +2,6 @@ const Transaction = require('../models/transaction.model');
 const Wallet = require('../models/wallet.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new transaction
@@ -22,15 +21,8 @@ const createTransaction = asyncHandler(async (req, res) => {
 
     // Update wallet based on transaction type
     await updateWalletForTransaction(transaction);
-
-    logger.info('Transaction created successfully', { 
-      transactionId: transaction._id, 
-      transaction_id: transaction.transaction_id 
-    });
-
     sendSuccess(res, transaction, 'Transaction created successfully', 201);
   } catch (error) {
-    logger.error('Error creating transaction', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -44,7 +36,6 @@ const updateWalletForTransaction = async (transaction) => {
     const wallet = await Wallet.findOne({ user_id: transaction.user_id });
     
     if (!wallet) {
-      logger.warn('Wallet not found for user', { userId: transaction.user_id });
       return;
     }
 
@@ -78,7 +69,6 @@ const updateWalletForTransaction = async (transaction) => {
         }
         break;
       default:
-        logger.warn('Unknown transaction type', { transactionType: transaction.transactionType });
     }
 
     // Update wallet if amount changed
@@ -91,19 +81,8 @@ const updateWalletForTransaction = async (transaction) => {
           updated_at: new Date()
         }
       );
-      
-      logger.info('Wallet updated for transaction', { 
-        userId: transaction.user_id,
-        oldAmount: wallet.amount,
-        newAmount: newAmount,
-        transactionType: transaction.transactionType
-      });
     }
   } catch (error) {
-    logger.error('Error updating wallet for transaction', { 
-      error: error.message, 
-      transactionId: transaction.transaction_id 
-    });
     throw error;
   }
 };
@@ -187,16 +166,8 @@ const getAllTransactions = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Transactions retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, transactions, pagination, 'Transactions retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving transactions', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -217,17 +188,8 @@ const getTransactionById = asyncHandler(async (req, res) => {
     if (!transaction) {
       return sendNotFound(res, 'Transaction not found');
     }
-
-    logger.info('Transaction retrieved successfully', { 
-      transactionId: transaction._id 
-    });
-
     sendSuccess(res, transaction, 'Transaction retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving transaction', { 
-      error: error.message, 
-      transactionId: req.params.id 
-    });
     throw error;
   }
 });
@@ -245,18 +207,8 @@ const getTransactionByAuth = asyncHandler(async (req, res) => {
     const transactions = await Transaction.find({ 
       user_id: userId 
     }).sort({ created_at: -1 });
-
-    logger.info('Transactions retrieved successfully for user', { 
-      userId, 
-      count: transactions.length 
-    });
-
     sendSuccess(res, transactions, 'Transactions retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving transactions by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -274,18 +226,8 @@ const getTransactionByTransactionType = asyncHandler(async (req, res) => {
     const transactions = await Transaction.find({ 
       transactionType: transactionType 
     }).sort({ created_at: -1 });
-
-    logger.info('Transactions retrieved successfully by type', { 
-      transactionType, 
-      count: transactions.length 
-    });
-
     sendSuccess(res, transactions, 'Transactions retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving transactions by type', { 
-      error: error.message, 
-      transactionType: req.params.transactionType 
-    });
     throw error;
   }
 });
@@ -328,17 +270,8 @@ const updateTransaction = asyncHandler(async (req, res) => {
     if (originalTransaction.status !== 'completed' && transaction.status === 'completed') {
       await updateWalletForTransaction(transaction);
     }
-
-    logger.info('Transaction updated successfully', { 
-      transactionId: transaction._id 
-    });
-
     sendSuccess(res, transaction, 'Transaction updated successfully');
   } catch (error) {
-    logger.error('Error updating transaction', { 
-      error: error.message, 
-      transactionId: req.params.id 
-    });
     throw error;
   }
 });
@@ -365,17 +298,8 @@ const deleteTransaction = asyncHandler(async (req, res) => {
     if (!transaction) {
       return sendNotFound(res, 'Transaction not found');
     }
-
-    logger.info('Transaction deleted successfully', { 
-      transactionId: transaction._id 
-    });
-
     sendSuccess(res, transaction, 'Transaction deleted successfully');
   } catch (error) {
-    logger.error('Error deleting transaction', { 
-      error: error.message, 
-      transactionId: req.params.id 
-    });
     throw error;
   }
 });
@@ -389,3 +313,4 @@ module.exports = {
   updateTransaction,
   deleteTransaction
 };
+

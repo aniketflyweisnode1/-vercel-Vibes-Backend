@@ -1,7 +1,6 @@
 const VendorMapServiceType = require('../models/vendor_map_service_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new vendor map service type
@@ -17,15 +16,8 @@ const createVendorMapServiceType = asyncHandler(async (req, res) => {
 
     // Create vendor map service type
     const vendorMapServiceType = await VendorMapServiceType.create(vendorMapServiceTypeData);
-
-    logger.info('Vendor map service type created successfully', { 
-      vendorMapServiceTypeId: vendorMapServiceType._id, 
-      vendor_map_service_id: vendorMapServiceType.vendor_map_service_id 
-    });
-
     sendSuccess(res, vendorMapServiceType, 'Vendor map service type created successfully', 201);
   } catch (error) {
-    logger.error('Error creating vendor map service type', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -103,16 +95,8 @@ const getAllVendorMapServiceTypes = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Vendor map service types retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, vendorMapServiceTypes, pagination, 'Vendor map service types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vendor map service types', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -131,12 +115,8 @@ const getVendorMapServiceTypeById = asyncHandler(async (req, res) => {
     if (!vendorMapServiceType) {
       return sendNotFound(res, 'Vendor map service type not found');
     }
-
-    logger.info('Vendor map service type retrieved successfully', { vendorMapServiceTypeId: vendorMapServiceType._id });
-
     sendSuccess(res, vendorMapServiceType, 'Vendor map service type retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vendor map service type', { error: error.message, vendorMapServiceTypeId: req.params.id });
     throw error;
   }
 });
@@ -176,12 +156,8 @@ const updateVendorMapServiceType = asyncHandler(async (req, res) => {
     if (!vendorMapServiceType) {
       return sendNotFound(res, 'Vendor map service type not found');
     }
-
-    logger.info('Vendor map service type updated successfully', { vendorMapServiceTypeId: vendorMapServiceType._id });
-
     sendSuccess(res, vendorMapServiceType, 'Vendor map service type updated successfully');
   } catch (error) {
-    logger.error('Error updating vendor map service type', { error: error.message, vendorMapServiceTypeId: req.params.id });
     throw error;
   }
 });
@@ -192,3 +168,4 @@ module.exports = {
   getVendorMapServiceTypeById,
   updateVendorMapServiceType
 };
+

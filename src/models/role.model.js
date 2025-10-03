@@ -44,7 +44,6 @@ const roleSchema = new mongoose.Schema({
   versionKey: false
 });
 
-
 roleSchema.plugin(AutoIncrement, { inc_field: 'role_id' });
 
 module.exports = mongoose.model('Role', roleSchema);

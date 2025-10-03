@@ -1,7 +1,6 @@
 const EventGallery = require('../models/event_gallery.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new event gallery
@@ -16,12 +15,8 @@ const createEventGallery = asyncHandler(async (req, res) => {
     };
 
     const eventGallery = await EventGallery.create(eventGalleryData);
-
-    logger.info('Event Gallery created successfully', { eventGalleryId: eventGallery._id, event_gallery_id: eventGallery.event_gallery_id });
-
     sendSuccess(res, eventGallery, 'Event Gallery created successfully', 201);
   } catch (error) {
-    logger.error('Error creating event gallery', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -77,12 +72,8 @@ const getAllEventGallery = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Event Gallery retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, eventGallery, pagination, 'Event Gallery retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event gallery', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -101,12 +92,8 @@ const getEventGalleryById = asyncHandler(async (req, res) => {
     if (!eventGallery) {
       return sendNotFound(res, 'Event Gallery not found');
     }
-
-    logger.info('Event Gallery retrieved successfully', { eventGalleryId: eventGallery._id });
-
     sendSuccess(res, eventGallery, 'Event Gallery retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event gallery', { error: error.message, eventGalleryId: req.params.id });
     throw error;
   }
 });
@@ -138,12 +125,8 @@ const updateEventGallery = asyncHandler(async (req, res) => {
     if (!eventGallery) {
       return sendNotFound(res, 'Event Gallery not found');
     }
-
-    logger.info('Event Gallery updated successfully', { eventGalleryId: eventGallery._id });
-
     sendSuccess(res, eventGallery, 'Event Gallery updated successfully');
   } catch (error) {
-    logger.error('Error updating event gallery', { error: error.message });
     throw error;
   }
 });
@@ -170,12 +153,8 @@ const deleteEventGallery = asyncHandler(async (req, res) => {
     if (!eventGallery) {
       return sendNotFound(res, 'Event Gallery not found');
     }
-
-    logger.info('Event Gallery deleted successfully', { eventGalleryId: eventGallery._id });
-
     sendSuccess(res, eventGallery, 'Event Gallery deleted successfully');
   } catch (error) {
-    logger.error('Error deleting event gallery', { error: error.message, eventGalleryId: req.params.id });
     throw error;
   }
 });
@@ -233,12 +212,8 @@ const getEventGalleryByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User event gallery retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, eventGallery, pagination, 'User event gallery retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user event gallery', { error: error.message, userId: req.userId });
     throw error;
   }
 });

@@ -1,7 +1,6 @@
 const OtpType = require('../models/otp_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new OTP type
@@ -18,12 +17,8 @@ const createOtpType = asyncHandler(async (req, res) => {
 
     // Create OTP type
     const otpType = await OtpType.create(otpTypeData);
-
-    logger.info('OTP type created successfully', { otpTypeId: otpType._id, otp_type_id: otpType.otp_type_id });
-
     sendSuccess(res, otpType, 'OTP type created successfully', 201);
   } catch (error) {
-    logger.error('Error creating OTP type', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -88,16 +83,8 @@ const getAllOtpTypes = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('OTP types retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, otpTypes, pagination, 'OTP types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving OTP types', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -116,12 +103,8 @@ const getOtpTypeById = asyncHandler(async (req, res) => {
     if (!otpType) {
       return sendNotFound(res, 'OTP type not found');
     }
-
-    logger.info('OTP type retrieved successfully', { otpTypeId: otpType._id });
-
     sendSuccess(res, otpType, 'OTP type retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving OTP type', { error: error.message, otpTypeId: req.params.id });
     throw error;
   }
 });
@@ -154,12 +137,8 @@ const updateOtpType = asyncHandler(async (req, res) => {
     if (!otpType) {
       return sendNotFound(res, 'OTP type not found');
     }
-
-    logger.info('OTP type updated successfully', { otpTypeId: otpType._id });
-
     sendSuccess(res, otpType, 'OTP type updated successfully');
   } catch (error) {
-    logger.error('Error updating OTP type', { error: error.message, otpTypeId: req.params.id });
     throw error;
   }
 });
@@ -186,12 +165,8 @@ const deleteOtpType = asyncHandler(async (req, res) => {
     if (!otpType) {
       return sendNotFound(res, 'OTP type not found');
     }
-
-    logger.info('OTP type deleted successfully', { otpTypeId: otpType._id });
-
     sendSuccess(res, otpType, 'OTP type deleted successfully');
   } catch (error) {
-    logger.error('Error deleting OTP type', { error: error.message, otpTypeId: req.params.id });
     throw error;
   }
 });
@@ -258,17 +233,8 @@ const getOtpTypesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User OTP types retrieved successfully', { 
-      userId: req.userId,
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, otpTypes, pagination, 'User OTP types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user OTP types', { error: error.message, userId: req.userId });
     throw error;
   }
 });
@@ -281,3 +247,4 @@ module.exports = {
   deleteOtpType,
   getOtpTypesByAuth
 };
+

@@ -1,7 +1,6 @@
 const DressCode = require('../models/dress_code.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new dress code
@@ -16,12 +15,8 @@ const createDressCode = asyncHandler(async (req, res) => {
     };
 
     const dressCode = await DressCode.create(dressCodeData);
-
-    logger.info('Dress Code created successfully', { dressCodeId: dressCode._id, dress_code_id: dressCode.dress_code_id });
-
     sendSuccess(res, dressCode, 'Dress Code created successfully', 201);
   } catch (error) {
-    logger.error('Error creating dress code', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -77,12 +72,8 @@ const getAllDressCode = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Dress Code retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, dressCode, pagination, 'Dress Code retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving dress code', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -101,12 +92,8 @@ const getDressCodeById = asyncHandler(async (req, res) => {
     if (!dressCode) {
       return sendNotFound(res, 'Dress Code not found');
     }
-
-    logger.info('Dress Code retrieved successfully', { dressCodeId: dressCode._id });
-
     sendSuccess(res, dressCode, 'Dress Code retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving dress code', { error: error.message, dressCodeId: req.params.id });
     throw error;
   }
 });
@@ -138,12 +125,8 @@ const updateDressCode = asyncHandler(async (req, res) => {
     if (!dressCode) {
       return sendNotFound(res, 'Dress Code not found');
     }
-
-    logger.info('Dress Code updated successfully', { dressCodeId: dressCode._id });
-
     sendSuccess(res, dressCode, 'Dress Code updated successfully');
   } catch (error) {
-    logger.error('Error updating dress code', { error: error.message });
     throw error;
   }
 });
@@ -170,12 +153,8 @@ const deleteDressCode = asyncHandler(async (req, res) => {
     if (!dressCode) {
       return sendNotFound(res, 'Dress Code not found');
     }
-
-    logger.info('Dress Code deleted successfully', { dressCodeId: dressCode._id });
-
     sendSuccess(res, dressCode, 'Dress Code deleted successfully');
   } catch (error) {
-    logger.error('Error deleting dress code', { error: error.message, dressCodeId: req.params.id });
     throw error;
   }
 });
@@ -233,12 +212,8 @@ const getDressCodeByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User dress code retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, dressCode, pagination, 'User dress code retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user dress code', { error: error.message, userId: req.userId });
     throw error;
   }
 });

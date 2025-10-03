@@ -1,7 +1,6 @@
 const Role = require('../models/role.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new role
@@ -19,12 +18,8 @@ const createRole = asyncHandler(async (req, res) => {
     const role = await Role.create(roleData);
 
     // Note: Number references cannot be populated directly
-
-    logger.info('Role created successfully', { roleId: role._id, role_id: role.role_id });
-
     sendSuccess(res, role, 'Role created successfully', 201);
   } catch (error) {
-    logger.error('Error creating role', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -90,16 +85,8 @@ const getAllRoles = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Roles retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, roles, pagination, 'Roles retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving roles', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -118,12 +105,8 @@ const getRoleById = asyncHandler(async (req, res) => {
     if (!role) {
       return sendNotFound(res, 'Role not found');
     }
-
-    logger.info('Role retrieved successfully', { roleId: role._id });
-
     sendSuccess(res, role, 'Role retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving role', { error: error.message, roleId: req.params.id });
     throw error;
   }
 });
@@ -156,12 +139,8 @@ const updateRole = asyncHandler(async (req, res) => {
     if (!role) {
       return sendNotFound(res, 'Role not found');
     }
-
-    logger.info('Role updated successfully', { roleId: role._id });
-
     sendSuccess(res, role, 'Role updated successfully');
   } catch (error) {
-    logger.error('Error updating role', { error: error.message, roleId: req.params.id });
     throw error;
   }
 });
@@ -188,12 +167,8 @@ const deleteRole = asyncHandler(async (req, res) => {
     if (!role) {
       return sendNotFound(res, 'Role not found');
     }
-
-    logger.info('Role deleted successfully', { roleId: role._id });
-
     sendSuccess(res, role, 'Role deleted successfully');
   } catch (error) {
-    logger.error('Error deleting role', { error: error.message, roleId: req.params.id });
     throw error;
   }
 });
@@ -261,17 +236,8 @@ const getRolesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User roles retrieved successfully', { 
-      userId: req.userId,
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, roles, pagination, 'User roles retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user roles', { error: error.message, userId: req.userId });
     throw error;
   }
 });
@@ -304,12 +270,8 @@ const updateRoleByIdBody = asyncHandler(async (req, res) => {
     if (!role) {
       return sendNotFound(res, 'Role not found');
     }
-
-    logger.info('Role updated successfully by ID in body', { roleId: role._id, updatedBy: req.userId });
-
     sendSuccess(res, role, 'Role updated successfully');
   } catch (error) {
-    logger.error('Error updating role by ID in body', { error: error.message, roleId: req.body.id });
     throw error;
   }
 });
@@ -323,3 +285,4 @@ module.exports = {
   deleteRole,
   getRolesByAuth
 };
+

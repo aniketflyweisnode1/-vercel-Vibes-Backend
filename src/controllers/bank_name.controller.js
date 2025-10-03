@@ -1,7 +1,6 @@
 const BankName = require('../models/bank_name.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new bank name
@@ -18,15 +17,8 @@ const createBankName = asyncHandler(async (req, res) => {
 
     // Create bank name
     const bankName = await BankName.create(bankNameData);
-
-    logger.info('Bank name created successfully', { 
-      bankNameId: bankName._id, 
-      bank_name_id: bankName.bank_name_id 
-    });
-
     sendSuccess(res, bankName, 'Bank name created successfully', 201);
   } catch (error) {
-    logger.error('Error creating bank name', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -91,16 +83,8 @@ const getAllBankNames = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Bank names retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, bankNames, pagination, 'Bank names retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving bank names', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -119,12 +103,8 @@ const getBankNameById = asyncHandler(async (req, res) => {
     if (!bankName) {
       return sendNotFound(res, 'Bank name not found');
     }
-
-    logger.info('Bank name retrieved successfully', { bankNameId: bankName._id });
-
     sendSuccess(res, bankName, 'Bank name retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving bank name', { error: error.message, bankNameId: req.params.id });
     throw error;
   }
 });
@@ -157,12 +137,8 @@ const updateBankName = asyncHandler(async (req, res) => {
     if (!bankName) {
       return sendNotFound(res, 'Bank name not found');
     }
-
-    logger.info('Bank name updated successfully', { bankNameId: bankName._id });
-
     sendSuccess(res, bankName, 'Bank name updated successfully');
   } catch (error) {
-    logger.error('Error updating bank name', { error: error.message, bankNameId: req.params.id });
     throw error;
   }
 });
@@ -195,18 +171,8 @@ const updateBankNameByIdBody = asyncHandler(async (req, res) => {
     if (!bankName) {
       return sendNotFound(res, 'Bank name not found');
     }
-
-    logger.info('Bank name updated successfully by ID in body', { 
-      bankNameId: bankName._id, 
-      updatedBy: req.userId 
-    });
-
     sendSuccess(res, bankName, 'Bank name updated successfully');
   } catch (error) {
-    logger.error('Error updating bank name by ID in body', { 
-      error: error.message, 
-      bankNameId: req.body.id 
-    });
     throw error;
   }
 });
@@ -233,12 +199,8 @@ const deleteBankName = asyncHandler(async (req, res) => {
     if (!bankName) {
       return sendNotFound(res, 'Bank name not found');
     }
-
-    logger.info('Bank name deleted successfully', { bankNameId: bankName._id });
-
     sendSuccess(res, bankName, 'Bank name deleted successfully');
   } catch (error) {
-    logger.error('Error deleting bank name', { error: error.message, bankNameId: req.params.id });
     throw error;
   }
 });
@@ -305,20 +267,8 @@ const getBankNamesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Bank names retrieved by auth successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit),
-      userId: req.userId
-    });
-
     sendPaginated(res, bankNames, pagination, 'Bank names retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving bank names by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -332,3 +282,4 @@ module.exports = {
   deleteBankName,
   getBankNamesByAuth
 };
+

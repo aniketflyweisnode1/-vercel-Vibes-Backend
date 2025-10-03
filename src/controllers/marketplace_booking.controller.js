@@ -1,7 +1,6 @@
 const MarketPlaceBooking = require('../models/marketplace_booking.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new marketplace booking
@@ -16,15 +15,8 @@ const createMarketPlaceBooking = asyncHandler(async (req, res) => {
     };
 
     const booking = await MarketPlaceBooking.create(bookingData);
-
-    logger.info('MarketPlace Booking created successfully', { 
-      bookingId: booking._id, 
-      marketplace_booking_id: booking.marketplace_booking_id 
-    });
-
     sendSuccess(res, booking, 'MarketPlace Booking created successfully', 201);
   } catch (error) {
-    logger.error('Error creating marketplace booking', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -93,16 +85,8 @@ const getAllMarketPlaceBooking = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('MarketPlace Bookings retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, bookings, pagination, 'MarketPlace Bookings retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving marketplace bookings', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -121,15 +105,8 @@ const getMarketPlaceBookingById = asyncHandler(async (req, res) => {
     if (!booking) {
       return sendNotFound(res, 'MarketPlace Booking not found');
     }
-
-    logger.info('MarketPlace Booking retrieved successfully', { bookingId: booking._id });
-
     sendSuccess(res, booking, 'MarketPlace Booking retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving marketplace booking', { 
-      error: error.message, 
-      bookingId: req.params.id 
-    });
     throw error;
   }
 });
@@ -161,12 +138,8 @@ const updateMarketPlaceBooking = asyncHandler(async (req, res) => {
     if (!booking) {
       return sendNotFound(res, 'MarketPlace Booking not found');
     }
-
-    logger.info('MarketPlace Booking updated successfully', { bookingId: booking._id });
-
     sendSuccess(res, booking, 'MarketPlace Booking updated successfully');
   } catch (error) {
-    logger.error('Error updating marketplace booking', { error: error.message });
     throw error;
   }
 });
@@ -193,15 +166,8 @@ const deleteMarketPlaceBooking = asyncHandler(async (req, res) => {
     if (!booking) {
       return sendNotFound(res, 'MarketPlace Booking not found');
     }
-
-    logger.info('MarketPlace Booking deleted successfully', { bookingId: booking._id });
-
     sendSuccess(res, booking, 'MarketPlace Booking deleted successfully');
   } catch (error) {
-    logger.error('Error deleting marketplace booking', { 
-      error: error.message, 
-      bookingId: req.params.id 
-    });
     throw error;
   }
 });
@@ -262,20 +228,8 @@ const getMarketPlaceBookingByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User marketplace bookings retrieved successfully', { 
-      userId: req.userId, 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, bookings, pagination, 'User marketplace bookings retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user marketplace bookings', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });

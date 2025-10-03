@@ -2,7 +2,6 @@ const TicketReplys = require('../models/ticket_replys.model');
 const Ticket = require('../models/ticket.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new ticket reply
@@ -23,15 +22,8 @@ const createTicketReply = asyncHandler(async (req, res) => {
 
     // Update the ticket's reply field with the latest reply
     await updateTicketReplyField(ticketReply.ticket_id, ticketReply.reply);
-
-    logger.info('Ticket reply created successfully', { 
-      ticketReplyId: ticketReply._id, 
-      ticket_replys_id: ticketReply.ticket_replys_id 
-    });
-
     sendSuccess(res, ticketReply, 'Ticket reply created successfully', 201);
   } catch (error) {
-    logger.error('Error creating ticket reply', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -50,13 +42,7 @@ const updateTicketReplyField = async (ticketId, reply) => {
         updated_at: new Date()
       }
     );
-    
-    logger.info('Ticket reply field updated', { ticketId, reply });
   } catch (error) {
-    logger.error('Error updating ticket reply field', { 
-      error: error.message, 
-      ticketId 
-    });
     throw error;
   }
 };
@@ -85,22 +71,12 @@ const updateAllTicketReplies = asyncHandler(async (req, res) => {
 
     // Update the ticket's reply field with the latest reply
     await updateTicketReplyField(ticket_id, latestReply.reply);
-
-    logger.info('All ticket replies updated successfully', { 
-      ticketId: ticket_id,
-      replyCount: replies.length
-    });
-
     sendSuccess(res, {
       message: 'All ticket replies updated successfully',
       latestReply: latestReply.reply,
       totalReplies: replies.length
     }, 'All ticket replies updated successfully');
   } catch (error) {
-    logger.error('Error updating all ticket replies', { 
-      error: error.message, 
-      ticketId: req.body.ticket_id 
-    });
     throw error;
   }
 });
@@ -177,16 +153,8 @@ const getAllTicketReplies = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Ticket replies retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, ticketReplies, pagination, 'Ticket replies retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving ticket replies', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -207,17 +175,8 @@ const getTicketReplyById = asyncHandler(async (req, res) => {
     if (!ticketReply) {
       return sendNotFound(res, 'Ticket reply not found');
     }
-
-    logger.info('Ticket reply retrieved successfully', { 
-      ticketReplyId: ticketReply._id 
-    });
-
     sendSuccess(res, ticketReply, 'Ticket reply retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving ticket reply', { 
-      error: error.message, 
-      ticketReplyId: req.params.id 
-    });
     throw error;
   }
 });
@@ -235,18 +194,8 @@ const getTicketReplyByAuth = asyncHandler(async (req, res) => {
     const ticketReplies = await TicketReplys.find({ 
       reply_by_id: userId 
     }).sort({ created_at: -1 });
-
-    logger.info('Ticket replies retrieved successfully for user', { 
-      userId, 
-      count: ticketReplies.length 
-    });
-
     sendSuccess(res, ticketReplies, 'Ticket replies retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving ticket replies by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -289,17 +238,8 @@ const updateTicketReply = asyncHandler(async (req, res) => {
     if (req.body.reply && req.body.reply !== originalReply.reply) {
       await updateTicketReplyField(ticketReply.ticket_id, ticketReply.reply);
     }
-
-    logger.info('Ticket reply updated successfully', { 
-      ticketReplyId: ticketReply._id 
-    });
-
     sendSuccess(res, ticketReply, 'Ticket reply updated successfully');
   } catch (error) {
-    logger.error('Error updating ticket reply', { 
-      error: error.message, 
-      ticketReplyId: req.params.id 
-    });
     throw error;
   }
 });
@@ -339,17 +279,8 @@ const deleteTicketReply = asyncHandler(async (req, res) => {
       // If no active replies, clear the ticket's reply field
       await updateTicketReplyField(ticketReply.ticket_id, '');
     }
-
-    logger.info('Ticket reply deleted successfully', { 
-      ticketReplyId: ticketReply._id 
-    });
-
     sendSuccess(res, ticketReply, 'Ticket reply deleted successfully');
   } catch (error) {
-    logger.error('Error deleting ticket reply', { 
-      error: error.message, 
-      ticketReplyId: req.params.id 
-    });
     throw error;
   }
 });
@@ -363,3 +294,4 @@ module.exports = {
   updateTicketReply,
   deleteTicketReply
 };
+

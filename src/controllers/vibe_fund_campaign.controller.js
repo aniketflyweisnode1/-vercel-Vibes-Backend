@@ -3,7 +3,6 @@ const BusinessCategory = require('../models/business_category.model');
 const CompaignType = require('../models/compaign_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new vibe fund campaign
@@ -26,15 +25,8 @@ const createVibeFundCampaign = asyncHandler(async (req, res) => {
     const campaignWithDetails = campaign.toObject();
     campaignWithDetails.business_category = businessCategory;
     campaignWithDetails.compaign_type = compaignType;
-
-    logger.info('Vibe Fund Campaign created successfully', { 
-      campaignId: campaign._id, 
-      vibe_fund_campaign_id: campaign.vibe_fund_campaign_id 
-    });
-
     sendSuccess(res, campaignWithDetails, 'Vibe Fund Campaign created successfully', 201);
   } catch (error) {
-    logger.error('Error creating vibe fund campaign', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -134,16 +126,8 @@ const getAllVibeFundCampaign = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Vibe Fund Campaigns retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, campaignsWithDetails, pagination, 'Vibe Fund Campaigns retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vibe fund campaigns', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -170,15 +154,8 @@ const getVibeFundCampaignById = asyncHandler(async (req, res) => {
     const campaignWithDetails = campaign.toObject();
     campaignWithDetails.business_category = businessCategory;
     campaignWithDetails.compaign_type = compaignType;
-
-    logger.info('Vibe Fund Campaign retrieved successfully', { campaignId: campaign._id });
-
     sendSuccess(res, campaignWithDetails, 'Vibe Fund Campaign retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving vibe fund campaign', { 
-      error: error.message, 
-      campaignId: req.params.id 
-    });
     throw error;
   }
 });
@@ -218,12 +195,8 @@ const updateVibeFundCampaign = asyncHandler(async (req, res) => {
     const campaignWithDetails = campaign.toObject();
     campaignWithDetails.business_category = businessCategory;
     campaignWithDetails.compaign_type = compaignType;
-
-    logger.info('Vibe Fund Campaign updated successfully', { campaignId: campaign._id });
-
     sendSuccess(res, campaignWithDetails, 'Vibe Fund Campaign updated successfully');
   } catch (error) {
-    logger.error('Error updating vibe fund campaign', { error: error.message });
     throw error;
   }
 });
@@ -250,15 +223,8 @@ const deleteVibeFundCampaign = asyncHandler(async (req, res) => {
     if (!campaign) {
       return sendNotFound(res, 'Vibe Fund Campaign not found');
     }
-
-    logger.info('Vibe Fund Campaign deleted successfully', { campaignId: campaign._id });
-
     sendSuccess(res, campaign, 'Vibe Fund Campaign deleted successfully');
   } catch (error) {
-    logger.error('Error deleting vibe fund campaign', { 
-      error: error.message, 
-      campaignId: req.params.id 
-    });
     throw error;
   }
 });
@@ -350,20 +316,8 @@ const getVibeFundCampaignByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User vibe fund campaigns retrieved successfully', { 
-      userId: req.userId, 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, campaignsWithDetails, pagination, 'User vibe fund campaigns retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user vibe fund campaigns', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -401,15 +355,8 @@ const changeApprovedStatus = asyncHandler(async (req, res) => {
     const campaignWithDetails = campaign.toObject();
     campaignWithDetails.business_category = businessCategory;
     campaignWithDetails.compaign_type = compaignType;
-
-    logger.info('Vibe Fund Campaign approved status changed successfully', { 
-      campaignId: campaign._id,
-      approved_status: campaign.approved_status 
-    });
-
     sendSuccess(res, campaignWithDetails, `Campaign ${approved_status ? 'approved' : 'rejected'} successfully`);
   } catch (error) {
-    logger.error('Error changing approved status', { error: error.message });
     throw error;
   }
 });

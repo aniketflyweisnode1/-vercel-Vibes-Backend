@@ -1,7 +1,6 @@
 const EventCategoryTags = require('../models/event_category_tags.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new event category tags
@@ -20,12 +19,8 @@ const createEventCategoryTags = asyncHandler(async (req, res) => {
     const eventCategoryTags = await EventCategoryTags.create(eventCategoryTagsData);
 
     // Note: Number references cannot be populated directly
-
-    logger.info('Event category tags created successfully', { eventCategoryTagsId: eventCategoryTags._id, event_category_tags_id: eventCategoryTags.event_category_tags_id });
-
     sendSuccess(res, eventCategoryTags, 'Event category tags created successfully', 201);
   } catch (error) {
-    logger.error('Error creating event category tags', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -90,16 +85,8 @@ const getAllEventCategoryTags = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Event category tags retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, eventCategoryTags, pagination, 'Event category tags retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event category tags', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -118,12 +105,8 @@ const getEventCategoryTagsById = asyncHandler(async (req, res) => {
     if (!eventCategoryTags) {
       return sendNotFound(res, 'Event category tags not found');
     }
-
-    logger.info('Event category tags retrieved successfully', { eventCategoryTagsId: eventCategoryTags._id });
-
     sendSuccess(res, eventCategoryTags, 'Event category tags retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event category tags', { error: error.message, eventCategoryTagsId: req.params.id });
     throw error;
   }
 });
@@ -156,12 +139,8 @@ const updateEventCategoryTags = asyncHandler(async (req, res) => {
     if (!eventCategoryTags) {
       return sendNotFound(res, 'Event category tags not found');
     }
-
-    logger.info('Event category tags updated successfully', { eventCategoryTagsId: eventCategoryTags._id });
-
     sendSuccess(res, eventCategoryTags, 'Event category tags updated successfully');
   } catch (error) {
-    logger.error('Error updating event category tags', { error: error.message, eventCategoryTagsId: req.params.id });
     throw error;
   }
 });
@@ -172,3 +151,4 @@ module.exports = {
   getEventCategoryTagsById,
   updateEventCategoryTags
 };
+

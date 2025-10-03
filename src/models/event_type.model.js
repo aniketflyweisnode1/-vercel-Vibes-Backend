@@ -45,8 +45,6 @@ const eventTypeSchema = new mongoose.Schema({
   versionKey: false
 });
 
-
 eventTypeSchema.plugin(AutoIncrement, { inc_field: 'event_type_id' });
-
 
 module.exports = mongoose.model('EventType', eventTypeSchema);

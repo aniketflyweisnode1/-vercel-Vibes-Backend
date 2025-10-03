@@ -1,7 +1,6 @@
 const Status = require('../models/status.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new status
@@ -17,15 +16,8 @@ const createStatus = asyncHandler(async (req, res) => {
 
     // Create status
     const status = await Status.create(statusData);
-
-    logger.info('Status created successfully', { 
-      statusId: status._id, 
-      status_id: status.status_id 
-    });
-
     sendSuccess(res, status, 'Status created successfully', 201);
   } catch (error) {
-    logger.error('Error creating status', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -92,16 +84,8 @@ const getAllStatuses = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Statuses retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, statuses, pagination, 'Statuses retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving statuses', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -120,12 +104,8 @@ const getStatusById = asyncHandler(async (req, res) => {
     if (!status) {
       return sendNotFound(res, 'Status not found');
     }
-
-    logger.info('Status retrieved successfully', { statusId: status._id });
-
     sendSuccess(res, status, 'Status retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving status', { error: error.message, statusId: req.params.id });
     throw error;
   }
 });
@@ -138,7 +118,7 @@ const getStatusById = asyncHandler(async (req, res) => {
 const updateStatus = asyncHandler(async (req, res) => {
   try {
     const { id } =  req.body;
-console.log(req.body);
+
     // Validate ID
     if (!id) {
       return sendError(res, 'Valid status ID is required', 400);
@@ -165,12 +145,8 @@ console.log(req.body);
     if (!status) {
       return sendNotFound(res, 'Status not found');
     }
-
-    logger.info('Status updated successfully', { statusId: status._id });
-
     sendSuccess(res, status, 'Status updated successfully');
   } catch (error) {
-    logger.error('Error updating status', { error: error.message, statusId: req.params.id });
     throw error;
   }
 });
@@ -213,15 +189,8 @@ const updateAllStatuses = asyncHandler(async (req, res) => {
     });
 
     const updatedStatuses = await Promise.all(updatePromises);
-
-    logger.info('All statuses updated successfully', { 
-      count: updatedStatuses.length,
-      updatedBy: req.userId 
-    });
-
     sendSuccess(res, updatedStatuses, 'All statuses updated successfully');
   } catch (error) {
-    logger.error('Error updating all statuses', { error: error.message, updatedBy: req.userId });
     throw error;
   }
 });
@@ -233,3 +202,4 @@ module.exports = {
   updateStatus,
   updateAllStatuses
 };
+

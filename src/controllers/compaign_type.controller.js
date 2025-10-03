@@ -1,7 +1,6 @@
 const CompaignType = require('../models/compaign_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new compaign type
@@ -16,15 +15,8 @@ const createCompaignType = asyncHandler(async (req, res) => {
     };
 
     const compaignType = await CompaignType.create(compaignTypeData);
-
-    logger.info('Compaign Type created successfully', { 
-      compaignTypeId: compaignType._id, 
-      compaign_type_id: compaignType.compaign_type_id 
-    });
-
     sendSuccess(res, compaignType, 'Compaign Type created successfully', 201);
   } catch (error) {
-    logger.error('Error creating compaign type', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -80,16 +72,8 @@ const getAllCompaignType = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Compaign Types retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, compaignTypes, pagination, 'Compaign Types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving compaign types', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -108,15 +92,8 @@ const getCompaignTypeById = asyncHandler(async (req, res) => {
     if (!compaignType) {
       return sendNotFound(res, 'Compaign Type not found');
     }
-
-    logger.info('Compaign Type retrieved successfully', { compaignTypeId: compaignType._id });
-
     sendSuccess(res, compaignType, 'Compaign Type retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving compaign type', { 
-      error: error.message, 
-      compaignTypeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -148,12 +125,8 @@ const updateCompaignType = asyncHandler(async (req, res) => {
     if (!compaignType) {
       return sendNotFound(res, 'Compaign Type not found');
     }
-
-    logger.info('Compaign Type updated successfully', { compaignTypeId: compaignType._id });
-
     sendSuccess(res, compaignType, 'Compaign Type updated successfully');
   } catch (error) {
-    logger.error('Error updating compaign type', { error: error.message });
     throw error;
   }
 });
@@ -180,15 +153,8 @@ const deleteCompaignType = asyncHandler(async (req, res) => {
     if (!compaignType) {
       return sendNotFound(res, 'Compaign Type not found');
     }
-
-    logger.info('Compaign Type deleted successfully', { compaignTypeId: compaignType._id });
-
     sendSuccess(res, compaignType, 'Compaign Type deleted successfully');
   } catch (error) {
-    logger.error('Error deleting compaign type', { 
-      error: error.message, 
-      compaignTypeId: req.params.id 
-    });
     throw error;
   }
 });

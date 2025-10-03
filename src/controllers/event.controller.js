@@ -1,7 +1,6 @@
 const Event = require('../models/event.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new event
@@ -20,12 +19,8 @@ const createEvent = asyncHandler(async (req, res) => {
     const event = await Event.create(eventData);
     
     // Note: Number references cannot be populated directly
-
-    logger.info('Event created successfully', { eventId: event._id, event_id: event.event_id });
-
     sendSuccess(res, event, 'Event created successfully', 201);
   } catch (error) {
-    logger.error('Error creating event', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -104,7 +99,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
 
     // Calculate pagination
     const skip = (page - 1) * limit;
-console.log(filter);
+
     // Execute query
     const [events, total] = await Promise.all([
       Event.find(filter)
@@ -127,16 +122,8 @@ console.log(filter);
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Events retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, events, pagination, 'Events retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving events', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -155,12 +142,8 @@ const getEventById = asyncHandler(async (req, res) => {
     if (!event) {
       return sendNotFound(res, 'Event not found');
     }
-
-    logger.info('Event retrieved successfully', { eventId: event._id });
-
     sendSuccess(res, event, 'Event retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event', { error: error.message, eventId: req.params.id });
     throw error;
   }
 });
@@ -193,12 +176,8 @@ const updateEvent = asyncHandler(async (req, res) => {
     if (!event) {
       return sendNotFound(res, 'Event not found');
     }
-
-    logger.info('Event updated successfully', { eventId: event._id });
-
     sendSuccess(res, event, 'Event updated successfully');
   } catch (error) {
-    logger.error('Error updating event', { error: error.message, eventId: req.params.id });
     throw error;
   }
 });
@@ -225,12 +204,8 @@ const deleteEvent = asyncHandler(async (req, res) => {
     if (!event) {
       return sendNotFound(res, 'Event not found');
     }
-
-    logger.info('Event deleted successfully', { eventId: event._id });
-
     sendSuccess(res, event, 'Event deleted successfully');
   } catch (error) {
-    logger.error('Error deleting event', { error: error.message, eventId: req.params.id });
     throw error;
   }
 });
@@ -335,17 +310,8 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User events retrieved successfully', { 
-      userId: req.userId,
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, events, pagination, 'User events retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user events', { error: error.message, userId: req.userId });
     throw error;
   }
 });
@@ -358,3 +324,4 @@ module.exports = {
   deleteEvent,
   getEventsByAuth
 };
+

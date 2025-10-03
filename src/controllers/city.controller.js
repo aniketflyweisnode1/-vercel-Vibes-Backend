@@ -1,7 +1,6 @@
 const City = require('../models/city.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new city
@@ -20,12 +19,8 @@ const createCity = asyncHandler(async (req, res) => {
     const city = await City.create(cityData);
 
     // Note: Number references cannot be populated directly
-
-    logger.info('City created successfully', { cityId: city._id, city_id: city.city_id });
-
     sendSuccess(res, city, 'City created successfully', 201);
   } catch (error) {
-    logger.error('Error creating city', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -102,16 +97,8 @@ const getAllCities = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Cities retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, cities, pagination, 'Cities retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving cities', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -130,12 +117,8 @@ const getCityById = asyncHandler(async (req, res) => {
     if (!city) {
       return sendNotFound(res, 'City not found');
     }
-
-    logger.info('City retrieved successfully', { cityId: city._id });
-
     sendSuccess(res, city, 'City retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving city', { error: error.message, cityId: req.params.id });
     throw error;
   }
 });
@@ -168,12 +151,8 @@ const updateCity = asyncHandler(async (req, res) => {
     if (!city) {
       return sendNotFound(res, 'City not found');
     }
-
-    logger.info('City updated successfully', { cityId: city.city_id });
-
     sendSuccess(res, city, 'City updated successfully');
   } catch (error) {
-    logger.error('Error updating city', { error: error.message, cityId: req.params.id });
     throw error;
   }
 });
@@ -189,15 +168,8 @@ const getCitiesByCountryId = asyncHandler(async (req, res) => {
 
     const cities = await City.find({ country_id: parseInt(countryId), status: true })
       .sort({ name: 1 });
-
-    logger.info('Cities by country retrieved successfully', { 
-      countryId, 
-      count: cities.length 
-    });
-
     sendSuccess(res, cities, 'Cities by country retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving cities by country', { error: error.message, countryId: req.params.countryId });
     throw error;
   }
 });
@@ -213,15 +185,8 @@ const getCitiesByStateId = asyncHandler(async (req, res) => {
 
     const cities = await City.find({ state_id: parseInt(stateId), status: true })
       .sort({ name: 1 });
-
-    logger.info('Cities by state retrieved successfully', { 
-      stateId, 
-      count: cities.length 
-    });
-
     sendSuccess(res, cities, 'Cities by state retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving cities by state', { error: error.message, stateId: req.params.stateId });
     throw error;
   }
 });
@@ -234,3 +199,4 @@ module.exports = {
   getCitiesByCountryId,
   getCitiesByStateId
 };
+

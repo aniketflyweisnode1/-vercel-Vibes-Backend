@@ -1,7 +1,6 @@
 const ShareEvent = require('../models/share_event.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new share event
@@ -16,12 +15,8 @@ const createShareEvent = asyncHandler(async (req, res) => {
     };
 
     const shareEvent = await ShareEvent.create(shareEventData);
-
-    logger.info('Share Event created successfully', { shareEventId: shareEvent._id, share_event_id: shareEvent.share_event_id });
-
     sendSuccess(res, shareEvent, 'Share Event created successfully', 201);
   } catch (error) {
-    logger.error('Error creating share event', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -82,12 +77,8 @@ const getAllShareEvent = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Share Event retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, shareEvent, pagination, 'Share Event retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving share event', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -106,12 +97,8 @@ const getShareEventById = asyncHandler(async (req, res) => {
     if (!shareEvent) {
       return sendNotFound(res, 'Share Event not found');
     }
-
-    logger.info('Share Event retrieved successfully', { shareEventId: shareEvent._id });
-
     sendSuccess(res, shareEvent, 'Share Event retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving share event', { error: error.message, shareEventId: req.params.id });
     throw error;
   }
 });
@@ -143,12 +130,8 @@ const updateShareEvent = asyncHandler(async (req, res) => {
     if (!shareEvent) {
       return sendNotFound(res, 'Share Event not found');
     }
-
-    logger.info('Share Event updated successfully', { shareEventId: shareEvent._id });
-
     sendSuccess(res, shareEvent, 'Share Event updated successfully');
   } catch (error) {
-    logger.error('Error updating share event', { error: error.message });
     throw error;
   }
 });
@@ -175,12 +158,8 @@ const deleteShareEvent = asyncHandler(async (req, res) => {
     if (!shareEvent) {
       return sendNotFound(res, 'Share Event not found');
     }
-
-    logger.info('Share Event deleted successfully', { shareEventId: shareEvent._id });
-
     sendSuccess(res, shareEvent, 'Share Event deleted successfully');
   } catch (error) {
-    logger.error('Error deleting share event', { error: error.message, shareEventId: req.params.id });
     throw error;
   }
 });
@@ -243,12 +222,8 @@ const getShareEventByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User share event retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, shareEvent, pagination, 'User share event retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user share event', { error: error.message, userId: req.userId });
     throw error;
   }
 });

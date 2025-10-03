@@ -1,7 +1,6 @@
 const EventAmenities = require('../models/event_amenities.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new event amenity
@@ -17,15 +16,8 @@ const createEventAmenity = asyncHandler(async (req, res) => {
 
     // Create event amenity
     const eventAmenity = await EventAmenities.create(eventAmenityData);
-
-    logger.info('Event amenity created successfully', { 
-      eventAmenityId: eventAmenity._id, 
-      event_amenities_id: eventAmenity.event_amenities_id 
-    });
-
     sendSuccess(res, eventAmenity, 'Event amenity created successfully', 201);
   } catch (error) {
-    logger.error('Error creating event amenity', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -91,16 +83,8 @@ const getAllEventAmenities = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Event amenities retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, eventAmenities, pagination, 'Event amenities retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event amenities', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -119,12 +103,8 @@ const getEventAmenityById = asyncHandler(async (req, res) => {
     if (!eventAmenity) {
       return sendNotFound(res, 'Event amenity not found');
     }
-
-    logger.info('Event amenity retrieved successfully', { eventAmenityId: eventAmenity._id });
-
     sendSuccess(res, eventAmenity, 'Event amenity retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event amenity', { error: error.message, eventAmenityId: req.params.id });
     throw error;
   }
 });
@@ -164,12 +144,8 @@ const updateEventAmenity = asyncHandler(async (req, res) => {
     if (!eventAmenity) {
       return sendNotFound(res, 'Event amenity not found');
     }
-
-    logger.info('Event amenity updated successfully', { eventAmenityId: eventAmenity._id });
-
     sendSuccess(res, eventAmenity, 'Event amenity updated successfully');
   } catch (error) {
-    logger.error('Error updating event amenity', { error: error.message, eventAmenityId: req.params.id });
     throw error;
   }
 });
@@ -180,3 +156,4 @@ module.exports = {
   getEventAmenityById,
   updateEventAmenity
 };
+

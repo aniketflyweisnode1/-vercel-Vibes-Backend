@@ -1,7 +1,6 @@
 const Entertainment = require('../models/entertainment.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new entertainment
@@ -16,12 +15,8 @@ const createEntertainment = asyncHandler(async (req, res) => {
     };
 
     const entertainment = await Entertainment.create(entertainmentData);
-
-    logger.info('Entertainment created successfully', { entertainmentId: entertainment._id, entertainment_id: entertainment.entertainment_id });
-
     sendSuccess(res, entertainment, 'Entertainment created successfully', 201);
   } catch (error) {
-    logger.error('Error creating entertainment', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -81,12 +76,8 @@ const getAllEntertainment = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Entertainment retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, entertainment, pagination, 'Entertainment retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving entertainment', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -105,12 +96,8 @@ const getEntertainmentById = asyncHandler(async (req, res) => {
     if (!entertainment) {
       return sendNotFound(res, 'Entertainment not found');
     }
-
-    logger.info('Entertainment retrieved successfully', { entertainmentId: entertainment._id });
-
     sendSuccess(res, entertainment, 'Entertainment retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving entertainment', { error: error.message, entertainmentId: req.params.id });
     throw error;
   }
 });
@@ -142,12 +129,8 @@ const updateEntertainment = asyncHandler(async (req, res) => {
     if (!entertainment) {
       return sendNotFound(res, 'Entertainment not found');
     }
-
-    logger.info('Entertainment updated successfully', { entertainmentId: entertainment._id });
-
     sendSuccess(res, entertainment, 'Entertainment updated successfully');
   } catch (error) {
-    logger.error('Error updating entertainment', { error: error.message });
     throw error;
   }
 });
@@ -174,12 +157,8 @@ const deleteEntertainment = asyncHandler(async (req, res) => {
     if (!entertainment) {
       return sendNotFound(res, 'Entertainment not found');
     }
-
-    logger.info('Entertainment deleted successfully', { entertainmentId: entertainment._id });
-
     sendSuccess(res, entertainment, 'Entertainment deleted successfully');
   } catch (error) {
-    logger.error('Error deleting entertainment', { error: error.message, entertainmentId: req.params.id });
     throw error;
   }
 });
@@ -241,12 +220,8 @@ const getEntertainmentByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User entertainment retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, entertainment, pagination, 'User entertainment retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user entertainment', { error: error.message, userId: req.userId });
     throw error;
   }
 });

@@ -1,7 +1,6 @@
 const Wallet = require('../models/wallet.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new wallet
@@ -20,11 +19,9 @@ const createWallet = asyncHandler(async (req, res) => {
     // Create wallet
     const wallet = await Wallet.create(walletData);
 
-    logger.info('Wallet created successfully', { walletId: wallet._id, wallet_id: wallet.wallet_id });
-
     sendSuccess(res, wallet, 'Wallet created successfully', 201);
   } catch (error) {
-    logger.error('Error creating wallet', { error: error.message, stack: error.stack });
+    
     throw error;
   }
 });
@@ -96,15 +93,9 @@ const getAllWallets = asyncHandler(async (req, res) => {
       hasPrevPage
     };
 
-    logger.info('Wallets retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, wallets, pagination, 'Wallets retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving wallets', { error: error.message, stack: error.stack });
+   
     throw error;
   }
 });
@@ -124,11 +115,9 @@ const getWalletById = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Wallet not found');
     }
 
-    logger.info('Wallet retrieved successfully', { walletId: wallet._id });
-
     sendSuccess(res, wallet, 'Wallet retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving wallet', { error: error.message, walletId: req.params.id });
+    
     throw error;
   }
 });
@@ -148,11 +137,9 @@ const getWalletByAuth = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Wallet not found for this user');
     }
 
-    logger.info('Wallet retrieved successfully for user', { userId, walletId: wallet._id });
-
     sendSuccess(res, wallet, 'Wallet retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving wallet by auth', { error: error.message, userId: req.userId });
+    
     throw error;
   }
 });
@@ -186,11 +173,8 @@ const updateWallet = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Wallet not found');
     }
 
-    logger.info('Wallet updated successfully', { walletId: wallet._id });
-
     sendSuccess(res, wallet, 'Wallet updated successfully');
   } catch (error) {
-    logger.error('Error updating wallet', { error: error.message, walletId: req.params.id });
     throw error;
   }
 });
@@ -224,11 +208,8 @@ const updateWalletByAuth = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Wallet not found for this user');
     }
 
-    logger.info('Wallet updated successfully by auth', { userId, walletId: wallet._id });
-
     sendSuccess(res, wallet, 'Wallet updated successfully');
   } catch (error) {
-    logger.error('Error updating wallet by auth', { error: error.message, userId: req.userId });
     throw error;
   }
 });
@@ -256,11 +237,8 @@ const deleteWallet = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Wallet not found');
     }
 
-    logger.info('Wallet deleted successfully', { walletId: wallet._id });
-
     sendSuccess(res, wallet, 'Wallet deleted successfully');
   } catch (error) {
-    logger.error('Error deleting wallet', { error: error.message, walletId: req.params.id });
     throw error;
   }
 });
@@ -281,11 +259,8 @@ const createWalletForUser = async (userId, createdBy = null) => {
 
     const wallet = await Wallet.create(walletData);
     
-    logger.info('Wallet created for user', { userId, walletId: wallet._id });
-    
     return wallet;
   } catch (error) {
-    logger.error('Error creating wallet for user', { error: error.message, userId });
     throw error;
   }
 };
@@ -300,3 +275,4 @@ module.exports = {
   deleteWallet,
   createWalletForUser
 };
+

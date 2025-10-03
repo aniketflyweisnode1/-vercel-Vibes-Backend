@@ -1,7 +1,6 @@
 const Messages = require('../models/messages.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new message
@@ -18,15 +17,8 @@ const createMessage = asyncHandler(async (req, res) => {
 
     // Create message
     const message = await Messages.create(messageData);
-
-    logger.info('Message created successfully', { 
-      messageId: message._id, 
-      messages_id: message.messages_id 
-    });
-
     sendSuccess(res, message, 'Message created successfully', 201);
   } catch (error) {
-    logger.error('Error creating message', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -92,16 +84,8 @@ const getAllMessages = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Messages retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, messages, pagination, 'Messages retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving messages', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -122,17 +106,8 @@ const getMessageById = asyncHandler(async (req, res) => {
     if (!message) {
       return sendNotFound(res, 'Message not found');
     }
-
-    logger.info('Message retrieved successfully', { 
-      messageId: message._id 
-    });
-
     sendSuccess(res, message, 'Message retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving message', { 
-      error: error.message, 
-      messageId: req.params.id 
-    });
     throw error;
   }
 });
@@ -150,18 +125,8 @@ const getMessageByAuth = asyncHandler(async (req, res) => {
     const messages = await Messages.find({ 
       created_by: userId 
     }).sort({ created_at: -1 });
-
-    logger.info('Messages retrieved successfully for user', { 
-      userId, 
-      count: messages.length 
-    });
-
     sendSuccess(res, messages, 'Messages retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving messages by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -194,17 +159,8 @@ const updateMessage = asyncHandler(async (req, res) => {
     if (!message) {
       return sendNotFound(res, 'Message not found');
     }
-
-    logger.info('Message updated successfully', { 
-      messageId: message._id 
-    });
-
     sendSuccess(res, message, 'Message updated successfully');
   } catch (error) {
-    logger.error('Error updating message', { 
-      error: error.message, 
-      messageId: req.params.id 
-    });
     throw error;
   }
 });
@@ -231,17 +187,8 @@ const deleteMessage = asyncHandler(async (req, res) => {
     if (!message) {
       return sendNotFound(res, 'Message not found');
     }
-
-    logger.info('Message deleted successfully', { 
-      messageId: message._id 
-    });
-
     sendSuccess(res, message, 'Message deleted successfully');
   } catch (error) {
-    logger.error('Error deleting message', { 
-      error: error.message, 
-      messageId: req.params.id 
-    });
     throw error;
   }
 });
@@ -254,3 +201,4 @@ module.exports = {
   updateMessage,
   deleteMessage
 };
+

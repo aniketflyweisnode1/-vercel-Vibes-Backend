@@ -1,7 +1,6 @@
 const BankBranchName = require('../models/bank_branch_name.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new bank branch name
@@ -18,15 +17,8 @@ const createBankBranchName = asyncHandler(async (req, res) => {
 
     // Create bank branch name
     const bankBranchName = await BankBranchName.create(bankBranchNameData);
-
-    logger.info('Bank branch name created successfully', { 
-      bankBranchNameId: bankBranchName._id, 
-      bank_branch_name_id: bankBranchName.bank_branch_name_id 
-    });
-
     sendSuccess(res, bankBranchName, 'Bank branch name created successfully', 201);
   } catch (error) {
-    logger.error('Error creating bank branch name', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -98,16 +90,8 @@ const getAllBankBranchNames = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Bank branch names retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, bankBranchNames, pagination, 'Bank branch names retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving bank branch names', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -126,12 +110,8 @@ const getBankBranchNameById = asyncHandler(async (req, res) => {
     if (!bankBranchName) {
       return sendNotFound(res, 'Bank branch name not found');
     }
-
-    logger.info('Bank branch name retrieved successfully', { bankBranchNameId: bankBranchName._id });
-
     sendSuccess(res, bankBranchName, 'Bank branch name retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving bank branch name', { error: error.message, bankBranchNameId: req.params.id });
     throw error;
   }
 });
@@ -164,12 +144,8 @@ const updateBankBranchName = asyncHandler(async (req, res) => {
     if (!bankBranchName) {
       return sendNotFound(res, 'Bank branch name not found');
     }
-
-    logger.info('Bank branch name updated successfully', { bankBranchNameId: bankBranchName._id });
-
     sendSuccess(res, bankBranchName, 'Bank branch name updated successfully');
   } catch (error) {
-    logger.error('Error updating bank branch name', { error: error.message, bankBranchNameId: req.params.id });
     throw error;
   }
 });
@@ -202,18 +178,8 @@ const updateBankBranchNameByIdBody = asyncHandler(async (req, res) => {
     if (!bankBranchName) {
       return sendNotFound(res, 'Bank branch name not found');
     }
-
-    logger.info('Bank branch name updated successfully by ID in body', { 
-      bankBranchNameId: bankBranchName._id, 
-      updatedBy: req.userId 
-    });
-
     sendSuccess(res, bankBranchName, 'Bank branch name updated successfully');
   } catch (error) {
-    logger.error('Error updating bank branch name by ID in body', { 
-      error: error.message, 
-      bankBranchNameId: req.body.id 
-    });
     throw error;
   }
 });
@@ -240,12 +206,8 @@ const deleteBankBranchName = asyncHandler(async (req, res) => {
     if (!bankBranchName) {
       return sendNotFound(res, 'Bank branch name not found');
     }
-
-    logger.info('Bank branch name deleted successfully', { bankBranchNameId: bankBranchName._id });
-
     sendSuccess(res, bankBranchName, 'Bank branch name deleted successfully');
   } catch (error) {
-    logger.error('Error deleting bank branch name', { error: error.message, bankBranchNameId: req.params.id });
     throw error;
   }
 });
@@ -319,20 +281,8 @@ const getBankBranchNamesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Bank branch names retrieved by auth successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit),
-      userId: req.userId
-    });
-
     sendPaginated(res, bankBranchNames, pagination, 'Bank branch names retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving bank branch names by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -346,3 +296,4 @@ module.exports = {
   deleteBankBranchName,
   getBankBranchNamesByAuth
 };
+

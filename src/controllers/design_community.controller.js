@@ -1,7 +1,6 @@
 const DesignCommunity = require('../models/design_community.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new design community
@@ -18,15 +17,8 @@ const createDesignCommunity = asyncHandler(async (req, res) => {
 
     // Create design community
     const designCommunity = await DesignCommunity.create(designCommunityData);
-    
-    logger.info('Design Community created successfully', { 
-      designCommunityId: designCommunity._id, 
-      design_community_id: designCommunity.design_community_id 
-    });
-
     sendSuccess(res, designCommunity, 'Design Community created successfully', 201);
   } catch (error) {
-    logger.error('Error creating design community', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -70,9 +62,6 @@ const getAllDesignCommunities = asyncHandler(async (req, res) => {
       filter.event_id = parseInt(event_id);
     }
 
-  
-
-   
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
@@ -101,16 +90,8 @@ const getAllDesignCommunities = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Design Communities retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, designCommunities, pagination, 'Design Communities retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving design communities', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -129,12 +110,8 @@ const getDesignCommunityById = asyncHandler(async (req, res) => {
     if (!designCommunity) {
       return sendNotFound(res, 'Design Community not found');
     }
-
-    logger.info('Design Community retrieved successfully', { designCommunityId: designCommunity._id });
-
     sendSuccess(res, designCommunity, 'Design Community retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving design community', { error: error.message, designCommunityId: req.params.id });
     throw error;
   }
 });
@@ -167,12 +144,8 @@ const updateDesignCommunity = asyncHandler(async (req, res) => {
     if (!designCommunity) {
       return sendNotFound(res, 'Design Community not found');
     }
-
-    logger.info('Design Community updated successfully', { designCommunityId: designCommunity._id });
-
     sendSuccess(res, designCommunity, 'Design Community updated successfully');
   } catch (error) {
-    logger.error('Error updating design community', { error: error.message, designCommunityId: req.params.id });
     throw error;
   }
 });
@@ -199,12 +172,8 @@ const deleteDesignCommunity = asyncHandler(async (req, res) => {
     if (!designCommunity) {
       return sendNotFound(res, 'Design Community not found');
     }
-
-    logger.info('Design Community deleted successfully', { designCommunityId: designCommunity._id });
-
     sendSuccess(res, designCommunity, 'Design Community deleted successfully');
   } catch (error) {
-    logger.error('Error deleting design community', { error: error.message, designCommunityId: req.params.id });
     throw error;
   }
 });
@@ -289,17 +258,8 @@ const getDesignCommunitiesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User design communities retrieved successfully', { 
-      userId: req.userId,
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, designCommunities, pagination, 'User design communities retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user design communities', { error: error.message, userId: req.userId });
     throw error;
   }
 });
@@ -312,3 +272,4 @@ module.exports = {
   deleteDesignCommunity,
   getDesignCommunitiesByAuth
 };
+

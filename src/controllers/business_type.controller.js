@@ -1,7 +1,6 @@
 const BusinessType = require('../models/business_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new business type
@@ -18,15 +17,8 @@ const createBusinessType = asyncHandler(async (req, res) => {
 
     // Create business type
     const businessType = await BusinessType.create(businessTypeData);
-
-    logger.info('Business type created successfully', { 
-      businessTypeId: businessType._id, 
-      business_type_id: businessType.business_type_id 
-    });
-
     sendSuccess(res, businessType, 'Business type created successfully', 201);
   } catch (error) {
-    logger.error('Error creating business type', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -91,16 +83,8 @@ const getAllBusinessTypes = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Business types retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, businessTypes, pagination, 'Business types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving business types', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -119,12 +103,8 @@ const getBusinessTypeById = asyncHandler(async (req, res) => {
     if (!businessType) {
       return sendNotFound(res, 'Business type not found');
     }
-
-    logger.info('Business type retrieved successfully', { businessTypeId: businessType._id });
-
     sendSuccess(res, businessType, 'Business type retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving business type', { error: error.message, businessTypeId: req.params.id });
     throw error;
   }
 });
@@ -157,12 +137,8 @@ const updateBusinessType = asyncHandler(async (req, res) => {
     if (!businessType) {
       return sendNotFound(res, 'Business type not found');
     }
-
-    logger.info('Business type updated successfully', { businessTypeId: businessType._id });
-
     sendSuccess(res, businessType, 'Business type updated successfully');
   } catch (error) {
-    logger.error('Error updating business type', { error: error.message, businessTypeId: req.params.id });
     throw error;
   }
 });
@@ -195,18 +171,8 @@ const updateBusinessTypeByIdBody = asyncHandler(async (req, res) => {
     if (!businessType) {
       return sendNotFound(res, 'Business type not found');
     }
-
-    logger.info('Business type updated successfully by ID in body', { 
-      businessTypeId: businessType._id, 
-      updatedBy: req.userId 
-    });
-
     sendSuccess(res, businessType, 'Business type updated successfully');
   } catch (error) {
-    logger.error('Error updating business type by ID in body', { 
-      error: error.message, 
-      businessTypeId: req.body.id 
-    });
     throw error;
   }
 });
@@ -233,12 +199,8 @@ const deleteBusinessType = asyncHandler(async (req, res) => {
     if (!businessType) {
       return sendNotFound(res, 'Business type not found');
     }
-
-    logger.info('Business type deleted successfully', { businessTypeId: businessType._id });
-
     sendSuccess(res, businessType, 'Business type deleted successfully');
   } catch (error) {
-    logger.error('Error deleting business type', { error: error.message, businessTypeId: req.params.id });
     throw error;
   }
 });
@@ -305,20 +267,8 @@ const getBusinessTypesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Business types retrieved by auth successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit),
-      userId: req.userId
-    });
-
     sendPaginated(res, businessTypes, pagination, 'Business types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving business types by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -332,3 +282,4 @@ module.exports = {
   deleteBusinessType,
   getBusinessTypesByAuth
 };
+

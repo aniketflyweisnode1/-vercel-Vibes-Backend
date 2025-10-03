@@ -1,7 +1,6 @@
 const NotificationType = require('../models/notification_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new notification type
@@ -18,15 +17,8 @@ const createNotificationType = asyncHandler(async (req, res) => {
 
     // Create notification type
     const notificationType = await NotificationType.create(notificationTypeData);
-
-    logger.info('Notification type created successfully', { 
-      notificationTypeId: notificationType._id, 
-      notification_type_id: notificationType.notification_type_id 
-    });
-
     sendSuccess(res, notificationType, 'Notification type created successfully', 201);
   } catch (error) {
-    logger.error('Error creating notification type', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -92,16 +84,8 @@ const getAllNotificationTypes = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Notification types retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, notificationTypes, pagination, 'Notification types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving notification types', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -122,17 +106,8 @@ const getNotificationTypeById = asyncHandler(async (req, res) => {
     if (!notificationType) {
       return sendNotFound(res, 'Notification type not found');
     }
-
-    logger.info('Notification type retrieved successfully', { 
-      notificationTypeId: notificationType._id 
-    });
-
     sendSuccess(res, notificationType, 'Notification type retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving notification type', { 
-      error: error.message, 
-      notificationTypeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -150,18 +125,8 @@ const getNotificationTypeByAuth = asyncHandler(async (req, res) => {
     const notificationTypes = await NotificationType.find({ 
       created_by: userId 
     }).sort({ created_at: -1 });
-
-    logger.info('Notification types retrieved successfully for user', { 
-      userId, 
-      count: notificationTypes.length 
-    });
-
     sendSuccess(res, notificationTypes, 'Notification types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving notification types by auth', { 
-      error: error.message, 
-      userId: req.userId 
-    });
     throw error;
   }
 });
@@ -194,17 +159,8 @@ const updateNotificationType = asyncHandler(async (req, res) => {
     if (!notificationType) {
       return sendNotFound(res, 'Notification type not found');
     }
-
-    logger.info('Notification type updated successfully', { 
-      notificationTypeId: notificationType._id 
-    });
-
     sendSuccess(res, notificationType, 'Notification type updated successfully');
   } catch (error) {
-    logger.error('Error updating notification type', { 
-      error: error.message, 
-      notificationTypeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -231,17 +187,8 @@ const deleteNotificationType = asyncHandler(async (req, res) => {
     if (!notificationType) {
       return sendNotFound(res, 'Notification type not found');
     }
-
-    logger.info('Notification type deleted successfully', { 
-      notificationTypeId: notificationType._id 
-    });
-
     sendSuccess(res, notificationType, 'Notification type deleted successfully');
   } catch (error) {
-    logger.error('Error deleting notification type', { 
-      error: error.message, 
-      notificationTypeId: req.params.id 
-    });
     throw error;
   }
 });
@@ -254,3 +201,4 @@ module.exports = {
   updateNotificationType,
   deleteNotificationType
 };
+

@@ -1,7 +1,6 @@
 const Decorations = require('../models/decorations.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new decorations
@@ -16,12 +15,8 @@ const createDecorations = asyncHandler(async (req, res) => {
     };
 
     const decorations = await Decorations.create(decorationsData);
-
-    logger.info('Decorations created successfully', { decorationsId: decorations._id, decorations_id: decorations.decorations_id });
-
     sendSuccess(res, decorations, 'Decorations created successfully', 201);
   } catch (error) {
-    logger.error('Error creating decorations', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -81,12 +76,8 @@ const getAllDecorations = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Decorations retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, decorations, pagination, 'Decorations retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving decorations', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -105,12 +96,8 @@ const getDecorationsById = asyncHandler(async (req, res) => {
     if (!decorations) {
       return sendNotFound(res, 'Decorations not found');
     }
-
-    logger.info('Decorations retrieved successfully', { decorationsId: decorations._id });
-
     sendSuccess(res, decorations, 'Decorations retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving decorations', { error: error.message, decorationsId: req.params.id });
     throw error;
   }
 });
@@ -142,12 +129,8 @@ const updateDecorations = asyncHandler(async (req, res) => {
     if (!decorations) {
       return sendNotFound(res, 'Decorations not found');
     }
-
-    logger.info('Decorations updated successfully', { decorationsId: decorations._id });
-
     sendSuccess(res, decorations, 'Decorations updated successfully');
   } catch (error) {
-    logger.error('Error updating decorations', { error: error.message });
     throw error;
   }
 });
@@ -174,12 +157,8 @@ const deleteDecorations = asyncHandler(async (req, res) => {
     if (!decorations) {
       return sendNotFound(res, 'Decorations not found');
     }
-
-    logger.info('Decorations deleted successfully', { decorationsId: decorations._id });
-
     sendSuccess(res, decorations, 'Decorations deleted successfully');
   } catch (error) {
-    logger.error('Error deleting decorations', { error: error.message, decorationsId: req.params.id });
     throw error;
   }
 });
@@ -241,12 +220,8 @@ const getDecorationsByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User decorations retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, decorations, pagination, 'User decorations retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user decorations', { error: error.message, userId: req.userId });
     throw error;
   }
 });

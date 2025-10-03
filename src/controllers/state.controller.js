@@ -1,7 +1,6 @@
 const State = require('../models/state.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new state
@@ -21,12 +20,8 @@ const createState = asyncHandler(async (req, res) => {
 
     // Note: Number references cannot be populated directly
     // You would need to manually fetch related data if needed
-
-    logger.info('State created successfully', { stateId: state._id, state_id: state.state_id });
-
     sendSuccess(res, state, 'State created successfully', 201);
   } catch (error) {
-    logger.error('Error creating state', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -97,16 +92,8 @@ const getAllStates = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('States retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, states, pagination, 'States retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving states', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -125,12 +112,8 @@ const getStateById = asyncHandler(async (req, res) => {
     if (!state) {
       return sendNotFound(res, 'State not found');
     }
-
-    logger.info('State retrieved successfully', { stateId: state._id });
-
     sendSuccess(res, state, 'State retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving state', { error: error.message, stateId: req.params.id });
     throw error;
   }
 });
@@ -163,12 +146,8 @@ const updateState = asyncHandler(async (req, res) => {
     if (!state) {
       return sendNotFound(res, 'State not found');
     }
-
-    logger.info('State updated successfully', { stateId: state._id });
-
     sendSuccess(res, state, 'State updated successfully');
   } catch (error) {
-    logger.error('Error updating state', { error: error.message, stateId: req.params.id });
     throw error;
   }
 });
@@ -184,15 +163,8 @@ const getStatesByCountryId = asyncHandler(async (req, res) => {
 
     const states = await State.find({ country_id: parseInt(countryId), status: true })
       .sort({ name: 1 });
-
-    logger.info('States by country retrieved successfully', { 
-      countryId, 
-      count: states.length 
-    });
-
     sendSuccess(res, states, 'States by country retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving states by country', { error: error.message, countryId: req.params.countryId });
     throw error;
   }
 });
@@ -204,3 +176,4 @@ module.exports = {
   updateState,
   getStatesByCountryId
 };
+

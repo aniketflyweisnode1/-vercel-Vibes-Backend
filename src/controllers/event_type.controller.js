@@ -1,7 +1,6 @@
 const EventType = require('../models/event_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new event type
@@ -22,12 +21,8 @@ const createEventType = asyncHandler(async (req, res) => {
     const eventType = await EventType.create(eventTypeData);
 
     // Note: Number references cannot be populated directly
-
-    logger.info('Event type created successfully', { eventTypeId: eventType._id, event_type_id: eventType.event_type_id });
-
     sendSuccess(res, eventType, 'Event type created successfully', 201);
   } catch (error) {
-    logger.error('Error creating event type', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -93,16 +88,8 @@ const getAllEventTypes = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Event types retrieved successfully', { 
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, eventTypes, pagination, 'Event types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event types', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -121,12 +108,8 @@ const getEventTypeById = asyncHandler(async (req, res) => {
     if (!eventType) {
       return sendNotFound(res, 'Event type not found');
     }
-
-    logger.info('Event type retrieved successfully', { eventTypeId: eventType._id });
-
     sendSuccess(res, eventType, 'Event type retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving event type', { error: error.message, eventTypeId: req.params.id });
     throw error;
   }
 });
@@ -161,12 +144,8 @@ const updateEventType = asyncHandler(async (req, res) => {
     if (!eventType) {
       return sendNotFound(res, 'Event type not found');
     }
-
-    logger.info('Event type updated successfully', { eventTypeId: eventType._id });
-
     sendSuccess(res, eventType, 'Event type updated successfully');
   } catch (error) {
-    logger.error('Error updating event type', { error: error.message, eventTypeId: req.params.id });
     throw error;
   }
 });
@@ -195,12 +174,8 @@ const deleteEventType = asyncHandler(async (req, res) => {
     if (!eventType) {
       return sendNotFound(res, 'Event type not found');
     }
-
-    logger.info('Event type deleted successfully', { eventTypeId: eventType._id });
-
     sendSuccess(res, eventType, 'Event type deleted successfully');
   } catch (error) {
-    logger.error('Error deleting event type', { error: error.message, eventTypeId: req.params.id });
     throw error;
   }
 });
@@ -268,17 +243,8 @@ const getEventTypesByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User event types retrieved successfully', { 
-      userId: req.userId,
-      total, 
-      page: parseInt(page), 
-      limit: parseInt(limit) 
-    });
-
     sendPaginated(res, eventTypes, pagination, 'User event types retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user event types', { error: error.message, userId: req.userId });
     throw error;
   }
 });
@@ -313,12 +279,8 @@ const updateEventTypeByIdBody = asyncHandler(async (req, res) => {
     if (!eventType) {
       return sendNotFound(res, 'Event type not found');
     }
-
-    logger.info('Event type updated successfully by ID in body', { eventTypeId: eventType._id, updatedBy: req.userId });
-
     sendSuccess(res, eventType, 'Event type updated successfully');
   } catch (error) {
-    logger.error('Error updating event type by ID in body', { error: error.message, eventTypeId: req.body.id });
     throw error;
   }
 });
@@ -332,3 +294,4 @@ module.exports = {
   deleteEventType,
   getEventTypesByAuth
 };
+

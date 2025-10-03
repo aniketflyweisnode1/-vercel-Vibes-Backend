@@ -1,7 +1,6 @@
 const Category = require('../models/category.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const logger = require('../../utils/logger');
 
 /**
  * Create a new category
@@ -16,12 +15,8 @@ const createCategory = asyncHandler(async (req, res) => {
     };
 
     const category = await Category.create(categoryData);
-
-    logger.info('Category created successfully', { categoryId: category._id, category_id: category.category_id });
-
     sendSuccess(res, category, 'Category created successfully', 201);
   } catch (error) {
-    logger.error('Error creating category', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -77,12 +72,8 @@ const getAllCategory = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('Categories retrieved successfully', { total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, categories, pagination, 'Categories retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving categories', { error: error.message, stack: error.stack });
     throw error;
   }
 });
@@ -101,12 +92,8 @@ const getCategoryById = asyncHandler(async (req, res) => {
     if (!category) {
       return sendNotFound(res, 'Category not found');
     }
-
-    logger.info('Category retrieved successfully', { categoryId: category._id });
-
     sendSuccess(res, category, 'Category retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving category', { error: error.message, categoryId: req.params.id });
     throw error;
   }
 });
@@ -138,12 +125,8 @@ const updateCategory = asyncHandler(async (req, res) => {
     if (!category) {
       return sendNotFound(res, 'Category not found');
     }
-
-    logger.info('Category updated successfully', { categoryId: category._id });
-
     sendSuccess(res, category, 'Category updated successfully');
   } catch (error) {
-    logger.error('Error updating category', { error: error.message });
     throw error;
   }
 });
@@ -170,12 +153,8 @@ const deleteCategory = asyncHandler(async (req, res) => {
     if (!category) {
       return sendNotFound(res, 'Category not found');
     }
-
-    logger.info('Category deleted successfully', { categoryId: category._id });
-
     sendSuccess(res, category, 'Category deleted successfully');
   } catch (error) {
-    logger.error('Error deleting category', { error: error.message, categoryId: req.params.id });
     throw error;
   }
 });
@@ -233,12 +212,8 @@ const getCategoryByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-
-    logger.info('User categories retrieved successfully', { userId: req.userId, total, page: parseInt(page), limit: parseInt(limit) });
-
     sendPaginated(res, categories, pagination, 'User categories retrieved successfully');
   } catch (error) {
-    logger.error('Error retrieving user categories', { error: error.message, userId: req.userId });
     throw error;
   }
 });
