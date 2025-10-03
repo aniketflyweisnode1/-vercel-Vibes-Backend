@@ -1,0 +1,360 @@
+const Event = require('../models/event.model');
+const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
+const { asyncHandler } = require('../../middleware/errorHandler');
+const logger = require('../../utils/logger');
+
+/**
+ * Create a new event
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const createEvent = asyncHandler(async (req, res) => {
+  try {
+    // Create event data
+    const eventData = {
+      ...req.body,
+      created_by: req.userId || 1
+    };
+
+    // Create event
+    const event = await Event.create(eventData);
+    
+    // Note: Number references cannot be populated directly
+
+    logger.info('Event created successfully', { eventId: event._id, event_id: event.event_id });
+
+    sendSuccess(res, event, 'Event created successfully', 201);
+  } catch (error) {
+    logger.error('Error creating event', { error: error.message, stack: error.stack });
+    throw error;
+  }
+});
+
+/**
+ * Get all events with pagination and filtering
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getAllEvents = asyncHandler(async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      status,
+      event_type_id,
+      country_id,
+      state_id,
+      city_id,
+      event_category_tags_id,
+      ticketed_events,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object
+    const filter = {};
+
+    // Add search filter
+    if (search) {
+      filter.$or = [
+        { name_title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { venue_name: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Add status filter
+    if (status !== undefined) {
+      filter.status = 'true';
+    }
+
+    // Add event_type_id filter
+    if (event_type_id) {
+      filter.event_type_id = event_type_id;
+    }
+
+    // Add country_id filter
+    if (country_id) {
+      filter.country_id = country_id;
+    }
+
+    // Add state_id filter
+    if (state_id) {
+      filter.state_id = state_id;
+    }
+
+    // Add city_id filter
+    if (city_id) {
+      filter.city_id = city_id;
+    }
+
+    // Add event_category_tags_id filter
+    if (event_category_tags_id) {
+      filter.event_category_tags_id = event_category_tags_id;
+    }
+
+    if (ticketed_events !== undefined) {
+      filter.ticketed_events = true;
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+console.log(filter);
+    // Execute query
+    const [events, total] = await Promise.all([
+      Event.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+   
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    const pagination = {
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage,
+      hasPrevPage
+    };
+
+    logger.info('Events retrieved successfully', { 
+      total, 
+      page: parseInt(page), 
+      limit: parseInt(limit) 
+    });
+
+    sendPaginated(res, events, pagination, 'Events retrieved successfully');
+  } catch (error) {
+    logger.error('Error retrieving events', { error: error.message, stack: error.stack });
+    throw error;
+  }
+});
+
+/**
+ * Get event by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getEventById = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await Event.findOne({event_id: parseInt(id)});
+
+    if (!event) {
+      return sendNotFound(res, 'Event not found');
+    }
+
+    logger.info('Event retrieved successfully', { eventId: event._id });
+
+    sendSuccess(res, event, 'Event retrieved successfully');
+  } catch (error) {
+    logger.error('Error retrieving event', { error: error.message, eventId: req.params.id });
+    throw error;
+  }
+});
+
+/**
+ * Update event by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const updateEvent = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    // Add update metadata
+    const updateData = {
+      ...req.body,
+      updated_by: req.userId,
+      updated_at: new Date()
+    };
+
+    const event = await Event.findOneAndUpdate(
+      {event_id: parseInt(id)},
+      updateData,
+      { 
+        new: true, 
+        runValidators: true
+      }
+    );
+
+    if (!event) {
+      return sendNotFound(res, 'Event not found');
+    }
+
+    logger.info('Event updated successfully', { eventId: event._id });
+
+    sendSuccess(res, event, 'Event updated successfully');
+  } catch (error) {
+    logger.error('Error updating event', { error: error.message, eventId: req.params.id });
+    throw error;
+  }
+});
+
+/**
+ * Delete event by ID (soft delete by setting status to false)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteEvent = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await Event.findOneAndUpdate(
+      {event_id: parseInt(id)},
+      { 
+        status: false,
+        updated_by: req.userId,
+        updated_at: new Date()
+      },
+      { new: true }
+    );
+
+    if (!event) {
+      return sendNotFound(res, 'Event not found');
+    }
+
+    logger.info('Event deleted successfully', { eventId: event._id });
+
+    sendSuccess(res, event, 'Event deleted successfully');
+  } catch (error) {
+    logger.error('Error deleting event', { error: error.message, eventId: req.params.id });
+    throw error;
+  }
+});
+
+/**
+ * Get events created by authenticated user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getEventsByAuth = asyncHandler(async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      status,
+      event_type_id,
+      country_id,
+      state_id,
+      city_id,
+      event_category_tags_id,
+      ticketed_events,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object - only show events created by the authenticated user
+    const filter = {
+      created_by: req.userId
+    };
+
+    // Add search filter
+    if (search) {
+      filter.$or = [
+        { name_title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { venue_name: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Add status filter
+    if (status !== undefined) {
+      filter.status = 'true';
+    }
+
+    // Add event_type_id filter
+    if (event_type_id) {
+      filter.event_type_id = event_type_id;
+    }
+
+    // Add country_id filter
+    if (country_id) {
+      filter.country_id = country_id;
+    }
+
+    // Add state_id filter
+    if (state_id) {
+      filter.state_id = state_id;
+    }
+
+    // Add city_id filter
+    if (city_id) {
+      filter.city_id = city_id;
+    }
+
+    // Add event_category_tags_id filter
+    if (event_category_tags_id) {
+      filter.event_category_tags_id = event_category_tags_id;
+    }
+
+    // Add ticketed_events filter
+    if (ticketed_events !== undefined) {
+      filter.ticketed_events = ticketed_events === 'true';
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Execute query
+    const [events, total] = await Promise.all([
+      Event.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    const pagination = {
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage,
+      hasPrevPage
+    };
+
+    logger.info('User events retrieved successfully', { 
+      userId: req.userId,
+      total, 
+      page: parseInt(page), 
+      limit: parseInt(limit) 
+    });
+
+    sendPaginated(res, events, pagination, 'User events retrieved successfully');
+  } catch (error) {
+    logger.error('Error retrieving user events', { error: error.message, userId: req.userId });
+    throw error;
+  }
+});
+
+module.exports = {
+  createEvent,
+  getAllEvents,
+  getEventById,
+  updateEvent,
+  deleteEvent,
+  getEventsByAuth
+};

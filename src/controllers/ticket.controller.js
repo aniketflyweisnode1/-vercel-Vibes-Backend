@@ -1,0 +1,292 @@
+const Ticket = require('../models/ticket.model');
+const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
+const { asyncHandler } = require('../../middleware/errorHandler');
+const logger = require('../../utils/logger');
+
+/**
+ * Create a new ticket
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const createTicket = asyncHandler(async (req, res) => {
+  try {
+    // Create ticket data
+    const ticketData = {
+      ...req.body,
+      created_by: req.userId || null
+    };
+
+    // Create ticket
+    const ticket = await Ticket.create(ticketData);
+
+    logger.info('Ticket created successfully', { 
+      ticketId: ticket._id, 
+      ticket_id: ticket.ticket_id 
+    });
+
+    sendSuccess(res, ticket, 'Ticket created successfully', 201);
+  } catch (error) {
+    logger.error('Error creating ticket', { error: error.message, stack: error.stack });
+    throw error;
+  }
+});
+
+/**
+ * Get all tickets with pagination and filtering
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getAllTickets = asyncHandler(async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      status,
+      ticket_type_id,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object
+    const filter = {};
+
+    // Add search filter
+    if (search) {
+      filter.$or = [
+        { ticket_query: { $regex: search, $options: 'i' } },
+        { reply: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Add status filter
+    if (status !== undefined) {
+      filter.status = 'true';
+    }
+
+    // Add ticket_type_id filter
+    if (ticket_type_id && ticket_type_id !== '') {
+      filter.ticket_type_id = parseInt(ticket_type_id);
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Execute query
+    const [tickets, total] = await Promise.all([
+      Ticket.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Ticket.countDocuments(filter)
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    const pagination = {
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage,
+      hasPrevPage
+    };
+
+    logger.info('Tickets retrieved successfully', { 
+      total, 
+      page: parseInt(page), 
+      limit: parseInt(limit) 
+    });
+
+    sendPaginated(res, tickets, pagination, 'Tickets retrieved successfully');
+  } catch (error) {
+    logger.error('Error retrieving tickets', { error: error.message, stack: error.stack });
+    throw error;
+  }
+});
+
+/**
+ * Get ticket by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getTicketById = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const ticket = await Ticket.findOne({ 
+      ticket_id: parseInt(id) 
+    });
+
+    if (!ticket) {
+      return sendNotFound(res, 'Ticket not found');
+    }
+
+    logger.info('Ticket retrieved successfully', { 
+      ticketId: ticket._id 
+    });
+
+    sendSuccess(res, ticket, 'Ticket retrieved successfully');
+  } catch (error) {
+    logger.error('Error retrieving ticket', { 
+      error: error.message, 
+      ticketId: req.params.id 
+    });
+    throw error;
+  }
+});
+
+/**
+ * Get tickets by authenticated user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getTicketByAuth = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    // Get tickets created by the authenticated user
+    const tickets = await Ticket.find({ 
+      created_by: userId 
+    }).sort({ created_at: -1 });
+
+    logger.info('Tickets retrieved successfully for user', { 
+      userId, 
+      count: tickets.length 
+    });
+
+    sendSuccess(res, tickets, 'Tickets retrieved successfully');
+  } catch (error) {
+    logger.error('Error retrieving tickets by auth', { 
+      error: error.message, 
+      userId: req.userId 
+    });
+    throw error;
+  }
+});
+
+/**
+ * Get tickets by ticket type
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getTicketByTicketType = asyncHandler(async (req, res) => {
+  try {
+    const { ticketTypeId } = req.params;
+
+    // Get tickets by ticket type
+    const tickets = await Ticket.find({ 
+      ticket_type_id: parseInt(ticketTypeId) 
+    }).sort({ created_at: -1 });
+
+    logger.info('Tickets retrieved successfully by type', { 
+      ticketTypeId, 
+      count: tickets.length 
+    });
+
+    sendSuccess(res, tickets, 'Tickets retrieved successfully');
+  } catch (error) {
+    logger.error('Error retrieving tickets by type', { 
+      error: error.message, 
+      ticketTypeId: req.params.ticketTypeId 
+    });
+    throw error;
+  }
+});
+
+/**
+ * Update ticket by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const updateTicket = asyncHandler(async (req, res) => {
+  try {
+    const { ticket_id, ...updateFields } = req.body;
+
+    // Add update metadata
+    const updateData = {
+      ...updateFields,
+      updated_by: req.userId,
+      updated_at: new Date()
+    };
+
+    const ticket = await Ticket.findOneAndUpdate(
+      { ticket_id: parseInt(ticket_id) },
+      updateData,
+      { 
+        new: true, 
+        runValidators: true
+      }
+    );
+
+    if (!ticket) {
+      return sendNotFound(res, 'Ticket not found');
+    }
+
+    logger.info('Ticket updated successfully', { 
+      ticketId: ticket._id 
+    });
+
+    sendSuccess(res, ticket, 'Ticket updated successfully');
+  } catch (error) {
+    logger.error('Error updating ticket', { 
+      error: error.message, 
+      ticketId: req.params.id 
+    });
+    throw error;
+  }
+});
+
+/**
+ * Delete ticket by ID (soft delete by setting status to false)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteTicket = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const ticket = await Ticket.findOneAndUpdate(
+      { ticket_id: parseInt(id) },
+      { 
+        status: false,
+        updated_by: req.userId,
+        updated_at: new Date()
+      },
+      { new: true }
+    );
+
+    if (!ticket) {
+      return sendNotFound(res, 'Ticket not found');
+    }
+
+    logger.info('Ticket deleted successfully', { 
+      ticketId: ticket._id 
+    });
+
+    sendSuccess(res, ticket, 'Ticket deleted successfully');
+  } catch (error) {
+    logger.error('Error deleting ticket', { 
+      error: error.message, 
+      ticketId: req.params.id 
+    });
+    throw error;
+  }
+});
+
+module.exports = {
+  createTicket,
+  getAllTickets,
+  getTicketById,
+  getTicketByAuth,
+  getTicketByTicketType,
+  updateTicket,
+  deleteTicket
+};
