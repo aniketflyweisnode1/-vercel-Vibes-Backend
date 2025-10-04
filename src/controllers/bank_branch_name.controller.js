@@ -47,7 +47,13 @@ const getAllBankBranchNames = asyncHandler(async (req, res) => {
     if (search) {
       filter.$or = [
         { bank_branch_name: { $regex: search, $options: 'i' } },
-        { bank_name_id: { $regex: search, $options: 'i' } }
+        { holderName: { $regex: search, $options: 'i' } },
+        { upi: { $regex: search, $options: 'i' } },
+        { ifsc: { $regex: search, $options: 'i' } },
+        { accountNo: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } },
+        { cardNo: { $regex: search, $options: 'i' } },
+        { zipcode: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -238,7 +244,13 @@ const getBankBranchNamesByAuth = asyncHandler(async (req, res) => {
     if (search) {
       filter.$or = [
         { bank_branch_name: { $regex: search, $options: 'i' } },
-        { bank_name_id: { $regex: search, $options: 'i' } }
+        { holderName: { $regex: search, $options: 'i' } },
+        { upi: { $regex: search, $options: 'i' } },
+        { ifsc: { $regex: search, $options: 'i' } },
+        { accountNo: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } },
+        { cardNo: { $regex: search, $options: 'i' } },
+        { zipcode: { $regex: search, $options: 'i' } }
       ];
     }
 

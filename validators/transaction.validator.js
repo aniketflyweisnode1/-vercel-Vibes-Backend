@@ -19,11 +19,12 @@ const createTransactionSchema = Joi.object({
     .messages({
       'any.only': 'Status must be one of: pending, completed, failed'
     }),
-  payment_method: Joi.string().max(50).required()
+  payment_method_id: Joi.string().hex().length(24).required()
     .messages({
-      'string.base': 'Payment method must be a string',
-      'string.max': 'Payment method cannot exceed 50 characters',
-      'any.required': 'Payment method is required'
+      'string.empty': 'Payment method ID is required',
+      'string.hex': 'Payment method ID must be a valid ObjectId',
+      'string.length': 'Payment method ID must be 24 characters long',
+      'any.required': 'Payment method ID is required'
     }),
   transactionType: Joi.string().valid('Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'Call', 'Package_Buy', 'Recharge').required()
     .messages({
@@ -65,6 +66,12 @@ const createTransactionSchema = Joi.object({
       'number.integer': 'Bank ID must be an integer',
       'number.positive': 'Bank ID must be a positive number'
     }),
+  bank_branch_id: Joi.number().integer().positive().optional()
+    .messages({
+      'number.base': 'Bank branch ID must be a number',
+      'number.integer': 'Bank branch ID must be an integer',
+      'number.positive': 'Bank branch ID must be a positive number'
+    }),
   isDownloaded: Joi.boolean().optional()
     .messages({
       'boolean.base': 'Is downloaded must be a boolean value'
@@ -99,10 +106,10 @@ const updateTransactionSchema = Joi.object({
     .messages({
       'any.only': 'Status must be one of: pending, completed, failed'
     }),
-  payment_method: Joi.string().max(50).optional()
+  payment_method_id: Joi.string().hex().length(24).optional()
     .messages({
-      'string.base': 'Payment method must be a string',
-      'string.max': 'Payment method cannot exceed 50 characters'
+      'string.hex': 'Payment method ID must be a valid ObjectId',
+      'string.length': 'Payment method ID must be 24 characters long'
     }),
   transactionType: Joi.string().valid('Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'Call', 'Package_Buy', 'Recharge').optional()
     .messages({
@@ -142,6 +149,12 @@ const updateTransactionSchema = Joi.object({
       'number.base': 'Bank ID must be a number',
       'number.integer': 'Bank ID must be an integer',
       'number.positive': 'Bank ID must be a positive number'
+    }),
+  bank_branch_id: Joi.number().integer().positive().optional()
+    .messages({
+      'number.base': 'Bank branch ID must be a number',
+      'number.integer': 'Bank branch ID must be an integer',
+      'number.positive': 'Bank branch ID must be a positive number'
     }),
   isDownloaded: Joi.boolean().optional()
     .messages({
@@ -205,10 +218,6 @@ const getAllTransactionsSchema = Joi.object({
   transactionType: Joi.string().valid('Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'Call', 'Package_Buy', 'Recharge').allow('').optional()
     .messages({
       'any.only': 'Transaction type must be one of: Registration_fee, deposit, withdraw, RechargeByAdmin, Call, Package_Buy, Recharge'
-    }),
-  payment_method: Joi.string().max(50).allow('').optional()
-    .messages({
-      'string.max': 'Payment method cannot exceed 50 characters'
     }),
   sortBy: Joi.string().valid('created_at', 'updated_at', 'transaction_id', 'user_id', 'amount', 'transaction_date').optional()
     .messages({

@@ -21,15 +21,14 @@ const transactionSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'failed'],
     default: 'pending'
   },
-  payment_method: {
-    type: String,
-    required: [true, 'Payment method is required'],
-    trim: true,
-    maxlength: [50, 'Payment method cannot exceed 50 characters']
+  payment_method_id: {
+    type: Number,
+    ref: 'PaymentMethods',
+    required: [true, 'Payment method ID is required']
   },
   transactionType: {
     type: String,
-    enum: ['Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'Call', 'Package_Buy', 'Recharge'],
+    enum: ['Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge'],
     required: [true, 'Transaction type is required']
   },
   transaction_date: {
@@ -60,6 +59,24 @@ const transactionSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Total GST cannot be negative']
   },
+  bank_id: {
+    type: Number,
+    ref: 'BankName'
+  },
+  bank_branch_id: {
+    type: Number,
+    ref: 'BankBranchName'
+  },
+  isDownloaded: {
+    type: Boolean,
+    default: false
+  },
+  fileDownlodedPath: {
+    type: String,
+    default: null,
+    trim: true,
+    maxlength: [500, 'File download path cannot exceed 500 characters']
+  },
   created_at: {
     type: Date,
     default: Date.now
@@ -72,20 +89,6 @@ const transactionSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
-  },
-  bank_id: {
-    type: Number,
-    ref: 'AdvisorBankAccountDetails'
-  },
-  isDownloaded: {
-    type: Boolean,
-    default: false
-  },
-  fileDownlodedPath: {
-    type: String,
-    default: null,
-    trim: true,
-    maxlength: [500, 'File download path cannot exceed 500 characters']
   },
   updated_by: {
     type: Number,

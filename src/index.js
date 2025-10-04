@@ -50,6 +50,18 @@ const categoryRoutes = require('./routes/Master/category.routes.js');
 const marketplaceBookingRoutes = require('./routes/Master/marketplace_booking.routes.js');
 const vibeFundCampaignRoutes = require('./routes/Master/vibe_fund_campaign.routes.js');
 const vibeFundingCampaignRoutes = require('./routes/Master/vibe_funding_campaign.routes.js');
+const eventTasksRoutes = require('./routes/Master/event_tasks.routes.js');
+const eventDiscussionChatRoutes = require('./routes/Master/event_discussion_chat.routes.js');
+const itemCategoryRoutes = require('./routes/Master/item_category.routes.js');
+const itemsRoutes = require('./routes/Master/items.routes.js');
+const budgetItemsRoutes = require('./routes/Master/budget_items.routes.js');
+const venueDetailsRoutes = require('./routes/Master/venue_details.routes.js');
+const eventSetupRequirementsRoutes = require('./routes/Master/event_setup_requirements.routes.js');
+const guestRoutes = require('./routes/Master/guest.routes.js');
+const planEventMapRoutes = require('./routes/Master/plan_event_map.routes.js');
+const vibesCardStudioRoutes = require('./routes/Master/vibescard_studio.routes.js');
+const vibeBusinessSubscriptionRoutes = require('./routes/Master/vibe_business_subscription.routes.js');
+const vibeBusinessPlanSubscribedRoutes = require('./routes/Master/vibe_business_plan_subscribed.routes.js');
 
 // Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/vendor_business_information.routes.js');
@@ -134,6 +146,18 @@ router.use('/master/category', categoryRoutes);
 router.use('/master/marketplace-booking', marketplaceBookingRoutes);
 router.use('/master/vibe-fund-campaign', vibeFundCampaignRoutes);
 router.use('/master/vibe-funding-campaign', vibeFundingCampaignRoutes);
+router.use('/master/event-tasks', eventTasksRoutes);
+router.use('/master/event-discussion-chat', eventDiscussionChatRoutes);
+router.use('/master/item-category', itemCategoryRoutes);
+router.use('/master/items', itemsRoutes);
+router.use('/master/budget-items', budgetItemsRoutes);
+router.use('/master/venue-details', venueDetailsRoutes);
+router.use('/master/event-setup-requirements', eventSetupRequirementsRoutes);
+router.use('/master/guest', guestRoutes);
+router.use('/master/plan-event-map', planEventMapRoutes);
+router.use('/master/vibescard-studio', vibesCardStudioRoutes);
+router.use('/master/vibe-business-subscription', vibeBusinessSubscriptionRoutes);
+router.use('/master/vibe-business-plan-subscribed', vibeBusinessPlanSubscribedRoutes);
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);

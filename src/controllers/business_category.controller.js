@@ -64,6 +64,7 @@ const getAllBusinessCategories = asyncHandler(async (req, res) => {
     // Execute query
     const [businessCategories, total] = await Promise.all([
       BusinessCategory.find(filter)
+        .populate('business_type_id', 'business_type_id business_type emoji')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
@@ -98,7 +99,8 @@ const getBusinessCategoryById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const businessCategory = await BusinessCategory.findOne({ business_category_id: parseInt(id) });
+    const businessCategory = await BusinessCategory.findOne({ business_category_id: parseInt(id) })
+      .populate('business_type_id', 'business_type_id business_type emoji');
 
     if (!businessCategory) {
       return sendNotFound(res, 'Business category not found');
@@ -132,7 +134,7 @@ const updateBusinessCategory = asyncHandler(async (req, res) => {
         new: true, 
         runValidators: true
       }
-    );
+    ).populate('business_type_id', 'business_type_id business_type emoji');
 
     if (!businessCategory) {
       return sendNotFound(res, 'Business category not found');
@@ -248,6 +250,7 @@ const getBusinessCategoriesByAuth = asyncHandler(async (req, res) => {
     // Execute query
     const [businessCategories, total] = await Promise.all([
       BusinessCategory.find(filter)
+        .populate('business_type_id', 'business_type_id business_type emoji')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),

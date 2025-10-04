@@ -12,6 +12,11 @@ const businessCategorySchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Business category cannot exceed 100 characters']
   },
+  business_type_id: {
+    type: Number,
+    ref: 'BusinessType',
+    required: [true, 'Business type ID is required']
+  },
   emoji: {
     type: String,
     trim: true,

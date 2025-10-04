@@ -112,8 +112,7 @@ const getAllTransactions = asyncHandler(async (req, res) => {
     // Add search filter
     if (search) {
       filter.$or = [
-        { reference_number: { $regex: search, $options: 'i' } },
-        { payment_method: { $regex: search, $options: 'i' } }
+        { reference_number: { $regex: search, $options: 'i' } }
       ];
     }
 

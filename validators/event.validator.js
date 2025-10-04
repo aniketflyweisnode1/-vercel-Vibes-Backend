@@ -44,15 +44,15 @@ const commonValidations = {
       'string.max': 'Description cannot exceed 2000 characters'
     }),
 
-  venue_name: Joi.string()
-    .trim()
-    .min(2)
-    .max(200)
+  venue_details_id: Joi.string()
+    .hex()
+    .length(24)
     .required()
     .messages({
-      'string.empty': 'Venue name is required',
-      'string.min': 'Venue name must be at least 2 characters long',
-      'string.max': 'Venue name cannot exceed 200 characters'
+      'string.empty': 'Venue details ID is required',
+      'string.hex': 'Venue details ID must be a valid ObjectId',
+      'string.length': 'Venue details ID must be 24 characters long',
+      'any.required': 'Venue details ID is required'
     }),
 
   street_address: Joi.string()
@@ -189,7 +189,7 @@ const createEventSchema = Joi.object({
   event_type_id: commonValidations.event_type_id,
   ticketed_events: commonValidations.ticketed_events,
   description: commonValidations.description,
-  venue_name: commonValidations.venue_name,
+  venue_details_id: commonValidations.venue_details_id,
   street_address: commonValidations.street_address,
   country_id: commonValidations.country_id,
   state_id: commonValidations.state_id,
@@ -223,7 +223,7 @@ const updateEventSchema = Joi.object({
   event_type_id: commonValidations.event_type_id.optional(),
   ticketed_events: commonValidations.ticketed_events.optional(),
   description: commonValidations.description.optional(),
-  venue_name: commonValidations.venue_name.optional(),
+  venue_details_id: commonValidations.venue_details_id.optional(),
   street_address: commonValidations.street_address.optional(),
   country_id: commonValidations.country_id.optional(),
   state_id: commonValidations.state_id.optional(),

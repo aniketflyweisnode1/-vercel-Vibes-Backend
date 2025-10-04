@@ -55,7 +55,6 @@ const getAllEvents = asyncHandler(async (req, res) => {
       filter.$or = [
         { name_title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { venue_name: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -103,10 +102,11 @@ const getAllEvents = asyncHandler(async (req, res) => {
     // Execute query
     const [events, total] = await Promise.all([
       Event.find(filter)
+        .populate('venue_details_id', 'venue_details_id name address capacity type map')
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit))
-   
+        .limit(parseInt(limit)),
+      Event.countDocuments(filter)
     ]);
 
     // Calculate pagination info
@@ -137,7 +137,8 @@ const getEventById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const event = await Event.findOne({event_id: parseInt(id)});
+    const event = await Event.findOne({event_id: parseInt(id)})
+      .populate('venue_details_id', 'venue_details_id name address capacity type map');
 
     if (!event) {
       return sendNotFound(res, 'Event not found');
@@ -242,7 +243,6 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
       filter.$or = [
         { name_title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
-        { venue_name: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -291,10 +291,11 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
     // Execute query
     const [events, total] = await Promise.all([
       Event.find(filter)
+        .populate('venue_details_id', 'venue_details_id name address capacity type map')
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit))
-
+        .limit(parseInt(limit)),
+      Event.countDocuments(filter)
     ]);
 
     // Calculate pagination info

@@ -17,6 +17,17 @@ const commonValidations = {
       'string.max': 'Business category cannot exceed 100 characters'
     }),
 
+  business_type_id: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Business type ID must be a number',
+      'number.integer': 'Business type ID must be an integer',
+      'number.positive': 'Business type ID must be a positive number',
+      'any.required': 'Business type ID is required'
+    }),
+
   emoji: Joi.string()
     .trim()
     .min(1)
@@ -38,6 +49,7 @@ const commonValidations = {
 // Create business category validation schema
 const createBusinessCategorySchema = Joi.object({
   business_category: commonValidations.business_category,
+  business_type_id: commonValidations.business_type_id,
   emoji: commonValidations.emoji,
   status: commonValidations.status
 });
@@ -55,6 +67,7 @@ const updateBusinessCategorySchema = Joi.object({
       'any.required': 'Business category ID is required'
     }),
   business_category: commonValidations.business_category.optional(),
+  business_type_id: commonValidations.business_type_id.optional(),
   emoji: commonValidations.emoji.optional(),
   status: commonValidations.status.optional()
 }).min(1).messages({
@@ -135,6 +148,7 @@ const updateBusinessCategoryByIdBodySchema = Joi.object({
       'number.positive': 'Business category ID must be a positive number'
     }),
   business_category: commonValidations.business_category.optional(),
+  business_type_id: commonValidations.business_type_id.optional(),
   emoji: commonValidations.emoji.optional(),
   status: commonValidations.status.optional()
 }).min(2).messages({

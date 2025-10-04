@@ -17,6 +17,45 @@ const bankBranchNameSchema = new mongoose.Schema({
     ref: 'BankName',
     required: [true, 'Bank name is required']
   },
+  holderName: {
+    type: String,
+    required: [true, 'Holder name is required'],
+    trim: true,
+    maxlength: [100, 'Holder name cannot exceed 100 characters']
+  },
+  upi: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'UPI ID cannot exceed 50 characters']
+  },
+  ifsc: {
+    type: String,
+    trim: true,
+    maxlength: [11, 'IFSC code cannot exceed 11 characters']
+  },
+  accountNo: {
+    type: String,
+    required: [true, 'Account number is required'],
+    trim: true,
+    maxlength: [20, 'Account number cannot exceed 20 characters']
+  },
+  address: {
+    type: String,
+    required: [true, 'Address is required'],
+    trim: true,
+    maxlength: [500, 'Address cannot exceed 500 characters']
+  },
+  cardNo: {
+    type: String,
+    trim: true,
+    maxlength: [19, 'Card number cannot exceed 19 characters']
+  },
+  zipcode: {
+    type: String,
+    required: [true, 'Zipcode is required'],
+    trim: true,
+    maxlength: [10, 'Zipcode cannot exceed 10 characters']
+  },
   emoji: {
     type: String,
     trim: true,

@@ -256,7 +256,7 @@ const login = asyncHandler(async (req, res) => {
     
     if (!emailSent) {
       // If email fails, deactivate the OTP
-      await OTP.findByIdAndUpdate(otp._id, { status: false });
+      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
       return sendError(res, 'Failed to send OTP email. Please try again.', 500);
     }
 
@@ -453,7 +453,7 @@ const sendOTP = asyncHandler(async (req, res) => {
     
     if (!emailSent) {
       // If email fails, deactivate the OTP
-      await OTP.findByIdAndUpdate(otp._id, { status: false });
+      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
       return sendError(res, 'Failed to send OTP email. Please try again.', 500);
     }
 

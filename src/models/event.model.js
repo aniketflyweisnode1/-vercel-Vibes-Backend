@@ -26,11 +26,10 @@ const eventSchema = new mongoose.Schema({
     trim: true,
     maxlength: [2000, 'Description cannot exceed 2000 characters']
   },
-  venue_name: {
-    type: String,
-    required: [true, 'Venue name is required'],
-    trim: true,
-    maxlength: [200, 'Venue name cannot exceed 200 characters']
+  venue_details_id: {
+    type: Number,
+    ref: 'VenueDetails',
+    required: [true, 'Venue details ID is required']
   },
   street_address: {
     type: String,
