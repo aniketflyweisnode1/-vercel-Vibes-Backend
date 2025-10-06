@@ -44,14 +44,14 @@ const commonValidations = {
       'string.max': 'Description cannot exceed 2000 characters'
     }),
 
-  venue_details_id: Joi.string()
-    .hex()
-    .length(24)
+  venue_details_id: Joi.number()
+    .integer()
+    .positive()
     .required()
     .messages({
-      'string.empty': 'Venue details ID is required',
-      'string.hex': 'Venue details ID must be a valid ObjectId',
-      'string.length': 'Venue details ID must be 24 characters long',
+      'number.base': 'Venue details ID must be a number',
+      'number.integer': 'Venue details ID must be an integer',
+      'number.positive': 'Venue details ID must be a positive number',
       'any.required': 'Venue details ID is required'
     }),
 
