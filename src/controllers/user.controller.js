@@ -537,6 +537,26 @@ const verifyOTP = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * User logout
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const logout = asyncHandler(async (req, res) => {
+  try {
+    // In a JWT-based system, logout is typically handled client-side
+    // by removing the token from storage. However, we can provide
+    // a server-side endpoint for logging purposes or to invalidate
+    // refresh tokens if needed in the future.
+    
+    sendSuccess(res, {
+      message: 'Logged out successfully'
+    }, 'Logout successful');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -545,6 +565,7 @@ module.exports = {
   updateUserByIdBody,
   deleteUser,
   login,
+  logout,
   getProfile,
   updateProfile,
   changePassword,
