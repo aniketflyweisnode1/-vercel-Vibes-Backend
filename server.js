@@ -6,7 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-
+const app = express();
 // Import database connection
 const connectDB = require('./config/database');
 
@@ -20,26 +20,14 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
 
 // Initialize Express app
-const app = express();
+
 
 // Connect to database
 connectDB();
 
-// Trust proxy (for rate limiting behind reverse proxy)
-app.set('trust proxy', 1);
-
-// Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
 
 // CORS configuration
-app.use(cors({
-  origin: "*",
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(cors());
 
 // Compression middleware
 app.use(compression());
