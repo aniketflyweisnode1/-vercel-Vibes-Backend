@@ -62,6 +62,8 @@ const planEventMapRoutes = require('./routes/Master/plan_event_map.routes.js');
 const vibesCardStudioRoutes = require('./routes/Master/vibescard_studio.routes.js');
 const vibeBusinessSubscriptionRoutes = require('./routes/Master/vibe_business_subscription.routes.js');
 const vibeBusinessPlanSubscribedRoutes = require('./routes/Master/vibe_business_plan_subscribed.routes.js');
+const filterVendorLeadsRoutes = require('./routes/Master/filter_vendor_leads.routes.js');
+const vendorCorporateClientRoutes = require('./routes/Master/vendor_corporate_client.routes.js');
 
 // Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/vendor_business_information.routes.js');
@@ -158,6 +160,8 @@ router.use('/master/plan-event-map', planEventMapRoutes);
 router.use('/master/vibescard-studio', vibesCardStudioRoutes);
 router.use('/master/vibe-business-subscription', vibeBusinessSubscriptionRoutes);
 router.use('/master/vibe-business-plan-subscribed', vibeBusinessPlanSubscribedRoutes);
+router.use('/master/filter-vendor-leads', filterVendorLeadsRoutes);
+router.use('/master/vendor-corporate-client', vendorCorporateClientRoutes);
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);
