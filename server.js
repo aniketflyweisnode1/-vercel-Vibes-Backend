@@ -27,7 +27,22 @@ connectDB();
 
 
 // CORS configuration
-app.use(cors());
+const corsOptions = {
+  origin: [
+    'http://127.0.0.1:5173',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    'https://vercel-vibes-frontend.vercel.app', // Add your production frontend URL
+    'https://vercel-vibes.vercel.app' // Add your production frontend URL if different
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+};
+
+app.use(cors(corsOptions));
 
 // Compression middleware
 app.use(compression());
@@ -60,7 +75,6 @@ if ('development') {
 //   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 // });
 
-app.use('/api/');
 
 // Request logging middleware
 app.use((req, res, next) => {
