@@ -47,15 +47,12 @@ const getAllGuests = asyncHandler(async (req, res) => {
       filter.status = status === 'true';
     }
     if (event_id) {
-      filter.event_id = event_id;
+      filter.event_id = parseInt(event_id);
     }
 
     // Get guests with pagination
     const [guests, total] = await Promise.all([
       Guest.find(filter)
-        .populate('event_id', 'event_id name_title date time')
-        .populate('createdBy', 'user_id name email')
-        .populate('updatedBy', 'user_id name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -84,10 +81,7 @@ const getGuestById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const guest = await Guest.findOne({ guest_id: parseInt(id) })
-      .populate('event_id', 'event_id name_title date time')
-      .populate('createdBy', 'user_id name email')
-      .populate('updatedBy', 'user_id name email');
+    const guest = await Guest.findOne({ guest_id: parseInt(id) });
 
     if (!guest) {
       return sendNotFound(res, 'Guest not found');
@@ -122,15 +116,12 @@ const getGuestsByAuth = asyncHandler(async (req, res) => {
       filter.status = status === 'true';
     }
     if (event_id) {
-      filter.event_id = event_id;
+      filter.event_id = parseInt(event_id);
     }
 
     // Get guests with pagination
     const [guests, total] = await Promise.all([
       Guest.find(filter)
-        .populate('event_id', 'event_id name_title date time')
-        .populate('createdBy', 'user_id name email')
-        .populate('updatedBy', 'user_id name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -162,7 +153,7 @@ const getGuestsByEventId = asyncHandler(async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build filter object
-    const filter = { event_id: eventId };
+    const filter = { event_id: parseInt(eventId) };
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -177,9 +168,6 @@ const getGuestsByEventId = asyncHandler(async (req, res) => {
     // Get guests with pagination
     const [guests, total] = await Promise.all([
       Guest.find(filter)
-        .populate('event_id', 'event_id name_title date time')
-        .populate('createdBy', 'user_id name email')
-        .populate('updatedBy', 'user_id name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -206,7 +194,7 @@ const getGuestsByEventId = asyncHandler(async (req, res) => {
  */
 const updateGuest = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
 
     // Add updatedBy to request body
     req.body.updatedBy = req.userId;
@@ -215,9 +203,7 @@ const updateGuest = asyncHandler(async (req, res) => {
       { guest_id: parseInt(id) },
       req.body,
       { new: true, runValidators: true }
-    ).populate('event_id', 'event_id name_title date time')
-     .populate('createdBy', 'user_id name email')
-     .populate('updatedBy', 'user_id name email');
+    );
 
     if (!guest) {
       return sendNotFound(res, 'Guest not found');

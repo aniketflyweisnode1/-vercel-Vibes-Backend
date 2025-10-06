@@ -21,6 +21,6 @@ router.get('/get/:id', auth, validateParams(idSchema), getVibesCardStudioById);
 router.put('/update', auth, validateBody(updateVibesCardStudioSchema), updateVibesCardStudio);
 
 // Delete vibes card studio (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteVibesCardStudio);
+router.delete('/delete/:id', auth, deleteVibesCardStudio);
 
 module.exports = router;

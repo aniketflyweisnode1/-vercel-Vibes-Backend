@@ -36,6 +36,12 @@ const createGuestSchema = Joi.object({
 
 // Validation schema for updating guest
 const updateGuestSchema = Joi.object({
+  id: Joi.number().integer().min(1).required().messages({
+    'number.base': 'ID must be a number',
+    'number.integer': 'ID must be an integer',
+    'number.min': 'ID must be greater than 0',
+    'any.required': 'ID is required'
+  }),
   name: Joi.string().trim().min(1).max(255).messages({
     'string.min': 'Guest name must be at least 1 character long',
     'string.max': 'Guest name cannot exceed 255 characters'
@@ -60,8 +66,8 @@ const updateGuestSchema = Joi.object({
     'number.min': 'Event ID must be greater than 0'
   }),
   status: Joi.boolean()
-}).min(1).messages({
-  'object.min': 'At least one field must be provided for update'
+}).min(2).messages({
+  'object.min': 'At least one field must be provided for update (excluding ID)'
 });
 
 // Validation schema for query parameters

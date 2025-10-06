@@ -18,9 +18,9 @@ router.get('/my-tasks', auth, validateQuery(querySchema), getEventTasksByAuth);
 router.get('/get/:id', auth, validateParams(idSchema), getEventTaskById);
 
 // Update event task (with auth)
-router.put('/update', auth, validateParams(idSchema), validateBody(updateEventTaskSchema), updateEventTask);
+router.put('/update', auth, validateBody(updateEventTaskSchema), updateEventTask);
 
 // Delete event task (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteEventTask);
+router.delete('/delete/:id', auth, deleteEventTask);
 
 module.exports = router;

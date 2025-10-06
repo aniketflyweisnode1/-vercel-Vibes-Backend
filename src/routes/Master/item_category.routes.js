@@ -21,6 +21,6 @@ router.get('/get/:id', auth, validateParams(idSchema), getItemCategoryById);
 router.put('/update', auth, validateBody(updateItemCategorySchema), updateItemCategory);
 
 // Delete item category (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteItemCategory);
+router.delete('/delete/:id', auth, deleteItemCategory);
 
 module.exports = router;

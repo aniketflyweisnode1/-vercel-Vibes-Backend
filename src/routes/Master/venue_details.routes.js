@@ -18,6 +18,6 @@ router.get('/get/:id', auth, validateParams(idSchema), getVenueDetailsById);
 router.put('/update', auth, validateBody(updateVenueDetailsSchema), updateVenueDetails);
 
 // Delete venue details (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteVenueDetails);
+router.delete('/delete/:id', auth, deleteVenueDetails);
 
 module.exports = router;

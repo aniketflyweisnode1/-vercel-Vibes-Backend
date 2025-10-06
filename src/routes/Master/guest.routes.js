@@ -21,9 +21,9 @@ router.get('/event/:eventId', auth, validateParams(eventIdSchema), validateQuery
 router.get('/get/:id', auth, validateParams(idSchema), getGuestById);
 
 // Update guest (with auth)
-router.put('/update/:id', auth, validateParams(idSchema), validateBody(updateGuestSchema), updateGuest);
+router.put('/update', auth, validateBody(updateGuestSchema), updateGuest);
 
 // Delete guest (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteGuest);
+router.delete('/delete/:id', auth, deleteGuest);
 
 module.exports = router;

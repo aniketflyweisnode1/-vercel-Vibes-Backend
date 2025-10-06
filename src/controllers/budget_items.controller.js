@@ -37,7 +37,7 @@ const getAllBudgetItems = asyncHandler(async (req, res) => {
     // Build filter object
     const filter = {};
     if (status !== undefined) {
-      filter.status = status === 'true';
+      filter.status = 'true';
     }
 
     // Get budget items with pagination

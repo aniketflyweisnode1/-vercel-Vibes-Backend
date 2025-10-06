@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const AutoIncrement = require('mongoose-sequence')(mongoose);
 
 const eventDiscussionChatSchema = new mongoose.Schema({
-  event_discussion_chat_id: {
+  id: {
     type: Number,
     unique: true
   },
@@ -71,6 +71,6 @@ const eventDiscussionChatSchema = new mongoose.Schema({
   versionKey: false
 });
 
-eventDiscussionChatSchema.plugin(AutoIncrement, { inc_field: 'event_discussion_chat_id' });
+eventDiscussionChatSchema.plugin(AutoIncrement, { inc_field: 'id' });
 
 module.exports = mongoose.model('EventDiscussionChat', eventDiscussionChatSchema);

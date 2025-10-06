@@ -27,6 +27,6 @@ router.put('/update', auth, validateBody(updatePlanEventMapSchema), updatePlanEv
 router.put('/update-event-payment', auth, validateBody(updateEventPaymentSchema), updateEventPayment);
 
 // Delete plan event map (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deletePlanEventMap);
+router.delete('/delete/:id', auth, deletePlanEventMap);
 
 module.exports = router;

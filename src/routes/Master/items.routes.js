@@ -21,6 +21,6 @@ router.get('/get/:id', auth, validateParams(idSchema), getItemById);
 router.put('/update', auth, validateBody(updateItemsSchema), updateItem);
 
 // Delete item (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteItem);
+router.delete('/delete/:id', auth, deleteItem);
 
 module.exports = router;

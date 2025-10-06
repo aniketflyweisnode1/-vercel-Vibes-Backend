@@ -13,14 +13,12 @@ const createEventDiscussionChat = asyncHandler(async (req, res) => {
     const eventDiscussionChatData = {
       ...req.body,
       user_id: req.userId,
-      createdBy: req.userId,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdBy: req.userId
     };
 
     const eventDiscussionChat = await EventDiscussionChat.create(eventDiscussionChatData);
 
-    sendSuccess(res, 'Event discussion chat created successfully', eventDiscussionChat, 201);
+    sendSuccess(res, eventDiscussionChat, 'Event discussion chat created successfully', 201);
   } catch (error) {
     throw error;
   }
@@ -127,7 +125,7 @@ const getEventDiscussionChatById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const eventDiscussionChat = await EventDiscussionChat.findOne({ event_discussion_chat_id: parseInt(id) });
+    const eventDiscussionChat = await EventDiscussionChat.findOne({ id: parseInt(id) });
 
     if (!eventDiscussionChat) {
       return sendNotFound(res, 'Event discussion chat not found');
@@ -152,7 +150,7 @@ const updateEventDiscussionChat = asyncHandler(async (req, res) => {
     req.body.updatedBy = req.userId;
 
     const eventDiscussionChat = await EventDiscussionChat.findOneAndUpdate(
-      { event_discussion_chat_id: parseInt(id) },
+      { id: parseInt(id) },
       req.body,
       { new: true, runValidators: true }
     );
@@ -176,7 +174,7 @@ const deleteEventDiscussionChat = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const eventDiscussionChat = await EventDiscussionChat.findOneAndDelete({ event_discussion_chat_id: parseInt(id) });
+    const eventDiscussionChat = await EventDiscussionChat.findOneAndDelete({ id: parseInt(id) });
 
     if (!eventDiscussionChat) {
       return sendNotFound(res, 'Event discussion chat not found');

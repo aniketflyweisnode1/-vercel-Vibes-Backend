@@ -42,14 +42,12 @@ const getAllEventSetupRequirements = asyncHandler(async (req, res) => {
       ];
     }
     if (status !== undefined) {
-      filter.status = status === 'true';
+      filter.status = 'true';
     }
 
     // Get event setup requirements with pagination
     const [eventSetupRequirements, total] = await Promise.all([
       EventSetupRequirements.find(filter)
-        .populate('createdBy', 'user_id name email')
-        .populate('updatedBy', 'user_id name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -78,9 +76,7 @@ const getEventSetupRequirementById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const eventSetupRequirement = await EventSetupRequirements.findOne({ setup_requirements_id: parseInt(id) })
-      .populate('createdBy', 'user_id name email')
-      .populate('updatedBy', 'user_id name email');
+    const eventSetupRequirement = await EventSetupRequirements.findOne({ setup_requirements_id: parseInt(id) });
 
     if (!eventSetupRequirement) {
       return sendNotFound(res, 'Event setup requirement not found');
@@ -116,8 +112,6 @@ const getEventSetupRequirementsByAuth = asyncHandler(async (req, res) => {
     // Get event setup requirements with pagination
     const [eventSetupRequirements, total] = await Promise.all([
       EventSetupRequirements.find(filter)
-        .populate('createdBy', 'user_id name email')
-        .populate('updatedBy', 'user_id name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -144,7 +138,7 @@ const getEventSetupRequirementsByAuth = asyncHandler(async (req, res) => {
  */
 const updateEventSetupRequirement = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
 
     // Add updatedBy to request body
     req.body.updatedBy = req.userId;
@@ -153,8 +147,7 @@ const updateEventSetupRequirement = asyncHandler(async (req, res) => {
       { setup_requirements_id: parseInt(id) },
       req.body,
       { new: true, runValidators: true }
-    ).populate('createdBy', 'user_id name email')
-     .populate('updatedBy', 'user_id name email');
+    );
 
     if (!eventSetupRequirement) {
       return sendNotFound(res, 'Event setup requirement not found');

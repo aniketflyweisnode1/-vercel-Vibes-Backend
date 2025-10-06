@@ -25,6 +25,12 @@ const createEventTaskSchema = Joi.object({
 
 // Validation schema for updating event task
 const updateEventTaskSchema = Joi.object({
+  id: Joi.number().integer().min(1).required().messages({
+    'number.base': 'ID must be a number',
+    'number.integer': 'ID must be an integer',
+    'number.min': 'ID must be greater than 0',
+    'any.required': 'ID is required'
+  }),
   taskTitle: Joi.string().trim().min(1).max(255).messages({
     'string.min': 'Task title must be at least 1 character long',
     'string.max': 'Task title cannot exceed 255 characters'
@@ -42,8 +48,8 @@ const updateEventTaskSchema = Joi.object({
   finalizeMusicPlaylist: Joi.boolean(),
   setupDecorations: Joi.boolean(),
   status: Joi.boolean()
-}).min(1).messages({
-  'object.min': 'At least one field must be provided for update'
+}).min(2).messages({
+  'object.min': 'At least one field must be provided for update (excluding ID)'
 });
 
 // Validation schema for query parameters

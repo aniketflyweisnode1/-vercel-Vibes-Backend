@@ -49,8 +49,6 @@ const getAllEventTasks = asyncHandler(async (req, res) => {
     // Get event tasks with pagination
     const [eventTasks, total] = await Promise.all([
       EventTasks.find(filter)
-        .populate('createdBy', 'user_id name email')
-        .populate('updatedBy', 'user_id name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -79,9 +77,7 @@ const getEventTaskById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const eventTask = await EventTasks.findOne({ event_tasks_id: parseInt(id) })
-      .populate('createdBy', 'user_id name email')
-      .populate('updatedBy', 'user_id name email');
+    const eventTask = await EventTasks.findOne({ event_tasks_id: parseInt(id) });
 
     if (!eventTask) {
       return sendNotFound(res, 'Event task not found');
@@ -118,8 +114,6 @@ const getEventTasksByAuth = asyncHandler(async (req, res) => {
     // Get event tasks with pagination
     const [eventTasks, total] = await Promise.all([
       EventTasks.find(filter)
-        .populate('createdBy', 'user_id name email')
-        .populate('updatedBy', 'user_id name email')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -146,7 +140,7 @@ const getEventTasksByAuth = asyncHandler(async (req, res) => {
  */
 const updateEventTask = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
 
     // Add updatedBy to request body
     req.body.updatedBy = req.userId;
@@ -155,8 +149,7 @@ const updateEventTask = asyncHandler(async (req, res) => {
       { event_tasks_id: parseInt(id) },
       req.body,
       { new: true, runValidators: true }
-    ).populate('createdBy', 'user_id name email')
-     .populate('updatedBy', 'user_id name email');
+    );
 
     if (!eventTask) {
       return sendNotFound(res, 'Event task not found');

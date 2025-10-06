@@ -18,6 +18,6 @@ router.get('/get/:id', auth, validateParams(idSchema), getBudgetItemsById);
 router.put('/update', auth, validateBody(updateBudgetItemsSchema), updateBudgetItems);
 
 // Delete budget items (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteBudgetItems);
+router.delete('/delete/:id', auth, deleteBudgetItems);
 
 module.exports = router;

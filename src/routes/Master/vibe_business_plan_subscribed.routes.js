@@ -21,6 +21,6 @@ router.put('/update', auth, validateBody(updateVibeBusinessPlanSubscribedSchema)
 router.put('/update-after-transaction', auth, validateBody(updateAfterTransactionSchema), updateAfterTransaction);
 
 // Delete vibe business plan subscribed (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteVibeBusinessPlanSubscribed);
+router.delete('/delete/:id', auth, deleteVibeBusinessPlanSubscribed);
 
 module.exports = router;

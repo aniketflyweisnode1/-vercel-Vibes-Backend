@@ -18,6 +18,6 @@ router.get('/get/:id', auth, validateParams(idSchema), getVibesBusinessSubscript
 router.put('/update', auth, validateBody(updateVibeBusinessSubscriptionSchema), updateVibeBusinessSubscription);
 
 // Delete vibe business subscription (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteVibeBusinessSubscription);
+router.delete('/delete/:id', auth, deleteVibeBusinessSubscription);
 
 module.exports = router;

@@ -18,9 +18,9 @@ router.get('/my-requirements', auth, validateQuery(querySchema), getEventSetupRe
 router.get('/get/:id', auth, validateParams(idSchema), getEventSetupRequirementById);
 
 // Update event setup requirement (with auth)
-router.put('/update/:id', auth, validateParams(idSchema), validateBody(updateEventSetupRequirementSchema), updateEventSetupRequirement);
+router.put('/update', auth, validateBody(updateEventSetupRequirementSchema), updateEventSetupRequirement);
 
 // Delete event setup requirement (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteEventSetupRequirement);
+router.delete('/delete/:id', auth, deleteEventSetupRequirement);
 
 module.exports = router;

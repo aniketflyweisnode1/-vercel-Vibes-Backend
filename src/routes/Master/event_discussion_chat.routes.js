@@ -6,7 +6,7 @@ const { createEventDiscussionChatSchema, updateEventDiscussionChatSchema, queryS
 const { createEventDiscussionChat, getAllEventDiscussionChats, getEventDiscussionChatById, getEventDiscussionChatsByAuth, updateEventDiscussionChat, deleteEventDiscussionChat } = require('../../controllers/event_discussion_chat.controller');
 
 // Create event discussion chat (with auth)
-router.post('/create', auth, validateBody(createEventDiscussionChatSchema), createEventDiscussionChat);
+router.post('/create', auth,  createEventDiscussionChat);
 
 // Get all event discussion chats (with auth)
 router.get('/all', auth, validateQuery(querySchema), getAllEventDiscussionChats);
@@ -21,6 +21,6 @@ router.get('/get/:id', auth, validateParams(idSchema), getEventDiscussionChatByI
 router.put('/update', auth, validateBody(updateEventDiscussionChatSchema), updateEventDiscussionChat);
 
 // Delete event discussion chat (with auth)
-router.delete('/delete/:id', auth, validateParams(idSchema), deleteEventDiscussionChat);
+router.delete('/delete/:id', auth, deleteEventDiscussionChat);
 
 module.exports = router;
