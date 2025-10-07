@@ -25,13 +25,25 @@ const eventTasksSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  confirmFinalGuestCount_date: {
+    type: Date,
+    default: null
+  },
   finalizeMusicPlaylist: {
     type: Boolean,
     default: false
   },
+  finalizeMusicPlaylist_date: {
+    type: Date,
+    default: null
+  },
   setupDecorations: {
     type: Boolean,
     default: false
+  },
+  setupDecorations_date: {
+    type: Date,
+    default: null
   },
   status: {
     type: Boolean,
