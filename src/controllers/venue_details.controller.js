@@ -1,4 +1,5 @@
 const VenueDetails = require('../models/venue_details.model');
+const Event = require('../models/event.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -142,10 +143,45 @@ const deleteVenueDetails = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Get venue details by event ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getVenueDetailsByEventId = asyncHandler(async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Find the event by event_id
+    const event = await Event.findOne({ event_id: parseInt(eventId) });
+
+    if (!event) {
+      return sendNotFound(res, 'Event not found');
+    }
+
+    // Check if event has venue_details_id
+    if (!event.venue_details_id) {
+      return sendNotFound(res, 'No venue details associated with this event');
+    }
+
+    // Find the venue details by venue_details_id
+    const venueDetails = await VenueDetails.findOne({ venue_details_id: parseInt(event.venue_details_id) });
+
+    if (!venueDetails) {
+      return sendNotFound(res, 'Venue details not found');
+    }
+
+    sendSuccess(res, venueDetails, 'Venue details retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createVenueDetails,
   getAllVenueDetails,
   getVenueDetailsById,
   updateVenueDetails,
-  deleteVenueDetails
+  deleteVenueDetails,
+  getVenueDetailsByEventId
 };

@@ -145,6 +145,25 @@ const updateEventTask = asyncHandler(async (req, res) => {
     // Add updatedBy to request body
     req.body.updatedBy = req.userId;
 
+    // Automatically set date fields when corresponding boolean fields are set to true
+    if (req.body.confirmFinalGuestCount === true && !req.body.confirmFinalGuestCount_date) {
+      req.body.confirmFinalGuestCount_date = new Date();
+    } else if (req.body.confirmFinalGuestCount === false) {
+      req.body.confirmFinalGuestCount_date = null;
+    }
+
+    if (req.body.finalizeMusicPlaylist === true && !req.body.finalizeMusicPlaylist_date) {
+      req.body.finalizeMusicPlaylist_date = new Date();
+    } else if (req.body.finalizeMusicPlaylist === false) {
+      req.body.finalizeMusicPlaylist_date = null;
+    }
+
+    if (req.body.setupDecorations === true && !req.body.setupDecorations_date) {
+      req.body.setupDecorations_date = new Date();
+    } else if (req.body.setupDecorations === false) {
+      req.body.setupDecorations_date = null;
+    }
+
     const eventTask = await EventTasks.findOneAndUpdate(
       { event_tasks_id: parseInt(id) },
       req.body,

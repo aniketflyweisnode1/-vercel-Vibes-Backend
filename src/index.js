@@ -13,6 +13,7 @@ const cityRoutes = require('./routes/Admin/city.routes.js');
 const eventRoutes = require('./routes/User/event.routes.js');
 
 // Import Admin route modules
+const adminRoutes = require('./routes/Admin/admin.routes.js');
 const otpTypeRoutes = require('./routes/Admin/otp_type.routes.js');
 const otpRoutes = require('./routes/Admin/otp.routes.js');
 const vendorServiceTypeRoutes = require('./routes/Admin/vendor_service_type.routes.js');
@@ -111,6 +112,7 @@ router.use('/cities', cityRoutes);
 router.use('/events', eventRoutes);
 
 // Mount Admin route modules
+router.use('/admin', adminRoutes);
 router.use('/admin/otp-types', otpTypeRoutes);
 router.use('/admin/otps', otpRoutes);
 router.use('/admin/vendor-service-types', vendorServiceTypeRoutes);
