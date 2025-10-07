@@ -12,7 +12,7 @@ const { validateBody } = require('../../../middleware/validation');
 const { adminLoginSchema } = require('../../../validators/admin.validator');
 
 // Admin login route (no OTP, just email and password)
-router.post('/login', authRateLimit, validateBody(adminLoginSchema), adminLogin);
+router.post('/login', validateBody(adminLoginSchema), adminLogin);
 
 // Get admin profile (protected route)
 router.get('/profile', auth, getAdminProfile);
