@@ -1,4 +1,6 @@
 const BudgetItems = require('../models/budget_items.model');
+const Items = require('../models/items.model');
+const ItemCategory = require('../models/item_category.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -49,6 +51,37 @@ const getAllBudgetItems = asyncHandler(async (req, res) => {
       BudgetItems.countDocuments(filter)
     ]);
 
+    // Manually populate item_id and category_id for each budget item's items array
+    const populatedBudgetItems = await Promise.all(
+      budgetItems.map(async (budgetItem) => {
+        const budgetItemObj = budgetItem.toObject();
+
+        if (budgetItemObj.items && budgetItemObj.items.length > 0) {
+          budgetItemObj.items = await Promise.all(
+            budgetItemObj.items.map(async (item) => {
+              const populatedItem = { ...item };
+
+              // Populate item details
+              if (item.item_id) {
+                const itemDetails = await Items.findOne({ item_id: parseInt(item.item_id) });
+                populatedItem.item_details = itemDetails;
+              }
+
+              // Populate category details
+              if (item.category_id) {
+                const categoryDetails = await ItemCategory.findOne({ item_category_id: parseInt(item.category_id) });
+                populatedItem.category_details = categoryDetails;
+              }
+
+              return populatedItem;
+            })
+          );
+        }
+
+        return budgetItemObj;
+      })
+    );
+
     const pagination = {
       current: parseInt(page),
       pages: Math.ceil(total / parseInt(limit)),
@@ -56,7 +89,7 @@ const getAllBudgetItems = asyncHandler(async (req, res) => {
       limit: parseInt(limit)
     };
 
-    sendPaginated(res, budgetItems, pagination, 'Budget items retrieved successfully');
+    sendPaginated(res, populatedBudgetItems, pagination, 'Budget items retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -77,7 +110,33 @@ const getBudgetItemsById = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Budget items not found');
     }
 
-    sendSuccess(res, budgetItems, 'Budget items retrieved successfully');
+    // Convert to plain object for manipulation
+    const budgetItemsObj = budgetItems.toObject();
+
+    // Manually populate item_id and category_id for each item in the items array
+    if (budgetItemsObj.items && budgetItemsObj.items.length > 0) {
+      budgetItemsObj.items = await Promise.all(
+        budgetItemsObj.items.map(async (item) => {
+          const populatedItem = { ...item };
+
+          // Populate item details
+          if (item.item_id) {
+            const itemDetails = await Items.findOne({ item_id: parseInt(item.item_id) });
+            populatedItem.item_details = itemDetails;
+          }
+
+          // Populate category details
+          if (item.category_id) {
+            const categoryDetails = await ItemCategory.findOne({ item_category_id: parseInt(item.category_id) });
+            populatedItem.category_details = categoryDetails;
+          }
+
+          return populatedItem;
+        })
+      );
+    }
+
+    sendSuccess(res, budgetItemsObj, 'Budget items retrieved successfully');
   } catch (error) {
     throw error;
   }
