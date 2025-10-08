@@ -1,4 +1,5 @@
 const Event = require('../models/event.model');
+const VenueDetails = require('../models/venue_details.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -102,12 +103,23 @@ const getAllEvents = asyncHandler(async (req, res) => {
     // Execute query
     const [events, total] = await Promise.all([
       Event.find(filter)
-        .populate('venue_details_id', 'venue_details_id name address capacity type map')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
       Event.countDocuments(filter)
     ]);
+
+    // Manually fetch venue details for each event
+    const eventsWithVenues = await Promise.all(events.map(async (event) => {
+      const eventObj = event.toObject();
+      if (event.venue_details_id) {
+        const venueDetails = await VenueDetails.findOne({
+          venue_details_id: parseInt(event.venue_details_id)
+        }).select('venue_details_id name address capacity type map');
+        eventObj.venue_details = venueDetails;
+      }
+      return eventObj;
+    }));
 
     // Calculate pagination info
     const totalPages = Math.ceil(total / limit);
@@ -122,7 +134,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-    sendPaginated(res, events, pagination, 'Events retrieved successfully');
+    sendPaginated(res, eventsWithVenues, pagination, 'Events retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -137,13 +149,24 @@ const getEventById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const event = await Event.findOne({event_id: parseInt(id)})
-      .populate('venue_details_id', 'venue_details_id name address capacity type map');
+    // Find event by event_id
+    const event = await Event.findOne({event_id: parseInt(id)});
 
     if (!event) {
       return sendNotFound(res, 'Event not found');
     }
-    sendSuccess(res, event, 'Event retrieved successfully');
+
+    // Manually fetch venue details if venue_details_id exists
+    let eventWithVenue = event.toObject();
+    if (event.venue_details_id) {
+      const venueDetails = await VenueDetails.findOne({
+        venue_details_id: parseInt(event.venue_details_id)
+      }).select('venue_details_id name address capacity type map');
+      
+      eventWithVenue.venue_details = venueDetails;
+    }
+
+    sendSuccess(res, eventWithVenue, 'Event retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -291,12 +314,23 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
     // Execute query
     const [events, total] = await Promise.all([
       Event.find(filter)
-        .populate('venue_details_id', 'venue_details_id name address capacity type map')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
       Event.countDocuments(filter)
     ]);
+
+    // Manually fetch venue details for each event
+    const eventsWithVenues = await Promise.all(events.map(async (event) => {
+      const eventObj = event.toObject();
+      if (event.venue_details_id) {
+        const venueDetails = await VenueDetails.findOne({
+          venue_details_id: parseInt(event.venue_details_id)
+        }).select('venue_details_id name address capacity type map');
+        eventObj.venue_details = venueDetails;
+      }
+      return eventObj;
+    }));
 
     // Calculate pagination info
     const totalPages = Math.ceil(total / limit);
@@ -311,7 +345,7 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-    sendPaginated(res, events, pagination, 'User events retrieved successfully');
+    sendPaginated(res, eventsWithVenues, pagination, 'User events retrieved successfully');
   } catch (error) {
     throw error;
   }
