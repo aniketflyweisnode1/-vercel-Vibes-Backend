@@ -64,7 +64,7 @@ const getAllEventDiscussionChats = asyncHandler(async (req, res) => {
       limit: parseInt(limit)
     };
 
-    sendPaginated(res, 'Event discussion chats retrieved successfully', eventDiscussionChats, pagination);
+    sendPaginated(res, eventDiscussionChats, pagination, 'Event discussion chats retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -110,7 +110,7 @@ const getEventDiscussionChatsByAuth = asyncHandler(async (req, res) => {
       limit: parseInt(limit)
     };
 
-    sendPaginated(res, 'Event discussion chats retrieved successfully', eventDiscussionChats, pagination);
+    sendPaginated(res, eventDiscussionChats, pagination, 'Event discussion chats retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -131,7 +131,7 @@ const getEventDiscussionChatById = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Event discussion chat not found');
     }
 
-    sendSuccess(res, 'Event discussion chat retrieved successfully', eventDiscussionChat);
+    sendSuccess(res, eventDiscussionChat, 'Event discussion chat retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -159,7 +159,7 @@ const updateEventDiscussionChat = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Event discussion chat not found');
     }
 
-    sendSuccess(res, 'Event discussion chat updated successfully', eventDiscussionChat);
+    sendSuccess(res, eventDiscussionChat, 'Event discussion chat updated successfully');
   } catch (error) {
     throw error;
   }
@@ -180,7 +180,51 @@ const deleteEventDiscussionChat = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Event discussion chat not found');
     }
 
-    sendSuccess(res, 'Event discussion chat deleted successfully', null);
+    sendSuccess(res, null, 'Event discussion chat deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Get event discussion chats by event ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getEventDiscussionChatsByEventId = asyncHandler(async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { page = 1, limit = 10, search, status } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build filter object
+    const filter = { event_id: parseInt(eventId) };
+    if (search) {
+      filter.$or = [
+        { message: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (status !== undefined) {
+      filter.status = status === 'true';
+    }
+
+    // Get event discussion chats with pagination
+    const [eventDiscussionChats, total] = await Promise.all([
+      EventDiscussionChat.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      EventDiscussionChat.countDocuments(filter)
+    ]);
+
+    const pagination = {
+      current: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      total,
+      limit: parseInt(limit)
+    };
+
+    sendPaginated(res, eventDiscussionChats, pagination, 'Event discussion chats by event retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -192,5 +236,6 @@ module.exports = {
   getEventDiscussionChatById,
   getEventDiscussionChatsByAuth,
   updateEventDiscussionChat,
-  deleteEventDiscussionChat
+  deleteEventDiscussionChat,
+  getEventDiscussionChatsByEventId
 };

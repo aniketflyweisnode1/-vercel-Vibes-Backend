@@ -2,6 +2,12 @@ const Joi = require('joi');
 
 // Validation schema for creating event task
 const createEventTaskSchema = Joi.object({
+  event_id: Joi.number().integer().min(1).required().messages({
+    'number.base': 'Event ID must be a number',
+    'number.integer': 'Event ID must be an integer',
+    'number.min': 'Event ID must be greater than 0',
+    'any.required': 'Event ID is required'
+  }),
   taskTitle: Joi.string().required().trim().min(1).max(255).messages({
     'string.empty': 'Task title is required',
     'string.min': 'Task title must be at least 1 character long',
@@ -70,9 +76,20 @@ const idSchema = Joi.object({
   })
 });
 
+// Validation schema for event ID parameter
+const eventIdSchema = Joi.object({
+  eventId: Joi.number().integer().min(1).required().messages({
+    'number.base': 'Event ID must be a number',
+    'number.integer': 'Event ID must be an integer',
+    'number.min': 'Event ID must be greater than 0',
+    'any.required': 'Event ID is required'
+  })
+});
+
 module.exports = {
   createEventTaskSchema,
   updateEventTaskSchema,
   querySchema,
-  idSchema
+  idSchema,
+  eventIdSchema
 };

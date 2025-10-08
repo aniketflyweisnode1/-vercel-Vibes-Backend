@@ -5,6 +5,11 @@ const eventTasksSchema = new mongoose.Schema({
     type: Number,
     unique: true
   },
+  event_id: {
+    type: Number,
+    ref: 'Event',
+    required: true
+  },
   taskTitle: {
     type: String,
     trim: true

@@ -91,9 +91,20 @@ const idSchema = Joi.object({
   })
 });
 
+// Validation schema for event ID parameter
+const eventIdSchema = Joi.object({
+  eventId: Joi.number().integer().min(1).required().messages({
+    'number.base': 'Event ID must be a number',
+    'number.integer': 'Event ID must be an integer',
+    'number.min': 'Event ID must be greater than 0',
+    'any.required': 'Event ID is required'
+  })
+});
+
 module.exports = {
   createEventDiscussionChatSchema,
   updateEventDiscussionChatSchema,
   querySchema,
-  idSchema
+  idSchema,
+  eventIdSchema
 };

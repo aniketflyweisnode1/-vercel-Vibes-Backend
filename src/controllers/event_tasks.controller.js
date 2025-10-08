@@ -201,11 +201,57 @@ const deleteEventTask = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Get event tasks by event ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getEventTasksByEventId = asyncHandler(async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { page = 1, limit = 10, search, status } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build filter object
+    const filter = { event_id: parseInt(eventId) };
+    if (search) {
+      filter.$or = [
+        { taskTitle: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (status !== undefined) {
+      filter.status = status === 'true';
+    }
+
+    // Get event tasks with pagination
+    const [eventTasks, total] = await Promise.all([
+      EventTasks.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      EventTasks.countDocuments(filter)
+    ]);
+
+    const pagination = {
+      current: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      total,
+      limit: parseInt(limit)
+    };
+
+    sendPaginated(res, eventTasks, pagination, 'Event tasks by event retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createEventTask,
   getAllEventTasks,
   getEventTaskById,
   getEventTasksByAuth,
   updateEventTask,
-  deleteEventTask
+  deleteEventTask,
+  getEventTasksByEventId
 };
