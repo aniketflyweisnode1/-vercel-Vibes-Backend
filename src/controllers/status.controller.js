@@ -195,11 +195,33 @@ const updateAllStatuses = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete status by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteStatus = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const status = await Status.findOneAndDelete({ status_id: parseInt(id) });
+
+    if (!status) {
+      return sendNotFound(res, 'Status not found');
+    }
+
+    sendSuccess(res, null, 'Status deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createStatus,
   getAllStatuses,
   getStatusById,
   updateStatus,
-  updateAllStatuses
+  updateAllStatuses,
+  deleteStatus
 };
 

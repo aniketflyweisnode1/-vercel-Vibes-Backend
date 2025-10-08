@@ -156,10 +156,32 @@ const updateServiceItem = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete service item by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteServiceItem = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const serviceItem = await ServiceItem.findOneAndDelete({ service_items_id: parseInt(id) });
+
+    if (!serviceItem) {
+      return sendNotFound(res, 'Service item not found');
+    }
+
+    sendSuccess(res, null, 'Service item deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createServiceItem,
   getAllServiceItems,
   getServiceItemById,
-  updateServiceItem
+  updateServiceItem,
+  deleteServiceItem
 };
 

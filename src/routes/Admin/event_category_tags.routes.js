@@ -6,7 +6,8 @@ const {
   createEventCategoryTags, 
   getAllEventCategoryTags, 
   getEventCategoryTagsById, 
-  updateEventCategoryTags
+  updateEventCategoryTags,
+  deleteEventCategoryTags
 } = require('../../controllers/event_category_tags.controller'); 
 
 // Import middleware
@@ -32,5 +33,8 @@ router.get('/getById/:id', auth, validateParams(getEventCategoryTagsByIdSchema),
 
 // Update event category tags by ID with auth
 router.put('/updateById', auth, validateBody(updateEventCategoryTagsSchema), updateEventCategoryTags);
+
+// Delete event category tags by ID with auth
+router.delete('/deleteById/:id', auth, validateParams(getEventCategoryTagsByIdSchema), deleteEventCategoryTags);
 
 module.exports = router;

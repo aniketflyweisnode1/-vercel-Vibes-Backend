@@ -6,7 +6,8 @@ const {
   createServiceItem, 
   getAllServiceItems, 
   getServiceItemById, 
-  updateServiceItem 
+  updateServiceItem,
+  deleteServiceItem
 } = require('../../controllers/service_items.controller'); 
 
 // Import middleware
@@ -32,5 +33,8 @@ router.get('/getById/:id', auth, validateParams(getServiceItemByIdSchema), getSe
 
 // Update service item by ID with auth
 router.put('/updateById', auth, validateBody(updateServiceItemSchema), updateServiceItem);
+
+// Delete service item by ID with auth
+router.delete('/deleteById/:id', auth, validateParams(getServiceItemByIdSchema), deleteServiceItem);
 
 module.exports = router;

@@ -7,7 +7,8 @@ const {
   getAllStatuses, 
   getStatusById, 
   updateStatus,
-  updateAllStatuses 
+  updateAllStatuses,
+  deleteStatus
 } = require('../../controllers/status.controller'); 
 
 // Import middleware
@@ -37,5 +38,8 @@ router.put('/updateById', auth, validateBody(updateStatusSchema), updateStatus);
 
 // Update all statuses with auth
 router.put('/updateAll', auth, validateBody(updateAllStatusesSchema), updateAllStatuses);
+
+// Delete status by ID with auth
+router.delete('/deleteById/:id', auth, validateParams(getStatusByIdSchema), deleteStatus);
 
 module.exports = router;

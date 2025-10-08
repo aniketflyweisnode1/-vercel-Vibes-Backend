@@ -154,10 +154,32 @@ const updateOTP = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete OTP by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteOTP = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const otp = await OTP.findOneAndDelete({ otp_id: parseInt(id) });
+
+    if (!otp) {
+      return sendNotFound(res, 'OTP not found');
+    }
+
+    sendSuccess(res, null, 'OTP deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createOTP,
   getAllOTPs,
   getOTPById,
-  updateOTP
+  updateOTP,
+  deleteOTP
 };
 

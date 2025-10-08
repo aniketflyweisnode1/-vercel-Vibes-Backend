@@ -6,7 +6,8 @@ const {
   createOTP,
   getAllOTPs,
   getOTPById,
-  updateOTP
+  updateOTP,
+  deleteOTP
 } = require('../../controllers/otp.controller');
 
 // Import middleware
@@ -47,5 +48,12 @@ router.get('/:id', auth, validateParams(getOTPByIdSchema), getOTPById);
  * @access  Private (Admin)
  */
 router.put('/:id', auth, validateBody(updateOTPSchema), updateOTP);
+
+/**
+ * @route   DELETE /api/admin/otps/:id
+ * @desc    Delete OTP by ID
+ * @access  Private (Admin)
+ */
+router.delete('/:id', auth, validateParams(getOTPByIdSchema), deleteOTP);
 
 module.exports = router;

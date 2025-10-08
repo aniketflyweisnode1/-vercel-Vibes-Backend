@@ -6,7 +6,8 @@ const {
   createVendorMapServiceType, 
   getAllVendorMapServiceTypes, 
   getVendorMapServiceTypeById, 
-  updateVendorMapServiceType 
+  updateVendorMapServiceType,
+  deleteVendorMapServiceType
 } = require('../../controllers/vendor_map_service_type.controller'); 
 
 // Import middleware
@@ -32,5 +33,8 @@ router.get('/getById/:id', auth, validateParams(getVendorMapServiceTypeByIdSchem
 
 // Update vendor map service type by ID with auth
 router.put('/updateById', auth, validateBody(updateVendorMapServiceTypeSchema), updateVendorMapServiceType);
+
+// Delete vendor map service type by ID with auth
+router.delete('/deleteById/:id', auth, validateParams(getVendorMapServiceTypeByIdSchema), deleteVendorMapServiceType);
 
 module.exports = router;

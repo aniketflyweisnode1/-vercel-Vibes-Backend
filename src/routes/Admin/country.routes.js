@@ -6,7 +6,8 @@ const {
   createCountry, 
   getAllCountries, 
   getCountryById, 
-  updateCountry
+  updateCountry,
+  deleteCountry
 } = require('../../controllers/country.controller'); 
 
 // Import middleware
@@ -32,5 +33,8 @@ router.get('/getById/:id', auth, validateParams(getCountryByIdSchema), getCountr
 
 // Update country by ID with auth
 router.put('/updateById', auth, validateBody(updateCountrySchema), updateCountry);
+
+// Delete country by ID with auth
+router.delete('/deleteById/:id', auth, validateParams(getCountryByIdSchema), deleteCountry);
 
 module.exports = router;

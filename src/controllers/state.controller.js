@@ -169,11 +169,33 @@ const getStatesByCountryId = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete state by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteState = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const state = await State.findOneAndDelete({ state_id: parseInt(id) });
+
+    if (!state) {
+      return sendNotFound(res, 'State not found');
+    }
+
+    sendSuccess(res, null, 'State deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createState,
   getAllStates,
   getStateById,
   updateState,
-  getStatesByCountryId
+  getStatesByCountryId,
+  deleteState
 };
 

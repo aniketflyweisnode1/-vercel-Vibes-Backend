@@ -150,10 +150,32 @@ const updateEventAmenity = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete event amenity by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteEventAmenity = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const eventAmenity = await EventAmenity.findOneAndDelete({ event_amenities_id: parseInt(id) });
+
+    if (!eventAmenity) {
+      return sendNotFound(res, 'Event amenity not found');
+    }
+
+    sendSuccess(res, null, 'Event amenity deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createEventAmenity,
   getAllEventAmenities,
   getEventAmenityById,
-  updateEventAmenity
+  updateEventAmenity,
+  deleteEventAmenity
 };
 

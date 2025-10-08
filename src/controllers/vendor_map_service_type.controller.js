@@ -162,10 +162,32 @@ const updateVendorMapServiceType = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete vendor map service type by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteVendorMapServiceType = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const vendorMapServiceType = await VendorMapServiceType.findOneAndDelete({ vendor_map_service_id: parseInt(id) });
+
+    if (!vendorMapServiceType) {
+      return sendNotFound(res, 'Vendor map service type not found');
+    }
+
+    sendSuccess(res, null, 'Vendor map service type deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createVendorMapServiceType,
   getAllVendorMapServiceTypes,
   getVendorMapServiceTypeById,
-  updateVendorMapServiceType
+  updateVendorMapServiceType,
+  deleteVendorMapServiceType
 };
 

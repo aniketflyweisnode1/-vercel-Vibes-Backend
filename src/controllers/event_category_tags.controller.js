@@ -145,10 +145,32 @@ const updateEventCategoryTags = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete event category tags by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteEventCategoryTags = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const eventCategoryTags = await EventCategoryTags.findOneAndDelete({ event_category_tags_id: parseInt(id) });
+
+    if (!eventCategoryTags) {
+      return sendNotFound(res, 'Event category tags not found');
+    }
+
+    sendSuccess(res, null, 'Event category tags deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createEventCategoryTags,
   getAllEventCategoryTags,
   getEventCategoryTagsById,
-  updateEventCategoryTags
+  updateEventCategoryTags,
+  deleteEventCategoryTags
 };
 

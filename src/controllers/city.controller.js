@@ -191,12 +191,34 @@ const getCitiesByStateId = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Delete city by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteCity = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const city = await City.findOneAndDelete({ city_id: parseInt(id) });
+
+    if (!city) {
+      return sendNotFound(res, 'City not found');
+    }
+
+    sendSuccess(res, null, 'City deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createCity,
   getAllCities,
   getCityById,
   updateCity,
   getCitiesByCountryId,
-  getCitiesByStateId
+  getCitiesByStateId,
+  deleteCity
 };
 

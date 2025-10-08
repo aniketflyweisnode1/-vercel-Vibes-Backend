@@ -8,7 +8,8 @@ const {
   getCityById, 
   updateCity,
   getCitiesByCountryId,
-  getCitiesByStateId
+  getCitiesByStateId,
+  deleteCity
 } = require('../../controllers/city.controller'); 
 
 // Import middleware
@@ -41,5 +42,8 @@ router.get('/getByStateId/:stateId',  validateParams(getCitiesByStateIdSchema), 
 
 // Update city by ID with auth
 router.put('/updateById', auth, validateBody(updateCitySchema), updateCity);
+
+// Delete city by ID with auth
+router.delete('/deleteById/:id', auth, validateParams(getCityByIdSchema), deleteCity);
 
 module.exports = router;

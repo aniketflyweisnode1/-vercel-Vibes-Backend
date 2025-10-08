@@ -6,7 +6,8 @@ const {
   createEventAmenity, 
   getAllEventAmenities, 
   getEventAmenityById, 
-  updateEventAmenity 
+  updateEventAmenity,
+  deleteEventAmenity
 } = require('../../controllers/event_amenities.controller'); 
 
 // Import middleware
@@ -32,5 +33,8 @@ router.get('/getById/:id', auth, validateParams(getEventAmenityByIdSchema), getE
 
 // Update event amenity by ID with auth
 router.put('/updateById', auth, validateBody(updateEventAmenitySchema), updateEventAmenity);
+
+// Delete event amenity by ID with auth
+router.delete('/deleteById/:id', auth, validateParams(getEventAmenityByIdSchema), deleteEventAmenity);
 
 module.exports = router;
