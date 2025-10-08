@@ -2,6 +2,11 @@ const Joi = require('joi');
 
 // Validation schema for creating guest
 const createGuestSchema = Joi.object({
+  role_id: Joi.number().integer().min(1).allow(null).messages({
+    'number.base': 'Role ID must be a number',
+    'number.integer': 'Role ID must be an integer',
+    'number.min': 'Role ID must be greater than 0'
+  }),
   name: Joi.string().required().trim().min(1).max(255).messages({
     'string.empty': 'Guest name is required',
     'string.min': 'Guest name must be at least 1 character long',
@@ -42,6 +47,11 @@ const updateGuestSchema = Joi.object({
     'number.min': 'ID must be greater than 0',
     'any.required': 'ID is required'
   }),
+  role_id: Joi.number().integer().min(1).allow(null).messages({
+    'number.base': 'Role ID must be a number',
+    'number.integer': 'Role ID must be an integer',
+    'number.min': 'Role ID must be greater than 0'
+  }),
   name: Joi.string().trim().min(1).max(255).messages({
     'string.min': 'Guest name must be at least 1 character long',
     'string.max': 'Guest name cannot exceed 255 characters'
@@ -80,6 +90,11 @@ const querySchema = Joi.object({
     'number.base': 'Event ID must be a number',
     'number.integer': 'Event ID must be an integer',
     'number.min': 'Event ID must be greater than 0'
+  }),
+  role_id: Joi.number().integer().min(1).allow('').messages({
+    'number.base': 'Role ID must be a number',
+    'number.integer': 'Role ID must be an integer',
+    'number.min': 'Role ID must be greater than 0'
   })
 });
 

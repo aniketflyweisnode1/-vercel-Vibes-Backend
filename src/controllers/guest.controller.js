@@ -31,7 +31,7 @@ const createGuest = asyncHandler(async (req, res) => {
  */
 const getAllGuests = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, status, event_id } = req.query;
+    const { page = 1, limit = 10, search, status, event_id, role_id } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build filter object
@@ -48,6 +48,9 @@ const getAllGuests = asyncHandler(async (req, res) => {
     }
     if (event_id) {
       filter.event_id = parseInt(event_id);
+    }
+    if (role_id) {
+      filter.role_id = parseInt(role_id);
     }
 
     // Get guests with pagination
@@ -100,7 +103,7 @@ const getGuestById = asyncHandler(async (req, res) => {
  */
 const getGuestsByAuth = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, status, event_id } = req.query;
+    const { page = 1, limit = 10, search, status, event_id, role_id } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build filter object
@@ -117,6 +120,9 @@ const getGuestsByAuth = asyncHandler(async (req, res) => {
     }
     if (event_id) {
       filter.event_id = parseInt(event_id);
+    }
+    if (role_id) {
+      filter.role_id = parseInt(role_id);
     }
 
     // Get guests with pagination
@@ -149,7 +155,7 @@ const getGuestsByAuth = asyncHandler(async (req, res) => {
 const getGuestsByEventId = asyncHandler(async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { page = 1, limit = 10, search, status } = req.query;
+    const { page = 1, limit = 10, search, status, role_id } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build filter object
@@ -163,6 +169,9 @@ const getGuestsByEventId = asyncHandler(async (req, res) => {
     }
     if (status !== undefined) {
       filter.status = status === 'true';
+    }
+    if (role_id) {
+      filter.role_id = parseInt(role_id);
     }
 
     // Get guests with pagination
