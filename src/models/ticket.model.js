@@ -6,6 +6,10 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     unique: true
   },
+  event_id: {
+    type: Number,
+    ref: 'Event',
+  },
   ticket_type_id: {
     type: Number,
     ref: 'TicketType',
