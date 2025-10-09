@@ -65,6 +65,10 @@ const vibeBusinessSubscriptionRoutes = require('./routes/Master/vibe_business_su
 const vibeBusinessPlanSubscribedRoutes = require('./routes/Master/vibe_business_plan_subscribed.routes.js');
 const filterVendorLeadsRoutes = require('./routes/Master/filter_vendor_leads.routes.js');
 const vendorCorporateClientRoutes = require('./routes/Master/vendor_corporate_client.routes.js');
+const eventEntryTicketsRoutes = require('./routes/Master/event_entry_tickets.routes.js');
+const eventEntryUsergetTicketsRoutes = require('./routes/Master/event_entry_userget_tickets.routes.js');
+const eventTicketsSeatsRoutes = require('./routes/Master/event_tickets_seats.routes.js');
+const eventEntryTicketsOrderRoutes = require('./routes/Master/event_entry_tickets_order.routes.js');
 
 // Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/vendor_business_information.routes.js');
@@ -164,6 +168,10 @@ router.use('/master/vibe-business-subscription', vibeBusinessSubscriptionRoutes)
 router.use('/master/vibe-business-plan-subscribed', vibeBusinessPlanSubscribedRoutes);
 router.use('/master/filter-vendor-leads', filterVendorLeadsRoutes);
 router.use('/master/vendor-corporate-client', vendorCorporateClientRoutes);
+router.use('/master/event-entry-tickets', eventEntryTicketsRoutes);
+router.use('/master/event-entry-userget-tickets', eventEntryUsergetTicketsRoutes);
+router.use('/master/event-tickets-seats', eventTicketsSeatsRoutes);
+router.use('/master/event-entry-tickets-order', eventEntryTicketsOrderRoutes);
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);
