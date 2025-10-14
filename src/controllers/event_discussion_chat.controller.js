@@ -41,9 +41,7 @@ const getAllEventDiscussionChats = asyncHandler(async (req, res) => {
         { message: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -87,9 +85,7 @@ const getEventDiscussionChatsByAuth = asyncHandler(async (req, res) => {
         { message: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -204,9 +200,7 @@ const getEventDiscussionChatsByEventId = asyncHandler(async (req, res) => {
         { message: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get event discussion chats with pagination
     const [eventDiscussionChats, total] = await Promise.all([

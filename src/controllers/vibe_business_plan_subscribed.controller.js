@@ -97,9 +97,7 @@ const getAllVibeBusinessPlansSubscribed = asyncHandler(async (req, res) => {
         { transaction_status: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (transaction_status) {
       filter.transaction_status = transaction_status;
     }

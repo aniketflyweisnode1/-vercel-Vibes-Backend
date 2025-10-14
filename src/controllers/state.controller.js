@@ -54,9 +54,7 @@ const getAllStates = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add country_id filter
     if (country_id) {

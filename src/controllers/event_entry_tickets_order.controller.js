@@ -190,9 +190,7 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const filter = {};
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -253,9 +251,7 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const filter = { createdBy: req.userId };
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }

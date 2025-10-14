@@ -42,9 +42,7 @@ const getAllEventTasks = asyncHandler(async (req, res) => {
         { description: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get event tasks with pagination
     const [eventTasks, total] = await Promise.all([
@@ -107,9 +105,7 @@ const getEventTasksByAuth = asyncHandler(async (req, res) => {
         { description: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get event tasks with pagination
     const [eventTasks, total] = await Promise.all([
@@ -220,9 +216,7 @@ const getEventTasksByEventId = asyncHandler(async (req, res) => {
         { description: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get event tasks with pagination
     const [eventTasks, total] = await Promise.all([

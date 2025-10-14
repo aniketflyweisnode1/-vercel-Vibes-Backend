@@ -54,9 +54,7 @@ const getAllVendorBusinessInformation = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add approval filter
     if (approval_by_admin !== undefined) {
@@ -152,9 +150,7 @@ const getVendorBusinessInformationByAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add approval filter
     if (approval_by_admin !== undefined) {

@@ -41,9 +41,7 @@ const getAllItemCategories = asyncHandler(async (req, res) => {
         { categorytxt: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get item categories with pagination
     const [itemCategories, total] = await Promise.all([
@@ -105,9 +103,7 @@ const getItemCategoriesByAuth = asyncHandler(async (req, res) => {
         { categorytxt: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get item categories with pagination
     const [itemCategories, total] = await Promise.all([

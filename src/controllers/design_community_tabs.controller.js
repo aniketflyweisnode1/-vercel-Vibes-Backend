@@ -51,9 +51,7 @@ const getAllDesignCommunityTabs = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -201,9 +199,7 @@ const getDesignCommunityTabsByAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Build sort object
     const sort = {};

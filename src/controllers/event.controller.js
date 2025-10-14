@@ -60,9 +60,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add event_type_id filter
     if (event_type_id) {
@@ -270,9 +268,7 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add event_type_id filter
     if (event_type_id) {

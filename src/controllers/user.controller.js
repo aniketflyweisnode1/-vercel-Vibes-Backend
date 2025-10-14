@@ -73,9 +73,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Build sort object
     const sort = {};

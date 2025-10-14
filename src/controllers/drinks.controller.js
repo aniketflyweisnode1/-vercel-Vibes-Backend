@@ -46,9 +46,7 @@ const getAllDrinks = asyncHandler(async (req, res) => {
       ];
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -189,9 +187,7 @@ const getDrinksByAuth = asyncHandler(async (req, res) => {
       ];
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

@@ -28,11 +28,11 @@ const {
 // Create business category with auth
 router.post('/create', auth, validateBody(createBusinessCategorySchema), createBusinessCategory);
 
-// Get all business categories with auth
-router.get('/getAll', auth, validateQuery(getAllBusinessCategoriesSchema), getAllBusinessCategories);
+// Get all business categories (no auth, no validation)
+router.get('/getAll', getAllBusinessCategories);
 
-// Get business categories by authenticated user with auth
-router.get('/getByAuth', auth, validateQuery(getAllBusinessCategoriesSchema), getBusinessCategoriesByAuth);
+// Get business categories by authenticated user with auth (no validation)
+router.get('/getByAuth', auth, getBusinessCategoriesByAuth);
 
 // Get business category by ID with auth
 router.get('/getById/:id', auth, validateParams(getBusinessCategoryByIdSchema), getBusinessCategoryById);

@@ -42,9 +42,7 @@ const getAllVibeBusinessSubscriptions = asyncHandler(async (req, res) => {
         { description: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (planDuration) {
       filter.planDuration = planDuration;
     }

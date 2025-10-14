@@ -44,9 +44,7 @@ const getAllVenueDetails = asyncHandler(async (req, res) => {
         { type: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (type) {
       filter.type = { $regex: type, $options: 'i' };
     }

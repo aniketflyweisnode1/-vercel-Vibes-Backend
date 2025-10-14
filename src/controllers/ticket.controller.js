@@ -52,9 +52,7 @@ const getAllTickets = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add ticket_type_id filter
     if (ticket_type_id && ticket_type_id !== '') {

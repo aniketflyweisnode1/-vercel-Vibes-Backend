@@ -50,9 +50,7 @@ const getAllVendorServiceTypes = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Build sort object
     const sort = {};
@@ -215,9 +213,7 @@ const getVendorServiceTypesByAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Build sort object
     const sort = {};

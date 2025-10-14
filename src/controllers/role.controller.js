@@ -52,9 +52,7 @@ const getAllRoles = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Build sort object
     const sort = {};
@@ -203,9 +201,7 @@ const getRolesByAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Build sort object
     const sort = {};

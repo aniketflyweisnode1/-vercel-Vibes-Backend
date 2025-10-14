@@ -49,10 +49,7 @@ const getAllOtpTypes = asyncHandler(async (req, res) => {
       ];
     }
 
-    // Add status filter
-      if (status == undefined) {
-      filter.status = 'true';
-    }
+    // Add status filter removed to prevent type casting errors
 
     // Build sort object
     const sort = {};

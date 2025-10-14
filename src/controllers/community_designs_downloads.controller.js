@@ -49,7 +49,7 @@ const getAllCommunityDesignDownloads = asyncHandler(async (req, res) => {
     const {
       page = 1,
       limit = 10,
-      status,
+     
       community_designs_id,
       sortBy = 'created_at',
       sortOrder = 'desc'
@@ -58,15 +58,14 @@ const getAllCommunityDesignDownloads = asyncHandler(async (req, res) => {
     // Build filter object
     const filter = {};
 
-    // Add status filter
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
 
     // Add community_designs_id filter
     if (community_designs_id) {
       filter.community_designs_id = parseInt(community_designs_id);
     }
+
+
+
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

@@ -43,10 +43,6 @@ const getAllCategory = asyncHandler(async (req, res) => {
       filter.category_name = { $regex: search, $options: 'i' };
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
-
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
@@ -181,10 +177,6 @@ const getCategoryByAuth = asyncHandler(async (req, res) => {
 
     if (search) {
       filter.category_name = { $regex: search, $options: 'i' };
-    }
-
-    if (status !== undefined) {
-      filter.status = 'true';
     }
 
     const sort = {};

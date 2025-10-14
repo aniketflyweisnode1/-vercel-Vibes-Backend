@@ -41,9 +41,7 @@ const getAllEventSetupRequirements = asyncHandler(async (req, res) => {
         { name: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Get event setup requirements with pagination
     const [eventSetupRequirements, total] = await Promise.all([
@@ -105,9 +103,7 @@ const getEventSetupRequirementsByAuth = asyncHandler(async (req, res) => {
         { name: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get event setup requirements with pagination
     const [eventSetupRequirements, total] = await Promise.all([

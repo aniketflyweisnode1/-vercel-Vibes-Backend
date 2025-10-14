@@ -53,7 +53,7 @@ const getAllCountries = asyncHandler(async (req, res) => {
 
     // Add status filter
     if (status !== undefined) {
-      filter.status = 'true';
+      filter.status = status === 'true';
     }
 
     // Build sort object

@@ -53,10 +53,7 @@ const getAllCities = asyncHandler(async (req, res) => {
       ];
     }
 
-    // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+    // Add status filter removed to prevent type casting errors
 
     // Add country_id filter
     if (country_id) {

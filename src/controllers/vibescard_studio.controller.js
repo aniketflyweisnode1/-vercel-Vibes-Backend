@@ -43,9 +43,7 @@ const getAllVibesCardStudios = asyncHandler(async (req, res) => {
         { canvas_size: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = event_id;
     }
@@ -117,9 +115,7 @@ const getVibesCardStudiosByEventId = asyncHandler(async (req, res) => {
         { canvas_size: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (category_id) {
       filter.category_id = category_id;
     }

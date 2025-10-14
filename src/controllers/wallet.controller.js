@@ -54,9 +54,7 @@ const getAllWallets = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add user_id filter
     if (user_id && user_id !== '') {

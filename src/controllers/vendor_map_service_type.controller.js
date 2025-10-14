@@ -52,9 +52,7 @@ const getAllVendorMapServiceTypes = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add vendor service type filter
     if (vendor_service_type_id) {

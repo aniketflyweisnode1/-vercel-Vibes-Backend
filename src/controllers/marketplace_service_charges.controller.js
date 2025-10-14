@@ -47,9 +47,7 @@ const getAllMarketPlaceServiceCharges = asyncHandler(async (req, res) => {
       filter.service_name = { $regex: search, $options: 'i' };
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     if (user_id) {
       filter.user_id = parseInt(user_id);
@@ -199,9 +197,7 @@ const getMarketPlaceServiceChargesByAuth = asyncHandler(async (req, res) => {
       filter.service_name = { $regex: search, $options: 'i' };
     }
 
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

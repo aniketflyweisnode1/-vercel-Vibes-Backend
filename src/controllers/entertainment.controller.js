@@ -47,9 +47,7 @@ const getAllEntertainment = asyncHandler(async (req, res) => {
       ];
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -191,9 +189,7 @@ const getEntertainmentByAuth = asyncHandler(async (req, res) => {
       ];
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

@@ -48,9 +48,7 @@ const getAllShareEvent = asyncHandler(async (req, res) => {
       filter.share_user_to = parseInt(share_user_to);
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -193,9 +191,7 @@ const getShareEventByAuth = asyncHandler(async (req, res) => {
       filter.share_user_to = parseInt(share_user_to);
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

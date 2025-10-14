@@ -43,10 +43,6 @@ const getAllCompaignType = asyncHandler(async (req, res) => {
       filter.name = { $regex: search, $options: 'i' };
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
-
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 

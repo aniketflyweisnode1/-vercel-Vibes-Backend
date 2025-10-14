@@ -48,9 +48,7 @@ const getAllMarketPlaceBooking = asyncHandler(async (req, res) => {
       ];
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     if (marketplace_service_charges_id) {
       filter.marketplace_service_charges_id = parseInt(marketplace_service_charges_id);
@@ -199,9 +197,7 @@ const getMarketPlaceBookingByAuth = asyncHandler(async (req, res) => {
       ];
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

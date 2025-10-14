@@ -43,9 +43,7 @@ const getAllGuests = asyncHandler(async (req, res) => {
         { mobileno: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -115,9 +113,7 @@ const getGuestsByAuth = asyncHandler(async (req, res) => {
         { mobileno: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -167,9 +163,7 @@ const getGuestsByEventId = asyncHandler(async (req, res) => {
         { mobileno: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (role_id) {
       filter.role_id = parseInt(role_id);
     }

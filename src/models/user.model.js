@@ -178,9 +178,6 @@ const userSchema = new mongoose.Schema({
 
 userSchema.plugin(AutoIncrement, { inc_field: 'user_id' });
 
-// Create sparse unique index on mobile (allows multiple null/empty values)
-userSchema.index({ mobile: 1 }, { unique: true, sparse: true });
-
 // Transform output to remove sensitive data
 userSchema.methods.toJSON = function() {
   const userObject = this.toObject();

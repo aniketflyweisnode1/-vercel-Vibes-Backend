@@ -59,9 +59,7 @@ const getAllCommunityDesignRemixes = asyncHandler(async (req, res) => {
     const filter = {};
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Add community_designs_id filter
     if (community_designs_id) {

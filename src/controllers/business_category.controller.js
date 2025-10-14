@@ -24,67 +24,17 @@ const createBusinessCategory = asyncHandler(async (req, res) => {
 });
 
 /**
- * Get all business categories with pagination and filtering
+ * Get all business categories (simple - no pagination, search, or filters)
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
 const getAllBusinessCategories = asyncHandler(async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      search = '',
-      status,
-      sortBy = 'created_at',
-      sortOrder = 'desc'
-    } = req.query;
+    // Get all business categories
+    const businessCategories = await BusinessCategory.find()
+      .sort({ created_at: -1 });
 
-    // Build filter object
-    const filter = {};
-
-    // Add search filter
-    if (search) {
-      filter.$or = [
-        { business_category: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    // Add status filter
-      if (status == undefined) {
-      filter.status = 'true';
-    }
-
-    // Build sort object
-    const sort = {};
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    // Calculate pagination
-    const skip = (page - 1) * limit;
-
-    // Execute query
-    const [businessCategories, total] = await Promise.all([
-      BusinessCategory.find(filter)
-        .populate('business_type_id', 'business_type_id business_type emoji')
-        .sort(sort)
-        .skip(skip)
-        .limit(parseInt(limit)),
-      BusinessCategory.countDocuments(filter)
-    ]);
-
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
-
-    const pagination = {
-      currentPage: parseInt(page),
-      totalPages,
-      totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage,
-      hasPrevPage
-    };
-    sendPaginated(res, businessCategories, pagination, 'Business categories retrieved successfully');
+    sendSuccess(res, businessCategories, 'Business categories retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -99,8 +49,7 @@ const getBusinessCategoryById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const businessCategory = await BusinessCategory.findOne({ business_category_id: parseInt(id) })
-      .populate('business_type_id', 'business_type_id business_type emoji');
+    const businessCategory = await BusinessCategory.findOne({ business_category_id: parseInt(id) });
 
     if (!businessCategory) {
       return sendNotFound(res, 'Business category not found');
@@ -134,7 +83,7 @@ const updateBusinessCategory = asyncHandler(async (req, res) => {
         new: true, 
         runValidators: true
       }
-    ).populate('business_type_id', 'business_type_id business_type emoji');
+    );
 
     if (!businessCategory) {
       return sendNotFound(res, 'Business category not found');
@@ -208,69 +157,17 @@ const deleteBusinessCategory = asyncHandler(async (req, res) => {
 });
 
 /**
- * Get business categories by authenticated user
+ * Get business categories by authenticated user (simple - no pagination, search, or filters)
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
 const getBusinessCategoriesByAuth = asyncHandler(async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      search = '',
-      status,
-      sortBy = 'created_at',
-      sortOrder = 'desc'
-    } = req.query;
+    // Get all business categories created by the authenticated user
+    const businessCategories = await BusinessCategory.find({ created_by: req.userId })
+      .sort({ created_at: -1 });
 
-    // Build filter object
-    const filter = {
-        created_by: req.userId
-    };
-
-    // Add search filter
-    if (search) {
-      filter.$or = [
-        { business_category: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    // Add status filter
-    if (status == undefined) {
-        filter.status = 'true';
-    }
-
-    // Build sort object
-    const sort = {};
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    // Calculate pagination
-    const skip = (page - 1) * limit;
-
-    // Execute query
-    const [businessCategories, total] = await Promise.all([
-      BusinessCategory.find(filter)
-        .populate('business_type_id', 'business_type_id business_type emoji')
-        .sort(sort)
-        .skip(skip)
-        .limit(parseInt(limit)),
-      BusinessCategory.countDocuments(filter)
-    ]);
-
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
-
-    const pagination = {
-      currentPage: parseInt(page),
-      totalPages,
-      totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage,
-      hasPrevPage
-    };
-    sendPaginated(res, businessCategories, pagination, 'Business categories retrieved successfully');
+    sendSuccess(res, businessCategories, 'Business categories retrieved successfully');
   } catch (error) {
     throw error;
   }

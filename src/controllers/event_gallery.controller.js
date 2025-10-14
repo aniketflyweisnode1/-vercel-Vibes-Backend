@@ -43,9 +43,7 @@ const getAllEventGallery = asyncHandler(async (req, res) => {
       filter.event_gallery_name = { $regex: search, $options: 'i' };
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -183,9 +181,7 @@ const getEventGalleryByAuth = asyncHandler(async (req, res) => {
       filter.event_gallery_name = { $regex: search, $options: 'i' };
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

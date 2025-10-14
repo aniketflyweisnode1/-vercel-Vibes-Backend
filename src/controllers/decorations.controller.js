@@ -48,7 +48,7 @@ const getAllDecorations = asyncHandler(async (req, res) => {
     }
 
     if (status !== undefined) {
-      filter.status = 'true';
+      filter.status = status === 'true';
     }
 
     const sort = {};
@@ -192,7 +192,7 @@ const getDecorationsByAuth = asyncHandler(async (req, res) => {
     }
 
     if (status !== undefined) {
-      filter.status = 'true';
+      filter.status = status === 'true';
     }
 
     const sort = {};

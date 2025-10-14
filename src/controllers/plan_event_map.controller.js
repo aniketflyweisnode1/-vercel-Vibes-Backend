@@ -60,9 +60,7 @@ const getAllPlanEventMaps = asyncHandler(async (req, res) => {
 
     // Build filter object
     const filter = {};
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -122,9 +120,7 @@ const getPlanEventMapsByAuth = asyncHandler(async (req, res) => {
 
     // Build filter object
     const filter = { createdBy: req.userId };
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -164,9 +160,7 @@ const getPlanEventMapsByEventId = asyncHandler(async (req, res) => {
 
     // Build filter object
     const filter = { event_id: parseInt(eventId) };
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get plan event maps with pagination
     const [planEventMaps, total] = await Promise.all([

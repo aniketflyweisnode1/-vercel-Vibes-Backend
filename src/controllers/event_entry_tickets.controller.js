@@ -39,9 +39,7 @@ const getAllEventEntryTickets = asyncHandler(async (req, res) => {
         { tag: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -105,9 +103,7 @@ const getEventEntryTicketsByAuth = asyncHandler(async (req, res) => {
         { tag: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }

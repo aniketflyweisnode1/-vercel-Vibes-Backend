@@ -42,9 +42,7 @@ const getAllVendorCorporateClients = asyncHandler(async (req, res) => {
         { contact_email: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (vendor_id) {
       filter.vendor_id = parseInt(vendor_id);
     }
@@ -114,9 +112,7 @@ const getVendorCorporateClientsByAuth = asyncHandler(async (req, res) => {
         { contact_email: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (vendor_id) {
       filter.vendor_id = parseInt(vendor_id);
     }

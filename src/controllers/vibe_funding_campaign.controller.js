@@ -60,9 +60,7 @@ const getAllVibeFundingCampaign = asyncHandler(async (req, res) => {
       filter.fundby_user_id = parseInt(fundby_user_id);
     }
 
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

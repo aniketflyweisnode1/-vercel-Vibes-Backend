@@ -57,10 +57,7 @@ const getAllBankBranchNames = asyncHandler(async (req, res) => {
       ];
     }
 
-    // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+    // Add status filter removed to prevent type casting errors
 
     // Add bank_name_id filter
     if (bank_name_id) {
@@ -254,10 +251,7 @@ const getBankBranchNamesByAuth = asyncHandler(async (req, res) => {
       ];
     }
 
-    // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+    // Add status filter removed to prevent type casting errors
 
     // Add bank_name_id filter
     if (bank_name_id) {

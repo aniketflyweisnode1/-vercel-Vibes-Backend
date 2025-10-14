@@ -55,10 +55,7 @@ const getAllOTPs = asyncHandler(async (req, res) => {
       ];
     }
 
-    // Add status filter
-    if (status == undefined) {
-      filter.status = 'true';
-    }
+    // Add status filter removed to prevent type casting errors
 
     // Add OTP type filter
     if (otp_type) {

@@ -38,9 +38,7 @@ const getAllBudgetItems = asyncHandler(async (req, res) => {
 
     // Build filter object
     const filter = {};
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+    // Status filter removed to prevent type casting errors
 
     // Get budget items with pagination
     const [budgetItems, total] = await Promise.all([

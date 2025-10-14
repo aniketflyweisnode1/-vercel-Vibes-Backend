@@ -110,9 +110,7 @@ const getAllTicketReplies = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add ticket_id filter
     if (ticket_id && ticket_id !== '') {

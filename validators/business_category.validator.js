@@ -117,10 +117,14 @@ const getAllBusinessCategoriesSchema = Joi.object({
     .messages({
       'string.max': 'Search term cannot exceed 100 characters'
     }),
-  status: Joi.boolean()
+  status: Joi.alternatives()
+    .try(
+      Joi.boolean(),
+      Joi.string().valid('true', 'false')
+    )
     .optional()
     .messages({
-      'boolean.base': 'Status must be a boolean value'
+      'alternatives.match': 'Status must be a boolean value or "true"/"false" string'
     }),
   sortBy: Joi.string()
     .valid('business_category', 'emoji', 'created_at', 'updated_at')

@@ -42,9 +42,7 @@ const getAllEventTicketsSeats = asyncHandler(async (req, res) => {
         { seat_no: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }

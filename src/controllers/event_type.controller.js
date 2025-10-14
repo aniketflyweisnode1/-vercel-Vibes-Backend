@@ -55,9 +55,7 @@ const getAllEventTypes = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Build sort object
     const sort = {};
@@ -210,9 +208,7 @@ const getEventTypesByAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Build sort object
     const sort = {};

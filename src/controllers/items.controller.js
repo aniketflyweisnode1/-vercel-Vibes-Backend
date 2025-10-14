@@ -43,9 +43,7 @@ const getAllItems = asyncHandler(async (req, res) => {
         { item_color: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
     if (item_Category_id) {
       filter.item_Category_id = parseInt(item_Category_id);
     }
@@ -113,9 +111,7 @@ const getItemsByCategoryId = asyncHandler(async (req, res) => {
         { item_color: { $regex: search, $options: 'i' } }
       ];
     }
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     // Get items with pagination
     const [items, total] = await Promise.all([

@@ -53,9 +53,7 @@ const getAllDesignCommunities = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add event_id filter
     if (event_id) {
@@ -210,9 +208,7 @@ const getDesignCommunitiesByAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     // Add event_id filter
     if (event_id) {

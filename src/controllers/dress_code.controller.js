@@ -43,9 +43,7 @@ const getAllDressCode = asyncHandler(async (req, res) => {
       filter.dress_code_name = { $regex: search, $options: 'i' };
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -183,9 +181,7 @@ const getDressCodeByAuth = asyncHandler(async (req, res) => {
       filter.dress_code_name = { $regex: search, $options: 'i' };
     }
 
-    if (status !== undefined) {
-      filter.status = 'true';
-    }
+  
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;

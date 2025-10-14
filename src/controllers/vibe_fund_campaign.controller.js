@@ -59,9 +59,7 @@ const getAllVibeFundCampaign = asyncHandler(async (req, res) => {
       ];
     }
 
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     if (approved_status !== undefined) {
       filter.approved_status = approved_status === 'true';
@@ -257,9 +255,7 @@ const getVibeFundCampaignByAuth = asyncHandler(async (req, res) => {
       ];
     }
 
-    if (status !== undefined) {
-      filter.status = status === 'true';
-    }
+  
 
     if (approved_status !== undefined) {
       filter.approved_status = approved_status === 'true';
