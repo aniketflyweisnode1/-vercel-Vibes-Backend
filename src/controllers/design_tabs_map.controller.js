@@ -225,9 +225,10 @@ const getDesignsByTabId = asyncHandler(async (req, res) => {
       tabs_id: parseInt(id)
     };
 
+    filter.created_by = req.userId;
     // Add status filter
     if (status !== undefined && status !== '') {
-      filter.status = status === 'true' || status === true;
+      filter.status = true;
     }
 
     const sort = {};
