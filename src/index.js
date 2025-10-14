@@ -69,6 +69,14 @@ const eventEntryTicketsRoutes = require('./routes/Master/event_entry_tickets.rou
 const eventEntryUsergetTicketsRoutes = require('./routes/Master/event_entry_userget_tickets.routes.js');
 const eventTicketsSeatsRoutes = require('./routes/Master/event_tickets_seats.routes.js');
 const eventEntryTicketsOrderRoutes = require('./routes/Master/event_entry_tickets_order.routes.js');
+const designCommunityTabsRoutes = require('./routes/Master/design_community_tabs.routes.js');
+const communityDesignsRoutes = require('./routes/Master/community_designs.routes.js');
+const communityDesignsLikesRoutes = require('./routes/Master/community_designs_likes.routes.js');
+const communityDesignsViewsRoutes = require('./routes/Master/community_designs_views.routes.js');
+const communityDesignsShareRoutes = require('./routes/Master/community_designs_share.routes.js');
+const communityDesignsRemixesRoutes = require('./routes/Master/community_designs_remixes.routes.js');
+const communityDesignsDownloadsRoutes = require('./routes/Master/community_designs_downloads.routes.js');
+const designTabsMapRoutes = require('./routes/Master/design_tabs_map.routes.js');
 
 // Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/vendor_business_information.routes.js');
@@ -172,6 +180,14 @@ router.use('/master/event-entry-tickets', eventEntryTicketsRoutes);
 router.use('/master/event-entry-userget-tickets', eventEntryUsergetTicketsRoutes);
 router.use('/master/event-tickets-seats', eventTicketsSeatsRoutes);
 router.use('/master/event-entry-tickets-order', eventEntryTicketsOrderRoutes);
+router.use('/master/design-community-tabs', designCommunityTabsRoutes);
+router.use('/master/community-designs', communityDesignsRoutes);
+router.use('/master/community-designs-likes', communityDesignsLikesRoutes);
+router.use('/master/community-designs-views', communityDesignsViewsRoutes);
+router.use('/master/community-designs-share', communityDesignsShareRoutes);
+router.use('/master/community-designs-remixes', communityDesignsRemixesRoutes);
+router.use('/master/community-designs-downloads', communityDesignsDownloadsRoutes);
+router.use('/master/design-tabs-map', designTabsMapRoutes);
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);
