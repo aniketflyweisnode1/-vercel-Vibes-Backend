@@ -12,7 +12,7 @@ const { createUserSchema, updateUserSchema, updateUserByIdBodySchema, loginSchem
 router.post('/login', authRateLimit, validateBody(loginSchema), login);
 router.post('/logout', auth, logout);
 
-// OTP-based login routes
+
 router.post('/send-otp', authRateLimit, validateBody(sendOTPSchema), sendOTP);
 router.post('/verify-otp', authRateLimit, validateBody(verifyOTPSchema), verifyOTP);
 
