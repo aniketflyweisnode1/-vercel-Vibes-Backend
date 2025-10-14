@@ -272,16 +272,22 @@ const commonValidations = {
 // Create user validation schema
 const createUserSchema = Joi.object({
   name: commonValidations.name,
-
   email: commonValidations.email,
   password: commonValidations.password,
-  address: commonValidations.address,
+  agreePrivacyPolicy: Joi.boolean()
+    .default(false)
+    .optional()
+    .messages({
+      'boolean.base': 'Agree Privacy Policy must be a boolean value'
+    }),
+  mobile: commonValidations.mobile,
+  address: commonValidations.address.optional(),
   country_id: commonValidations.country_id,
   state_id: commonValidations.state_id,
   city_id: commonValidations.city_id,
   role_id: commonValidations.role_id,
   online_status: commonValidations.online_status,
-  gender: commonValidations.gender,
+  gender: commonValidations.gender.optional(),
   user_img: commonValidations.user_img,
   postal_code: commonValidations.postal_code,
   business_name: commonValidations.business_name,
