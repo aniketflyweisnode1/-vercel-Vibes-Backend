@@ -32,8 +32,8 @@ router.get('/getAll', validateQuery(getAllDesignTabsMapsSchema), getAllDesignTab
 // Get design tabs map by ID (with auth)
 router.get('/getDesignTabsMapById/:id', auth, validateParams(getDesignTabsMapByIdSchema), getDesignTabsMapById);
 
-// Get designs by tab ID (without auth)
-router.get('/getDesignsByTabId/:id', validateParams(getDesignTabsMapByIdSchema), validateQuery(getAllDesignTabsMapsSchema), getDesignsByTabId);
+// Get designs by tab ID (with auth, no validation)
+router.get('/getDesignsByTabId/:id', auth, getDesignsByTabId);
 
 // Update design tabs map by ID (with auth)
 router.put('/updateDesignTabsMapById', auth, validateBody(updateDesignTabsMapSchema), updateDesignTabsMap);

@@ -205,145 +205,101 @@ const getDesignTabsMapById = asyncHandler(async (req, res) => {
 });
 
 /**
- * Get designs by tab ID
+ * Get designs by tab ID with all IDs populated
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
 const getDesignsByTabId = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      page = 1,
-      limit = 10,
-      status,
-      sortBy = 'created_at',
-      sortOrder = 'desc'
-    } = req.query;
 
     // Build filter object
-    
     const filter = {};
 
     if(id == 2){  
-      filter.tabs_id = { $in: [1, 3, 4, 5, 6, 7, 8, 9, 10] };
+      filter.tabs_id = { $in: [1, 3, 4] };
     }
     else{
       filter.tabs_id = parseInt(id);
     }
 
+    // Filter by authenticated user if auth is provided
+    if (req.userId) {
     filter.created_by = req.userId;
-    // Add status filter
-    if (status !== undefined && status !== '') {
-      filter.status = true;
     }
 
-    const sort = {};
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    // Execute query without population
+    const designTabsMaps = await DesignTabsMap.find(filter)
+      .sort({ created_at: -1 });
 
-    // Calculate pagination
-    const skip = (page - 1) * limit;
+    // Get all unique IDs for manual population
+    const tabsIds = [...new Set(designTabsMaps.map(item => item.tabs_id).filter(Boolean))];
+    const communityDesignsIds = [...new Set(designTabsMaps.map(item => item.community_designs_id).filter(Boolean))];
+    const createdByIds = [...new Set(designTabsMaps.map(item => item.created_by).filter(Boolean))];
+    const updatedByIds = [...new Set(designTabsMaps.map(item => item.updated_by).filter(Boolean))];
 
-    // Execute query with population
-    const [designTabsMaps, total] = await Promise.all([
-      DesignTabsMap.find(filter)
-        .populate('tabs_id', 'tabs_id name emoji status')
-        .populate({
-          path: 'community_designs_id',
-          select: 'community_designs_id title sub_title image image_type image_sell_type hash_tag likes views share remixes downloads status created_at updated_at',
-          populate: [
-            { path: 'categories_id', select: 'category_id category_name emozi status' },
-            { path: 'created_by', select: 'user_id name email user_img' },
-            { path: 'updated_by', select: 'user_id name email user_img' }
-          ]
-        })
-        .populate('created_by', 'user_id name email user_img')
-        .populate('updated_by', 'user_id name email user_img')
-        .sort(sort)
-        .skip(skip)
-        .limit(parseInt(limit)),
-      DesignTabsMap.countDocuments(filter)
+    // Import required models
+    const DesignCommunityTabs = require('../models/design_community_tabs.model');
+    const CommunityDesigns = require('../models/community_designs.model');
+    const User = require('../models/user.model');
+
+    // Fetch all related data
+    const [tabsData, communityDesignsData, createdByUsers, updatedByUsers] = await Promise.all([
+      DesignCommunityTabs.find({ tabs_id: { $in: tabsIds } }).select('tabs_id name emoji status'),
+      CommunityDesigns.find({ community_designs_id: { $in: communityDesignsIds } }).select('community_designs_id title sub_title image image_type image_sell_type hash_tag likes views share remixes downloads status created_at updated_at categories_id created_by updated_by'),
+      User.find({ user_id: { $in: createdByIds } }).select('user_id name email user_img'),
+      User.find({ user_id: { $in: updatedByIds } }).select('user_id name email user_img')
     ]);
 
-    // Fetch detailed interaction data for each design
-    const detailsPromises = designTabsMaps.map(async (tabMap) => {
-      // Check if community_designs_id exists and is populated
-      if (!tabMap.community_designs_id || !tabMap.community_designs_id.community_designs_id) {
-        return {
-          ...tabMap.toObject(),
-          interaction_details: null
-        };
-      }
-
-      const designId = tabMap.community_designs_id.community_designs_id;
-
-      // Fetch counts and details for each interaction type with populated user data
-      const [
-        likesData,
-        viewsData,
-        shareData,
-        remixesData,
-        downloadsData
-      ] = await Promise.all([
-        CommunityDesignsLikes.find({ community_designs_id: designId, status: true })
-          .populate('created_by', 'user_id name email user_img')
-          .populate('updated_by', 'user_id name email user_img'),
-        CommunityDesignsViews.find({ community_designs_id: designId, status: true })
-          .populate('created_by', 'user_id name email user_img')
-          .populate('updated_by', 'user_id name email user_img'),
-        CommunityDesignsShare.find({ community_designs_id: designId, status: true })
-          .populate('created_by', 'user_id name email user_img')
-          .populate('updated_by', 'user_id name email user_img'),
-        CommunityDesignsRemixes.find({ community_designs_id: designId, status: true })
-          .populate('created_by', 'user_id name email user_img')
-          .populate('updated_by', 'user_id name email user_img'),
-        CommunityDesignsDownloads.find({ community_designs_id: designId, status: true })
-          .populate('created_by', 'user_id name email user_img')
-          .populate('updated_by', 'user_id name email user_img')
-      ]);
-
-      return {
-        ...tabMap.toObject(),
-        interaction_details: {
-          likes: {
-            count: likesData.length,
-            details: likesData
-          },
-          views: {
-            count: viewsData.length,
-            details: viewsData
-          },
-          share: {
-            count: shareData.length,
-            details: shareData
-          },
-          remixes: {
-            count: remixesData.length,
-            details: remixesData
-          },
-          downloads: {
-            count: downloadsData.length,
-            details: downloadsData
-          }
-        }
-      };
+    // Create lookup maps
+    const tabsMap = {};
+    tabsData.forEach(tab => {
+      tabsMap[tab.tabs_id] = tab;
     });
 
-    const designsWithDetails = await Promise.all(detailsPromises);
+    const communityDesignsMap = {};
+    communityDesignsData.forEach(design => {
+      communityDesignsMap[design.community_designs_id] = design;
+    });
 
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    const createdByMap = {};
+    createdByUsers.forEach(user => {
+      createdByMap[user.user_id] = user;
+    });
 
-    const pagination = {
-      currentPage: parseInt(page),
-      totalPages,
-      totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage,
-      hasPrevPage
-    };
-    sendPaginated(res, designsWithDetails, pagination, 'Designs by tab ID retrieved successfully with interaction details');
+    const updatedByMap = {};
+    updatedByUsers.forEach(user => {
+      updatedByMap[user.user_id] = user;
+    });
+
+    // Populate the data
+    const populatedDesignTabsMaps = designTabsMaps.map(item => {
+      const populatedItem = item.toObject();
+      
+      // Populate tabs_id
+      if (item.tabs_id && tabsMap[item.tabs_id]) {
+        populatedItem.tabs_id = tabsMap[item.tabs_id];
+      }
+
+      // Populate community_designs_id
+      if (item.community_designs_id && communityDesignsMap[item.community_designs_id]) {
+        populatedItem.community_designs_id = communityDesignsMap[item.community_designs_id];
+      }
+
+      // Populate created_by
+      if (item.created_by && createdByMap[item.created_by]) {
+        populatedItem.created_by = createdByMap[item.created_by];
+      }
+
+      // Populate updated_by
+      if (item.updated_by && updatedByMap[item.updated_by]) {
+        populatedItem.updated_by = updatedByMap[item.updated_by];
+      }
+
+      return populatedItem;
+    });
+
+    sendSuccess(res, populatedDesignTabsMaps, 'Designs by tab ID retrieved successfully with all IDs populated');
   } catch (error) {
     throw error;
   }
