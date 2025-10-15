@@ -1,9 +1,4 @@
 const CommunityDesigns = require('../models/community_designs.model');
-const CommunityDesignsLikes = require('../models/community_designs_likes.model');
-const CommunityDesignsViews = require('../models/community_designs_views.model');
-const CommunityDesignsShare = require('../models/community_designs_share.model');
-const CommunityDesignsRemixes = require('../models/community_designs_remixes.model');
-const CommunityDesignsDownloads = require('../models/community_designs_downloads.model');
 const User = require('../models/user.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
@@ -15,6 +10,15 @@ const { asyncHandler } = require('../../middleware/errorHandler');
  */
 const createCommunityDesign = asyncHandler(async (req, res) => {
   try {
+    // Validate JSON data if provided
+    if (req.body.design_json_data) {
+      try {
+        JSON.parse(req.body.design_json_data);
+      } catch (error) {
+        return sendError(res, 'Invalid JSON format for design_json_data', 400);
+      }
+    }
+
     // Create community design data
     const communityDesignData = {
       ...req.body,
@@ -148,6 +152,39 @@ const updateCommunityDesign = asyncHandler(async (req, res) => {
   try {
     const { id } = req.body;
 
+    // Find the community design first to check permissions
+    const existingCommunityDesign = await CommunityDesigns.findOne({ 
+      community_designs_id: parseInt(id) 
+    });
+
+    if (!existingCommunityDesign) {
+      return sendNotFound(res, 'Community Design not found');
+    }
+
+    // Check if user owns this design or has edit permission
+    const isOwner = existingCommunityDesign.created_by === req.userId;
+    let hasEditPermission = false;
+
+    if (!isOwner && existingCommunityDesign.collaborators_user_id) {
+      const userCollaboration = existingCommunityDesign.collaborators_user_id.find(
+        collab => collab.id === req.userId && collab.permission === 'Edit'
+      );
+      hasEditPermission = !!userCollaboration;
+    }
+
+    if (!isOwner && !hasEditPermission) {
+      return sendError(res, 'You do not have permission to update this design', 403);
+    }
+
+    // Validate JSON data if provided
+    if (req.body.design_json_data) {
+      try {
+        JSON.parse(req.body.design_json_data);
+      } catch (error) {
+        return sendError(res, 'Invalid JSON format for design_json_data', 400);
+      }
+    }
+
     // Add update metadata
     const updateData = {
       ...req.body,
@@ -164,9 +201,6 @@ const updateCommunityDesign = asyncHandler(async (req, res) => {
       }
     );
 
-    if (!communityDesign) {
-      return sendNotFound(res, 'Community Design not found');
-    }
     sendSuccess(res, communityDesign, 'Community Design updated successfully');
   } catch (error) {
     throw error;

@@ -73,6 +73,13 @@ const commonValidations = {
     .default(true)
     .messages({
       'boolean.base': 'Status must be a boolean value'
+    }),
+
+  design_json_data: Joi.string()
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.base': 'Design JSON data must be a string'
     })
 };
 
@@ -85,7 +92,8 @@ const createCommunityDesignSchema = Joi.object({
   image_type: commonValidations.image_type,
   image_sell_type: commonValidations.image_sell_type,
   hash_tag: commonValidations.hash_tag,
-  status: commonValidations.status
+  status: commonValidations.status,
+  design_json_data: commonValidations.design_json_data
 });
 
 // Update community design validation schema
@@ -107,7 +115,8 @@ const updateCommunityDesignSchema = Joi.object({
   image_type: commonValidations.image_type.optional(),
   image_sell_type: commonValidations.image_sell_type.optional(),
   hash_tag: commonValidations.hash_tag.optional(),
-  status: commonValidations.status.optional()
+  status: commonValidations.status.optional(),
+  design_json_data: commonValidations.design_json_data.optional()
 }).min(2).messages({
   'object.min': 'At least one field (besides id) must be provided for update'
 });
