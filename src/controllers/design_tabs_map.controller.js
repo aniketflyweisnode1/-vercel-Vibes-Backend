@@ -221,9 +221,14 @@ const getDesignsByTabId = asyncHandler(async (req, res) => {
     } = req.query;
 
     // Build filter object
-    const filter = {
-      tabs_id: parseInt(id)
-    };
+    const filter = {};
+
+    if(id == 2){  
+      filter.tabs_id = { $in: [1, 3, 4, 5, 6, 7, 8, 9, 10] };
+    }
+    else{
+      filter.tabs_id = parseInt(id);
+    }
 
     filter.created_by = req.userId;
     // Add status filter

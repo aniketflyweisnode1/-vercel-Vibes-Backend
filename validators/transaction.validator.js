@@ -26,10 +26,16 @@ const createTransactionSchema = Joi.object({
       'string.length': 'Payment method ID must be 24 characters long',
       'any.required': 'Payment method ID is required'
     }),
-  transactionType: Joi.string().valid('Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'Call', 'Package_Buy', 'Recharge').required()
+  transactionType: Joi.string().valid('Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking').required()
     .messages({
-      'any.only': 'Transaction type must be one of: Registration_fee, deposit, withdraw, RechargeByAdmin, Call, Package_Buy, Recharge',
+      'any.only': 'Transaction type must be one of: Registration_fee, deposit, withdraw, RechargeByAdmin, EventPayment, Package_Buy, Recharge, TicketBooking, StaffBooking',
       'any.required': 'Transaction type is required'
+    }),
+  staff_event_book_id: Joi.number().integer().positive().optional().allow(null)
+    .messages({
+      'number.base': 'Staff Event Book ID must be a number',
+      'number.integer': 'Staff Event Book ID must be an integer',
+      'number.positive': 'Staff Event Book ID must be a positive number'
     }),
   transaction_date: Joi.date().optional()
     .messages({
@@ -111,9 +117,15 @@ const updateTransactionSchema = Joi.object({
       'string.hex': 'Payment method ID must be a valid ObjectId',
       'string.length': 'Payment method ID must be 24 characters long'
     }),
-  transactionType: Joi.string().valid('Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'Call', 'Package_Buy', 'Recharge').optional()
+  transactionType: Joi.string().valid('Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking').optional()
     .messages({
-      'any.only': 'Transaction type must be one of: Registration_fee, deposit, withdraw, RechargeByAdmin, Call, Package_Buy, Recharge'
+      'any.only': 'Transaction type must be one of: Registration_fee, deposit, withdraw, RechargeByAdmin, EventPayment, Package_Buy, Recharge, TicketBooking, StaffBooking'
+    }),
+  staff_event_book_id: Joi.number().integer().positive().optional().allow(null)
+    .messages({
+      'number.base': 'Staff Event Book ID must be a number',
+      'number.integer': 'Staff Event Book ID must be an integer',
+      'number.positive': 'Staff Event Book ID must be a positive number'
     }),
   transaction_date: Joi.date().optional()
     .messages({
@@ -229,8 +241,85 @@ const getAllTransactionsSchema = Joi.object({
     })
 });
 
+// Create staff booking transaction validation schema (transactionType is set automatically)
+const createStaffBookingTransactionSchema = Joi.object({
+  user_id: Joi.number().integer().positive().required()
+    .messages({
+      'number.base': 'User ID must be a number',
+      'number.integer': 'User ID must be an integer',
+      'number.positive': 'User ID must be a positive number',
+      'any.required': 'User ID is required'
+    }),
+  amount: Joi.number().min(0).required()
+    .messages({
+      'number.base': 'Amount must be a number',
+      'number.min': 'Amount cannot be negative',
+      'any.required': 'Amount is required'
+    }),
+  status: Joi.string().valid('pending', 'completed', 'failed').default('pending').optional()
+    .messages({
+      'any.only': 'Status must be one of: pending, completed, failed'
+    }),
+  payment_method_id: Joi.string().hex().length(24).required()
+    .messages({
+      'string.empty': 'Payment method ID is required',
+      'string.hex': 'Payment method ID must be a valid ObjectId',
+      'string.length': 'Payment method ID must be 24 characters long',
+      'any.required': 'Payment method ID is required'
+    }),
+  staff_event_book_id: Joi.number().integer().positive().required()
+    .messages({
+      'number.base': 'Staff Event Book ID must be a number',
+      'number.integer': 'Staff Event Book ID must be an integer',
+      'number.positive': 'Staff Event Book ID must be a positive number',
+      'any.required': 'Staff Event Book ID is required'
+    }),
+  transaction_date: Joi.date().optional()
+    .messages({
+      'date.base': 'Transaction date must be a valid date'
+    }),
+  reference_number: Joi.string().max(100).optional()
+    .messages({
+      'string.max': 'Reference number cannot exceed 100 characters'
+    }),
+  coupon_code_id: Joi.number().integer().positive().optional()
+    .messages({
+      'number.base': 'Coupon code ID must be a number',
+      'number.integer': 'Coupon code ID must be an integer',
+      'number.positive': 'Coupon code ID must be a positive number'
+    }),
+  CGST: Joi.number().min(0).optional()
+    .messages({
+      'number.base': 'CGST must be a number',
+      'number.min': 'CGST cannot be negative'
+    }),
+  SGST: Joi.number().min(0).optional()
+    .messages({
+      'number.base': 'SGST must be a number',
+      'number.min': 'SGST cannot be negative'
+    }),
+  TotalGST: Joi.number().min(0).optional()
+    .messages({
+      'number.base': 'Total GST must be a number',
+      'number.min': 'Total GST cannot be negative'
+    }),
+  bank_id: Joi.number().integer().positive().optional()
+    .messages({
+      'number.base': 'Bank ID must be a number',
+      'number.integer': 'Bank ID must be an integer',
+      'number.positive': 'Bank ID must be a positive number'
+    }),
+  bank_branch_id: Joi.number().integer().positive().optional()
+    .messages({
+      'number.base': 'Bank branch ID must be a number',
+      'number.integer': 'Bank branch ID must be an integer',
+      'number.positive': 'Bank branch ID must be a positive number'
+    })
+});
+
 module.exports = {
   createTransactionSchema,
+  createStaffBookingTransactionSchema,
   updateTransactionSchema,
   getTransactionByIdSchema,
   getTransactionByTransactionTypeSchema,

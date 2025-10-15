@@ -1,5 +1,6 @@
 const Transaction = require('../models/transaction.model');
 const Wallet = require('../models/wallet.model');
+const StaffEventBook = require('../models/staff_event_book.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -21,6 +22,12 @@ const createTransaction = asyncHandler(async (req, res) => {
 
     // Update wallet based on transaction type
     await updateWalletForTransaction(transaction);
+
+    // Update staff_event_book if transactionType is StaffBooking and status is completed
+    if (transaction.transactionType === 'StaffBooking' && transaction.status === 'completed' && transaction.staff_event_book_id) {
+      await updateStaffEventBookTransaction(transaction);
+    }
+
     sendSuccess(res, transaction, 'Transaction created successfully', 201);
   } catch (error) {
     throw error;
@@ -84,6 +91,36 @@ const updateWalletForTransaction = async (transaction) => {
     }
   } catch (error) {
     throw error;
+  }
+};
+
+/**
+ * Update staff_event_book transaction details
+ * @param {Object} transaction - Transaction object
+ */
+const updateStaffEventBookTransaction = async (transaction) => {
+  try {
+    // Map transaction status to staff_event_book transaction_status
+    let transactionStatus = 'Pending';
+    if (transaction.status === 'completed') {
+      transactionStatus = 'Completed';
+    } else if (transaction.status === 'failed') {
+      transactionStatus = 'Failed';
+    }
+
+    // Update the staff_event_book record
+    await StaffEventBook.findOneAndUpdate(
+      { staff_event_book_id: transaction.staff_event_book_id },
+      { 
+        transaction_status: transactionStatus,
+        transaction_id: transaction.transaction_id,
+        updated_by: transaction.created_by,
+        updated_at: new Date()
+      }
+    );
+  } catch (error) {
+    // Log error but don't throw to prevent transaction creation failure
+    console.error('Error updating staff_event_book:', error);
   }
 };
 
@@ -268,8 +305,51 @@ const updateTransaction = asyncHandler(async (req, res) => {
     // If status changed to completed, update wallet
     if (originalTransaction.status !== 'completed' && transaction.status === 'completed') {
       await updateWalletForTransaction(transaction);
+      
+      // Update staff_event_book if transactionType is StaffBooking
+      if (transaction.transactionType === 'StaffBooking' && transaction.staff_event_book_id) {
+        await updateStaffEventBookTransaction(transaction);
+      }
     }
+
+    // If status changed to failed, update staff_event_book
+    if (transaction.transactionType === 'StaffBooking' && transaction.staff_event_book_id && 
+        originalTransaction.status !== 'failed' && transaction.status === 'failed') {
+      await updateStaffEventBookTransaction(transaction);
+    }
+
     sendSuccess(res, transaction, 'Transaction updated successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Create a staff booking transaction (automatically sets transactionType to StaffBooking)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const createStaffBookingTransaction = asyncHandler(async (req, res) => {
+  try {
+    // Create transaction data with transactionType set to StaffBooking
+    const transactionData = {
+      ...req.body,
+      transactionType: 'StaffBooking',
+      created_by: req.userId
+    };
+
+    // Create transaction
+    const transaction = await Transaction.create(transactionData);
+
+    // Update wallet based on transaction type
+    await updateWalletForTransaction(transaction);
+
+    // Update staff_event_book if status is completed and staff_event_book_id is provided
+    if (transaction.status === 'completed' && transaction.staff_event_book_id) {
+      await updateStaffEventBookTransaction(transaction);
+    }
+
+    sendSuccess(res, transaction, 'Staff booking transaction created successfully', 201);
   } catch (error) {
     throw error;
   }
@@ -305,6 +385,7 @@ const deleteTransaction = asyncHandler(async (req, res) => {
 
 module.exports = {
   createTransaction,
+  createStaffBookingTransaction,
   getAllTransactions,
   getTransactionById,
   getTransactionByAuth,
