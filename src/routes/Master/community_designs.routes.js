@@ -8,7 +8,8 @@ const {
   getCommunityDesignById, 
   getCommunityDesignsByCategoryId,
   updateCommunityDesign, 
-  deleteCommunityDesign 
+  deleteCommunityDesign,
+  addCollaborator
 } = require('../../controllers/community_designs.controller');
 
 // Import middleware
@@ -20,7 +21,8 @@ const {
   createCommunityDesignSchema, 
   updateCommunityDesignSchema, 
   getCommunityDesignByIdSchema, 
-  getAllCommunityDesignsSchema 
+  getAllCommunityDesignsSchema,
+  addCollaboratorSchema
 } = require('../../../validators/community_designs.validator');
 
 // Create community design (with auth)
@@ -40,6 +42,9 @@ router.put('/updateCommunityDesignById', auth, validateBody(updateCommunityDesig
 
 // Delete community design by ID (with auth)
 router.delete('/deleteCommunityDesignById/:id', auth, validateParams(getCommunityDesignByIdSchema), deleteCommunityDesign);
+
+// Add collaborator to community design (with auth)
+router.post('/addCollaborator', auth, validateBody(addCollaboratorSchema), addCollaborator);
 
 module.exports = router;
 

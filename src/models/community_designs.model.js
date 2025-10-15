@@ -81,7 +81,23 @@ const communityDesignsSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
-  }
+  },
+  design_json_data: {
+    type: String,
+    trim: true
+  },
+  collaborators_user_id: [{
+    id: {
+      type: Number,
+      ref: 'User',
+      required: true
+    },
+    permission: {
+      type: String,
+      required: true,
+      default: 'View'
+    }
+  }]
 }, {
   timestamps: false,
   versionKey: false

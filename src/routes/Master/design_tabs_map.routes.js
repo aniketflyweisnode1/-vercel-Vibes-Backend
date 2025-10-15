@@ -8,7 +8,8 @@ const {
   getDesignTabsMapById,
   getDesignsByTabId,
   updateDesignTabsMap, 
-  deleteDesignTabsMap 
+  deleteDesignTabsMap,
+  addCollaborator
 } = require('../../controllers/design_tabs_map.controller');
 
 // Import middleware
@@ -20,7 +21,8 @@ const {
   createDesignTabsMapSchema, 
   updateDesignTabsMapSchema, 
   getDesignTabsMapByIdSchema, 
-  getAllDesignTabsMapsSchema 
+  getAllDesignTabsMapsSchema,
+  addCollaboratorSchema
 } = require('../../../validators/design_tabs_map.validator');
 
 // Create design tabs map (with auth)
@@ -40,6 +42,9 @@ router.put('/updateDesignTabsMapById', auth, validateBody(updateDesignTabsMapSch
 
 // Delete design tabs map by ID (with auth)
 router.delete('/deleteDesignTabsMapById/:id', auth, validateParams(getDesignTabsMapByIdSchema), deleteDesignTabsMap);
+
+// Add collaborator to design (with auth)
+router.post('/addCollaborator', auth, validateBody(addCollaboratorSchema), addCollaborator);
 
 module.exports = router;
 

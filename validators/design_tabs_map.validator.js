@@ -135,10 +135,38 @@ const getAllDesignTabsMapsSchema = Joi.object({
     })
 });
 
+// Add collaborator validation schema
+const addCollaboratorSchema = Joi.object({
+  design_tabs_map_id: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Design Tabs Map ID must be a number',
+      'number.integer': 'Design Tabs Map ID must be an integer',
+      'number.positive': 'Design Tabs Map ID must be a positive number',
+      'any.required': 'Design Tabs Map ID is required'
+    }),
+  email: Joi.string()
+    .email()
+    .required()
+    .messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
+    }),
+  permission: Joi.string()
+    .valid('Edit', 'View')
+    .default('View')
+    .messages({
+      'any.only': 'Permission must be either Edit or View'
+    })
+});
+
 module.exports = {
   createDesignTabsMapSchema,
   updateDesignTabsMapSchema,
   getDesignTabsMapByIdSchema,
-  getAllDesignTabsMapsSchema
+  getAllDesignTabsMapsSchema,
+  addCollaboratorSchema
 };
 

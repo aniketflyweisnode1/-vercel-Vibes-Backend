@@ -198,10 +198,38 @@ const getAllCommunityDesignsSchema = Joi.object({
     })
 });
 
+// Add collaborator validation schema
+const addCollaboratorSchema = Joi.object({
+  community_designs_id: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Community Designs ID must be a number',
+      'number.integer': 'Community Designs ID must be an integer',
+      'number.positive': 'Community Designs ID must be a positive number',
+      'any.required': 'Community Designs ID is required'
+    }),
+  email: Joi.string()
+    .email()
+    .required()
+    .messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
+    }),
+  permission: Joi.string()
+    .valid('Edit', 'View')
+    .default('View')
+    .messages({
+      'any.only': 'Permission must be either Edit or View'
+    })
+});
+
 module.exports = {
   createCommunityDesignSchema,
   updateCommunityDesignSchema,
   getCommunityDesignByIdSchema,
-  getAllCommunityDesignsSchema
+  getAllCommunityDesignsSchema,
+  addCollaboratorSchema
 };
 

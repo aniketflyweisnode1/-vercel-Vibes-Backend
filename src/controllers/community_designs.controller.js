@@ -4,6 +4,7 @@ const CommunityDesignsViews = require('../models/community_designs_views.model')
 const CommunityDesignsShare = require('../models/community_designs_share.model');
 const CommunityDesignsRemixes = require('../models/community_designs_remixes.model');
 const CommunityDesignsDownloads = require('../models/community_designs_downloads.model');
+const User = require('../models/user.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -200,12 +201,107 @@ const deleteCommunityDesign = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Add collaborator to community design by email
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const addCollaborator = asyncHandler(async (req, res) => {
+  try {
+    const { community_designs_id, email, permission = 'View' } = req.body;
+
+    // Find the community design
+    const communityDesign = await CommunityDesigns.findOne({ 
+      community_designs_id: parseInt(community_designs_id) 
+    });
+
+    if (!communityDesign) {
+      return sendNotFound(res, 'Community Design not found');
+    }
+
+    // Check if user owns this design or has edit permission
+    const isOwner = communityDesign.created_by === req.userId;
+    let hasEditPermission = false;
+
+    if (!isOwner && communityDesign.collaborators_user_id) {
+      const userCollaboration = communityDesign.collaborators_user_id.find(
+        collab => collab.id === req.userId && collab.permission === 'Edit'
+      );
+      hasEditPermission = !!userCollaboration;
+    }
+
+    if (!isOwner && !hasEditPermission) {
+      return sendError(res, 'You do not have permission to add collaborators to this design', 403);
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return sendNotFound(res, 'User not found with this email address');
+    }
+
+    // Check if user is already a collaborator
+    if (communityDesign.collaborators_user_id) {
+      const existingCollaborator = communityDesign.collaborators_user_id.find(
+        collab => collab.id === user.user_id
+      );
+
+      if (existingCollaborator) {
+        return sendError(res, 'User is already a collaborator on this design', 400);
+      }
+    }
+
+    // Check if user is trying to add themselves
+    if (user.user_id === req.userId) {
+      return sendError(res, 'You cannot add yourself as a collaborator', 400);
+    }
+
+    // Initialize collaborators array if it doesn't exist
+    if (!communityDesign.collaborators_user_id) {
+      communityDesign.collaborators_user_id = [];
+    }
+
+    // Add the new collaborator
+    communityDesign.collaborators_user_id.push({
+      id: user.user_id,
+      permission: permission
+    });
+
+    // Update the community design
+    const updatedCommunityDesign = await CommunityDesigns.findOneAndUpdate(
+      { community_designs_id: parseInt(community_designs_id) },
+      { 
+        collaborators_user_id: communityDesign.collaborators_user_id,
+        updated_by: req.userId,
+        updated_at: new Date()
+      },
+      { new: true, runValidators: true }
+    );
+
+    sendSuccess(res, {
+      community_designs_id: updatedCommunityDesign.community_designs_id,
+      collaborator: {
+        id: user.user_id,
+        name: user.name,
+        email: user.email,
+        permission: permission
+      },
+      message: 'Collaborator added successfully'
+    }, 'Collaborator added successfully');
+
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createCommunityDesign,
   getAllCommunityDesigns,
   getCommunityDesignById,
   getCommunityDesignsByCategoryId,
   updateCommunityDesign,
-  deleteCommunityDesign
+  deleteCommunityDesign,
+  addCollaborator
 };
 
