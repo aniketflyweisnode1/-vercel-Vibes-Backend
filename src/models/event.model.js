@@ -22,8 +22,8 @@ const eventSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: [true, 'Description is required'],
     trim: true,
+    default: '',
     maxlength: [2000, 'Description cannot exceed 2000 characters']
   },
   venue_details_id: {
@@ -33,7 +33,7 @@ const eventSchema = new mongoose.Schema({
   },
   street_address: {
     type: String,
-    required: [true, 'Street address is required'],
+    default: '',
     trim: true,
     maxlength: [500, 'Street address cannot exceed 500 characters']
   },
@@ -55,7 +55,7 @@ const eventSchema = new mongoose.Schema({
   event_category_tags_id: {
     type: Number,
     ref: 'EventCategoryTags',
-    required: [true, 'Event Category Tags ID is required']
+    default: 1
   },
   tags: {
     type: [String],

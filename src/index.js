@@ -80,6 +80,9 @@ const designTabsMapRoutes = require('./routes/Master/design_tabs_map.routes.js')
 const staffEventBookRoutes = require('./routes/Master/staff_event_book.routes.js');
 const staffCategoryRoutes = require('./routes/Master/staff_category.routes.js');
 const staffWorkingPriceRoutes = require('./routes/Master/staff_working_price.routes.js');
+const cateringMarketplaceCategoryRoutes = require('./routes/Master/catering_marketplace_category.routes.js');
+const cateringMarketplaceRoutes = require('./routes/Master/catering_marketplace.routes.js');
+const cateringMarketplaceBookingRoutes = require('./routes/Master/catering_marketplace_booking.routes.js');
 
 // Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/vendor_business_information.routes.js');
@@ -194,6 +197,9 @@ router.use('/master/design-tabs-map', designTabsMapRoutes);
 router.use('/master/staff-event-book', staffEventBookRoutes);
 router.use('/master/staff-category', staffCategoryRoutes);
 router.use('/master/staff-working-price', staffWorkingPriceRoutes);
+router.use('/master/catering-marketplace-category', cateringMarketplaceCategoryRoutes);
+router.use('/master/catering-marketplace', cateringMarketplaceRoutes);
+router.use('/master/catering-marketplace-booking', cateringMarketplaceBookingRoutes);
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);
