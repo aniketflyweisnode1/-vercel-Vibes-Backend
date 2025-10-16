@@ -1,11 +1,78 @@
 const User = require('../models/user.model');
 const OTP = require('../models/otp.model');
+const StaffWorkingPrice = require('../models/staff_working_price.model');
+const StaffCategory = require('../models/staff_category.model');
+const StaffEventBook = require('../models/staff_event_book.model');
+const Country = require('../models/country.model');
+const State = require('../models/state.model');
+const City = require('../models/city.model');
+const Role = require('../models/role.model');
+const BusinessCategory = require('../models/business_category.model');
+const BusinessType = require('../models/business_type.model');
+const BankName = require('../models/bank_name.model');
+const BankBranchName = require('../models/bank_branch_name.model');
 const { createWalletForUser } = require('./wallet.controller');
 const { generateTokens } = require('../../utils/jwt');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { generateOTP } = require('../../utils/helpers');
 const emailService = require('../../utils/emailService');
+
+/**
+ * Helper function to populate all referenced IDs with complete data
+ * @param {Object} user - User object
+ * @returns {Object} User object with populated data
+ */
+const populateUserReferences = async (user) => {
+  const userObj = user.toObject();
+  
+  try {
+    // Populate all referenced IDs in parallel
+    const [
+      country,
+      state,
+      city,
+      role,
+      fixedRole,
+      businessCategory,
+      businessType,
+      bankName,
+      bankBranch,
+      createdByUser,
+      updatedByUser
+    ] = await Promise.all([
+      user.country_id ? Country.findOne({ country_id: user.country_id, status: true }) : null,
+      user.state_id ? State.findOne({ state_id: user.state_id, status: true }) : null,
+      user.city_id ? City.findOne({ city_id: user.city_id, status: true }) : null,
+      user.role_id ? Role.findOne({ role_id: user.role_id, status: true }) : null,
+      user.Fixed_role_id ? Role.findOne({ role_id: user.Fixed_role_id, status: true }) : null,
+      user.business_category_id ? BusinessCategory.findOne({ business_category_id: user.business_category_id, status: true }) : null,
+      user.business_type_id ? BusinessType.findOne({ business_type_id: user.business_type_id, status: true }) : null,
+      user.bank_name_id ? BankName.findOne({ bank_name_id: user.bank_name_id, status: true }) : null,
+      user.bank_branch_id ? BankBranchName.findOne({ bank_branch_name_id: user.bank_branch_id, status: true }) : null,
+      user.created_by ? User.findOne({ user_id: user.created_by }).select('name email') : null,
+      user.updated_by ? User.findOne({ user_id: user.updated_by }).select('name email') : null
+    ]);
+
+    // Add populated data to user object
+    userObj.country_details = country;
+    userObj.state_details = state;
+    userObj.city_details = city;
+    userObj.role_details = role;
+    userObj.fixed_role_details = fixedRole;
+    userObj.business_category_details = businessCategory;
+    userObj.business_type_details = businessType;
+    userObj.bank_name_details = bankName;
+    userObj.bank_branch_details = bankBranch;
+    userObj.created_by_user = createdByUser;
+    userObj.updated_by_user = updatedByUser;
+
+    return userObj;
+  } catch (error) {
+    console.error('Error populating user references:', error);
+    return userObj; // Return original object if population fails
+  }
+};
 
 /**
  * Create a new user
@@ -592,6 +659,58 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
       User.countDocuments(filter)
     ]);
 
+    // Populate all user references with complete data
+    const usersWithPopulatedData = await Promise.all(
+      users.map(async (user) => {
+        // First populate all basic references
+        const populatedUser = await populateUserReferences(user);
+        
+        // If role_id is 4 (staff), include staff-related details
+        if (parseInt(role_id) === 4) {
+          // Get staff working prices for this user
+          const staffWorkingPrices = await StaffWorkingPrice.find({ 
+            staff_id: user.user_id,
+            status: true 
+          }).sort({ created_at: -1 });
+
+          // Get staff categories for the working prices with full details
+          const staffCategories = await Promise.all(
+            staffWorkingPrices.map(async (price) => {
+              const category = await StaffCategory.findOne({ 
+                staff_category_id: price.staff_category_id,
+                status: true 
+              });
+              return {
+                ...price.toObject(),
+                category_details: category
+              };
+            })
+          );
+
+          // Get recent staff event bookings (last 10)
+          const recentBookings = await StaffEventBook.find({ 
+            staff_id: user.user_id,
+            status: true 
+          })
+          .sort({ created_at: -1 })
+          .limit(10);
+
+          // Add staff details to user object
+          populatedUser.staff_details = {
+            working_prices: staffCategories,
+            recent_bookings: recentBookings,
+            total_working_prices: staffWorkingPrices.length,
+            total_bookings: await StaffEventBook.countDocuments({ 
+              staff_id: user.user_id,
+              status: true 
+            })
+          };
+        }
+
+        return populatedUser;
+      })
+    );
+
     // Calculate pagination info
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;
@@ -606,7 +725,11 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
       hasPrevPage
     };
 
-    sendPaginated(res, users, pagination, `Users with role ID ${role_id} retrieved successfully`);
+    const message = parseInt(role_id) === 4 
+      ? `Staff users with role ID ${role_id} retrieved successfully with complete details`
+      : `Users with role ID ${role_id} retrieved successfully with complete details`;
+
+    sendPaginated(res, usersWithPopulatedData, pagination, message);
   } catch (error) {
     throw error;
   }
