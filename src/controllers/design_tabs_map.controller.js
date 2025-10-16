@@ -235,12 +235,15 @@ const getDesignsByTabId = asyncHandler(async (req, res) => {
         ];
       }
       // console.log(filter);
-    // Execute query without population
+     // Execute query without population
+  
     const designTabsMaps = await DesignTabsMap.find(filter)
       .sort({ created_at: -1 });
-// console.log(designTabsMaps);
-    // Get all unique IDs for manual population
-    const tabsIds = [...new Set(designTabsMaps.map(item => item.tabs_id).filter(Boolean))];
+    
+      // console.log(designTabsMaps);
+      // Get all unique IDs for manual population
+    
+      const tabsIds = [...new Set(designTabsMaps.map(item => item.tabs_id).filter(Boolean))];
     const communityDesignsIds = [...new Set(designTabsMaps.map(item => item.community_designs_id).filter(Boolean))];
     const createdByIds = [...new Set(designTabsMaps.map(item => item.created_by).filter(Boolean))];
     const updatedByIds = [...new Set(designTabsMaps.map(item => item.updated_by).filter(Boolean))];

@@ -530,6 +530,69 @@ const verifyOTPSchema = Joi.object({
     })
 });
 
+// Get users by role ID validation schema
+const getUsersByRoleIdSchema = Joi.object({
+  role_id: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Role ID must be a number',
+      'number.integer': 'Role ID must be an integer',
+      'number.positive': 'Role ID must be a positive number',
+      'any.required': 'Role ID is required'
+    })
+});
+
+// Get users by role ID query validation schema
+const getUsersByRoleIdQuerySchema = Joi.object({
+  page: Joi.number()
+    .integer()
+    .min(1)
+    .default(1)
+    .messages({
+      'number.base': 'Page must be a number',
+      'number.integer': 'Page must be an integer',
+      'number.min': 'Page must be at least 1'
+    }),
+  limit: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(10)
+    .messages({
+      'number.base': 'Limit must be a number',
+      'number.integer': 'Limit must be an integer',
+      'number.min': 'Limit must be at least 1',
+      'number.max': 'Limit cannot exceed 100'
+    }),
+  search: Joi.string()
+    .trim()
+    .max(100)
+    .allow('')
+    .optional()
+    .messages({
+      'string.max': 'Search term cannot exceed 100 characters'
+    }),
+  status: Joi.boolean()
+    .optional()
+    .messages({
+      'boolean.base': 'Status must be a boolean value'
+    }),
+  sortBy: Joi.string()
+    .valid('name', 'email', 'gender', 'online_status', 'business_name', 'business_type_id', 'business_category_id', 'created_on', 'updated_on')
+    .default('created_on')
+    .messages({
+      'any.only': 'Sort by must be one of: name, email, gender, online_status, business_name, business_type_id, business_category_id, created_on, updated_on'
+    }),
+  sortOrder: Joi.string()
+    .valid('asc', 'desc')
+    .default('desc')
+    .messages({
+      'any.only': 'Sort order must be either asc or desc'
+    })
+});
+
 module.exports = {
   createUserSchema,
   updateUserSchema,
@@ -539,5 +602,7 @@ module.exports = {
   getAllUsersSchema,
   changePasswordSchema,
   sendOTPSchema,
-  verifyOTPSchema
+  verifyOTPSchema,
+  getUsersByRoleIdSchema,
+  getUsersByRoleIdQuerySchema
 };

@@ -536,6 +536,83 @@ const verifyOTP = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get users by role_id with pagination and filtering
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getUsersByRoleId = asyncHandler(async (req, res) => {
+  try {
+    const { role_id } = req.params;
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      status,
+      sortBy = 'created_on',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object
+    const filter = {
+      role_id: parseInt(role_id)
+    };
+
+    // Add search filter
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { mobile: { $regex: search, $options: 'i' } },
+        { business_name: { $regex: search, $options: 'i' } },
+        { business_description: { $regex: search, $options: 'i' } },
+        { business_address: { $regex: search, $options: 'i' } },
+        { bank_account_holder_name: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Add status filter
+    if (status !== undefined) {
+      filter.status = status === 'true';
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+    
+    // Execute query
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .select('-password'),
+      User.countDocuments(filter)
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    const pagination = {
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage,
+      hasPrevPage
+    };
+
+    sendPaginated(res, users, pagination, `Users with role ID ${role_id} retrieved successfully`);
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * User logout
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -568,6 +645,7 @@ module.exports = {
   updateProfile,
   changePassword,
   sendOTP,
-  verifyOTP
+  verifyOTP,
+  getUsersByRoleId
 };
 
