@@ -7,6 +7,9 @@ const CommunityDesignsDownloads = require('../models/community_designs_downloads
 const User = require('../models/user.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
+const DesignCommunityTabs = require('../models/design_community_tabs.model');
+const CommunityDesigns = require('../models/community_designs.model');
+
 
 /**
  * Create a new design tabs map
@@ -218,7 +221,7 @@ const getDesignsByTabId = asyncHandler(async (req, res) => {
     const filter = {};
 
     if(id == 2){  
-      filter.tabs_id = { $in: [1, 3, 4] };
+      filter.created_by = req.userId;
     }
     else{
       filter.tabs_id = parseInt(id);
@@ -231,11 +234,11 @@ const getDesignsByTabId = asyncHandler(async (req, res) => {
           { 'collaborators_user_id.id': req.userId }
         ];
       }
-
+      // console.log(filter);
     // Execute query without population
     const designTabsMaps = await DesignTabsMap.find(filter)
       .sort({ created_at: -1 });
-
+// console.log(designTabsMaps);
     // Get all unique IDs for manual population
     const tabsIds = [...new Set(designTabsMaps.map(item => item.tabs_id).filter(Boolean))];
     const communityDesignsIds = [...new Set(designTabsMaps.map(item => item.community_designs_id).filter(Boolean))];
@@ -243,10 +246,7 @@ const getDesignsByTabId = asyncHandler(async (req, res) => {
     const updatedByIds = [...new Set(designTabsMaps.map(item => item.updated_by).filter(Boolean))];
 
     // Import required models
-    const DesignCommunityTabs = require('../models/design_community_tabs.model');
-    const CommunityDesigns = require('../models/community_designs.model');
-    const User = require('../models/user.model');
-
+  
     // Fetch all related data
     const [tabsData, communityDesignsData, createdByUsers, updatedByUsers] = await Promise.all([
       DesignCommunityTabs.find({ tabs_id: { $in: tabsIds } }).select('tabs_id name emoji status'),
