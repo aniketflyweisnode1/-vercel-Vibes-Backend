@@ -1,6 +1,7 @@
 const StaffEventBook = require('../models/staff_event_book.model');
 const { sendSuccess, sendError, sendNotFound } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
+const User = require('../models/user.model');
 
 /**
  * Create a new staff event booking
@@ -65,6 +66,24 @@ const getStaffEventBookById = asyncHandler(async (req, res) => {
 const getStaffEventBooksByAuth = asyncHandler(async (req, res) => {
   try {
     const staffEventBooks = await StaffEventBook.find({ created_by: req.userId })
+      .sort({ created_at: -1 });
+
+    sendSuccess(res, staffEventBooks, 'Staff event bookings retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Get staff event bookings by vendor ID (simple - no pagination, search, or filters)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getStaffEventBooksByVendorId = asyncHandler(async (req, res) => {
+  try {
+    const vendorId = req.userId;
+    
+    const staffEventBooks = await User.find({ created_by: parseInt(vendorId), role_id: 4 })
       .sort({ created_at: -1 });
 
     sendSuccess(res, staffEventBooks, 'Staff event bookings retrieved successfully');
@@ -139,6 +158,7 @@ module.exports = {
   getAllStaffEventBooks,
   getStaffEventBookById,
   getStaffEventBooksByAuth,
+  getStaffEventBooksByVendorId,
   updateStaffEventBook,
   deleteStaffEventBook
 };

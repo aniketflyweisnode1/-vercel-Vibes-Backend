@@ -39,6 +39,22 @@ const getAllCateringMarketplaces = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get catering marketplaces by authenticated user (simple - no pagination, search, or filters)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getCateringMarketplacesByAuth = asyncHandler(async (req, res) => {
+  try {
+    const cateringMarketplaces = await CateringMarketplace.find({ created_by: req.userId })
+      .sort({ created_at: -1 });
+
+    sendSuccess(res, cateringMarketplaces, 'Catering marketplaces retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * Get catering marketplace by ID
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -124,6 +140,7 @@ const deleteCateringMarketplace = asyncHandler(async (req, res) => {
 module.exports = {
   createCateringMarketplace,
   getAllCateringMarketplaces,
+  getCateringMarketplacesByAuth,
   getCateringMarketplaceById,
   updateCateringMarketplace,
   deleteCateringMarketplace

@@ -262,9 +262,24 @@ const getStaffEventBookByIdSchema = Joi.object({
     })
 });
 
+// Get staff event books by vendor ID validation schema
+const getStaffEventBooksByVendorIdSchema = Joi.object({
+  vendorId: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Vendor ID must be a number',
+      'number.integer': 'Vendor ID must be an integer',
+      'number.positive': 'Vendor ID must be a positive number',
+      'any.required': 'Vendor ID is required'
+    })
+});
+
 module.exports = {
   createStaffEventBookSchema,
   updateStaffEventBookSchema,
-  getStaffEventBookByIdSchema
+  getStaffEventBookByIdSchema,
+  getStaffEventBooksByVendorIdSchema
 };
 

@@ -5,6 +5,7 @@ const router = express.Router();
 const { 
   createCateringMarketplace, 
   getAllCateringMarketplaces, 
+  getCateringMarketplacesByAuth,
   getCateringMarketplaceById, 
   updateCateringMarketplace, 
   deleteCateringMarketplace
@@ -26,6 +27,9 @@ router.post('/create', auth, validateBody(createCateringMarketplaceSchema), crea
 
 // Get all catering marketplaces (no auth, no validation)
 router.get('/getAll', getAllCateringMarketplaces);
+
+// Get catering marketplaces by authenticated user with auth
+router.get('/getByAuth', auth, getCateringMarketplacesByAuth);
 
 // Get catering marketplace by ID with auth
 router.get('/getById/:id', auth, validateParams(getCateringMarketplaceByIdSchema), getCateringMarketplaceById);

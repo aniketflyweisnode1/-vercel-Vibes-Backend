@@ -7,6 +7,7 @@ const {
   getAllStaffEventBooks, 
   getStaffEventBookById, 
   getStaffEventBooksByAuth,
+  getStaffEventBooksByVendorId,
   updateStaffEventBook, 
   deleteStaffEventBook
 } = require('../../controllers/staff_event_book.controller');
@@ -22,7 +23,8 @@ const { validateBody, validateParams } = require('../../../middleware/validation
 const { 
   createStaffEventBookSchema, 
   updateStaffEventBookSchema, 
-  getStaffEventBookByIdSchema
+  getStaffEventBookByIdSchema,
+  getStaffEventBooksByVendorIdSchema
 } = require('../../../validators/staff_event_book.validator');
 
 const { createStaffBookingTransactionSchema } = require('../../../validators/transaction.validator');
@@ -35,6 +37,9 @@ router.get('/getAll', getAllStaffEventBooks);
 
 // Get staff event bookings by authenticated user with auth
 router.get('/getByAuth', auth, getStaffEventBooksByAuth);
+
+// Get staff event bookings by vendor ID with auth
+router.get('/getStaffByVendorId', auth, validateParams(getStaffEventBooksByVendorIdSchema), getStaffEventBooksByVendorId);
 
 // Get staff event booking by ID with auth
 router.get('/getById/:id', auth, validateParams(getStaffEventBookByIdSchema), getStaffEventBookById);
