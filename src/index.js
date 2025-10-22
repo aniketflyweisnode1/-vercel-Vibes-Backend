@@ -86,6 +86,12 @@ const cateringMarketplaceBookingRoutes = require('./routes/Master/catering_marke
 
 // Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/vendor_business_information.routes.js');
+const crmVendorOutreachDashboardRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard.routes.js');
+const leadDiscoveredRoutes = require('./routes/Vendor/lead_discovered.routes.js');
+const leadContactedRoutes = require('./routes/Vendor/lead_contacted.routes.js');
+const onboardingStartedRoutes = require('./routes/Vendor/onboarding_started.routes.js');
+const featuredRoutes = require('./routes/Vendor/featured.routes.js');
+const vendorOverviewRoutes = require('./routes/Vendor/vendor_overview.routes.js');
 
 // Import middleware
 const { sendSuccess } = require('../utils/response.js');
@@ -203,5 +209,11 @@ router.use('/master/catering-marketplace-booking', cateringMarketplaceBookingRou
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);
+router.use('/vendor/crm-outreach-dashboard', crmVendorOutreachDashboardRoutes);
+router.use('/vendor/lead-discovered', leadDiscoveredRoutes);
+router.use('/vendor/lead-contacted', leadContactedRoutes);
+router.use('/vendor/onboarding-started', onboardingStartedRoutes);
+router.use('/vendor/featured', featuredRoutes);
+router.use('/vendor/overview', vendorOverviewRoutes);
 
 module.exports = router;
