@@ -207,7 +207,7 @@ router.use('/master/staff-working-price', staffWorkingPriceRoutes);
 router.use('/master/catering-marketplace-category', cateringMarketplaceCategoryRoutes);
 router.use('/master/catering-marketplace', cateringMarketplaceRoutes);
 router.use('/master/catering-marketplace-booking', cateringMarketplaceBookingRoutes);
-router.use('/master/email-template', emailTemplateRoutes);
+router.use('/vendor/email-template', emailTemplateRoutes);
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);
