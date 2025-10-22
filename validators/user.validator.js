@@ -593,6 +593,50 @@ const getUsersByRoleIdQuerySchema = Joi.object({
     })
 });
 
+// Forgot password validation schema
+const forgotPasswordSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .lowercase()
+    .trim()
+    .required()
+    .messages({
+      'string.empty': 'Email is required',
+      'string.email': 'Please enter a valid email address'
+    })
+});
+
+// Reset password validation schema
+const resetPasswordSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .lowercase()
+    .trim()
+    .required()
+    .messages({
+      'string.empty': 'Email is required',
+      'string.email': 'Please enter a valid email address'
+    }),
+  otp: Joi.string()
+    .length(6)
+    .pattern(/^[0-9]{6}$/)
+    .required()
+    .messages({
+      'string.empty': 'OTP is required',
+      'string.length': 'OTP must be exactly 6 digits',
+      'string.pattern.base': 'OTP must be 6 digits'
+    }),
+  newPassword: Joi.string()
+    .min(6)
+    .max(128)
+    .required()
+    .messages({
+      'string.empty': 'New password is required',
+      'string.min': 'New password must be at least 6 characters long',
+      'string.max': 'New password cannot exceed 128 characters'
+    })
+});
+
 module.exports = {
   createUserSchema,
   updateUserSchema,
@@ -604,5 +648,7 @@ module.exports = {
   sendOTPSchema,
   verifyOTPSchema,
   getUsersByRoleIdSchema,
-  getUsersByRoleIdQuerySchema
+  getUsersByRoleIdQuerySchema,
+  forgotPasswordSchema,
+  resetPasswordSchema
 };

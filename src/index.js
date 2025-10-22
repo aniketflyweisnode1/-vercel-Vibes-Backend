@@ -83,6 +83,7 @@ const staffWorkingPriceRoutes = require('./routes/Master/staff_working_price.rou
 const cateringMarketplaceCategoryRoutes = require('./routes/Master/catering_marketplace_category.routes.js');
 const cateringMarketplaceRoutes = require('./routes/Master/catering_marketplace.routes.js');
 const cateringMarketplaceBookingRoutes = require('./routes/Master/catering_marketplace_booking.routes.js');
+const emailTemplateRoutes = require('./routes/Master/email_template.routes.js');
 
 // Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/vendor_business_information.routes.js');
@@ -206,6 +207,7 @@ router.use('/master/staff-working-price', staffWorkingPriceRoutes);
 router.use('/master/catering-marketplace-category', cateringMarketplaceCategoryRoutes);
 router.use('/master/catering-marketplace', cateringMarketplaceRoutes);
 router.use('/master/catering-marketplace-booking', cateringMarketplaceBookingRoutes);
+router.use('/master/email-template', emailTemplateRoutes);
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);

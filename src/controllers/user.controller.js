@@ -736,6 +736,139 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Forgot password - Send OTP to email
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const forgotPassword = asyncHandler(async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return sendError(res, 'User not found with this email address', 404);
+    }
+
+    // Check if user is active
+    if (!user.status) {
+      return sendError(res, 'Account is deactivated', 401);
+    }
+
+    // Generate new OTP
+    const otpCode = generateOTP();
+
+    // Deactivate any existing OTPs for this email and forgot password type
+    await OTP.updateMany(
+      { 
+        email: email.toLowerCase(), 
+        otp_type: 2, // Forgot password OTP type
+        status: true 
+      },
+      { 
+        status: false,
+        updated_at: new Date()
+      }
+    );
+
+    // Create new OTP
+    const otpData = {
+      otp: otpCode,
+      email: email.toLowerCase(),
+      otp_type: 2, // Forgot password OTP type
+      expires_at: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      created_by: null // No user created this OTP
+    };
+
+    const otp = await OTP.create(otpData);
+
+    // Send OTP via email
+    const emailSent = await emailService.sendForgotPasswordOTPEmail(email, otpCode, user.name);
+    
+    if (!emailSent) {
+      // If email fails, deactivate the OTP
+      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+      return sendError(res, 'Failed to send OTP email. Please try again.', 500);
+    }
+
+    sendSuccess(res, { 
+      message: 'OTP sent successfully to your email address for password reset.',
+      expiresIn: '10 minutes',
+      nextStep: 'reset-password',
+      otp: otpCode
+    }, 'OTP sent successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Reset password with OTP verification
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const resetPassword = asyncHandler(async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    // Find the OTP
+    const otpRecord = await OTP.findOne({
+      email: email.toLowerCase(),
+      otp: otp,
+      otp_type: 2, // Forgot password OTP type
+      status: true
+    }).sort({ created_at: -1 }); // Get the most recent OTP
+
+    if (!otpRecord) {
+      return sendError(res, 'Invalid OTP', 400);
+    }
+
+    // Check if OTP is expired
+    if (otpRecord.isExpired()) {
+      await OTP.findByIdAndUpdate(otpRecord._id, { 
+        status: false,
+        updated_at: new Date()
+      });
+      return sendError(res, 'OTP has expired. Please request a new one.', 400);
+    }
+
+    // Check if OTP is already used
+    if (otpRecord.is_used) {
+      return sendError(res, 'OTP has already been used', 400);
+    }
+
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    // Check if user is active
+    if (!user.status) {
+      return sendError(res, 'Account is deactivated', 401);
+    }
+
+    // Update password
+    user.password = newPassword;
+    user.updated_by = user.user_id; // User updating their own password
+    user.updated_on = new Date();
+    await user.save();
+
+    // Mark OTP as used
+    await OTP.findByIdAndUpdate(otpRecord._id, {
+      is_used: true,
+      updated_at: new Date()
+    });
+
+    sendSuccess(res, {
+      message: 'Password reset successfully'
+    }, 'Password reset successful');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * User logout
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -769,6 +902,8 @@ module.exports = {
   changePassword,
   sendOTP,
   verifyOTP,
-  getUsersByRoleId
+  getUsersByRoleId,
+  forgotPassword,
+  resetPassword
 };
 
