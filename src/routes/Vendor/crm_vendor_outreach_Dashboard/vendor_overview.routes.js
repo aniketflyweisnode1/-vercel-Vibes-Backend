@@ -7,10 +7,10 @@ const {
   getPipelineOverview,
   getRecentOutreachActivities,
   getUpcomingFollowUps
-} = require('../../controllers/vendor_overview.controller'); 
+} = require('../../../controllers/vendor_overview.controller'); 
 
 // Import middleware
-const { auth } = require('../../../middleware/auth');
+const { auth } = require('../../../../middleware/auth');
 
 // Get vendor leads overview with auth
 router.get('/overview', auth, getVendorLeadsOverview);

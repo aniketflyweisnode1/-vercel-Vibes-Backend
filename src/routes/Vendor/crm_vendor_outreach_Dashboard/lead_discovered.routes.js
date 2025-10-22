@@ -9,11 +9,11 @@ const {
   updateLeadDiscovered, 
   updateLeadDiscoveredByIdBody, 
   deleteLeadDiscovered 
-} = require('../../controllers/lead_discovered.controller'); 
+} = require('../../../controllers/lead_discovered.controller'); 
 
 // Import middleware
-const { auth } = require('../../../middleware/auth');
-const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
+const { auth } = require('../../../../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../../../../middleware/validation');
 
 // Import validators
 const { 
@@ -22,7 +22,7 @@ const {
   updateLeadDiscoveredByIdBodySchema, 
   getLeadDiscoveredByIdSchema, 
   getAllLeadDiscoveredSchema 
-} = require('../../../validators/lead_discovered.validator');
+} = require('../../../../validators/lead_discovered.validator');
 
 // Create lead discovered with auth
 router.post('/create', auth, validateBody(createLeadDiscoveredSchema), createLeadDiscovered);

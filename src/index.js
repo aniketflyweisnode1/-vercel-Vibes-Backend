@@ -83,16 +83,16 @@ const staffWorkingPriceRoutes = require('./routes/Master/staff_working_price.rou
 const cateringMarketplaceCategoryRoutes = require('./routes/Master/catering_marketplace_category.routes.js');
 const cateringMarketplaceRoutes = require('./routes/Master/catering_marketplace.routes.js');
 const cateringMarketplaceBookingRoutes = require('./routes/Master/catering_marketplace_booking.routes.js');
-const emailTemplateRoutes = require('./routes/Master/email_template.routes.js');
+const emailTemplateRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/email_template.routes.js');
 
 // Import Vendor route modules
-const vendorBusinessInformationRoutes = require('./routes/Vendor/vendor_business_information.routes.js');
-const crmVendorOutreachDashboardRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard.routes.js');
-const leadDiscoveredRoutes = require('./routes/Vendor/lead_discovered.routes.js');
-const leadContactedRoutes = require('./routes/Vendor/lead_contacted.routes.js');
-const onboardingStartedRoutes = require('./routes/Vendor/onboarding_started.routes.js');
-const featuredRoutes = require('./routes/Vendor/featured.routes.js');
-const vendorOverviewRoutes = require('./routes/Vendor/vendor_overview.routes.js');
+const vendorBusinessInformationRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/vendor_business_information.routes.js');
+const crmVendorOutreachDashboardRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/crm_vendor_outreach_Dashboard.routes.js');
+const leadDiscoveredRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/lead_discovered.routes.js');
+const leadContactedRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/lead_contacted.routes.js');
+const onboardingStartedRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/onboarding_started.routes.js');
+const featuredRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/featured.routes.js');
+const vendorOverviewRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/vendor_overview.routes.js');
 
 // Import middleware
 const { sendSuccess } = require('../utils/response.js');

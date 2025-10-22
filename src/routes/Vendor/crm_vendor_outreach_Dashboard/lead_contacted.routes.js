@@ -9,11 +9,11 @@ const {
   updateLeadContacted, 
   updateLeadContactedByIdBody, 
   deleteLeadContacted 
-} = require('../../controllers/lead_contacted.controller'); 
+} = require('../../../controllers/lead_contacted.controller'); 
 
 // Import middleware
-const { auth } = require('../../../middleware/auth');
-const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
+const { auth } = require('../../../../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../../../../middleware/validation');
 
 // Import validators
 const { 
@@ -22,7 +22,7 @@ const {
   updateLeadContactedByIdBodySchema, 
   getLeadContactedByIdSchema, 
   getAllLeadContactedSchema 
-} = require('../../../validators/lead_contacted.validator');
+} = require('../../../../validators/lead_contacted.validator');
 
 // Create lead contacted with auth
 router.post('/create', auth, validateBody(createLeadContactedSchema), createLeadContacted);

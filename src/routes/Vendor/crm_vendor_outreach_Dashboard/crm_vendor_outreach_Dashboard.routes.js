@@ -10,11 +10,11 @@ const {
   updateVendorLead, 
   updateVendorLeadByIdBody, 
   deleteVendorLead 
-} = require('../../controllers/vendor_leads.controller'); 
+} = require('../../../controllers/vendor_leads.controller'); 
 
 // Import middleware
-const { auth } = require('../../../middleware/auth');
-const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
+const { auth } = require('../../../../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../../../../middleware/validation');
 
 // Import validators
 const { 
@@ -23,7 +23,7 @@ const {
   updateVendorLeadsByIdBodySchema, 
   getVendorLeadsByIdSchema, 
   getAllVendorLeadsSchema 
-} = require('../../../validators/vendor_leads.validator');
+} = require('../../../../validators/vendor_leads.validator');
 
 // Create vendor lead with auth
 router.post('/create', auth, validateBody(createVendorLeadsSchema), createVendorLead);

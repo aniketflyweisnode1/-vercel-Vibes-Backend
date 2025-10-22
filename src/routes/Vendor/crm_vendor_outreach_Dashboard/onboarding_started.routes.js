@@ -9,11 +9,11 @@ const {
   updateOnboardingStarted, 
   updateOnboardingStartedByIdBody, 
   deleteOnboardingStarted 
-} = require('../../controllers/onboarding_started.controller'); 
+} = require('../../../controllers/onboarding_started.controller'); 
 
 // Import middleware
-const { auth } = require('../../../middleware/auth');
-const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
+const { auth } = require('../../../../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../../../../middleware/validation');
 
 // Import validators
 const { 
@@ -22,7 +22,7 @@ const {
   updateOnboardingStartedByIdBodySchema, 
   getOnboardingStartedByIdSchema, 
   getAllOnboardingStartedSchema 
-} = require('../../../validators/onboarding_started.validator');
+} = require('../../../../validators/onboarding_started.validator');
 
 // Create onboarding started with auth
 router.post('/create', auth, validateBody(createOnboardingStartedSchema), createOnboardingStarted);

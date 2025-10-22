@@ -10,11 +10,11 @@ const {
   updateVendorBusinessInformation, 
   updateVendorBusinessInformationByIdBody, 
   deleteVendorBusinessInformation 
-} = require('../../controllers/vendor_business_information.controller'); 
+} = require('../../../controllers/vendor_business_information.controller'); 
 
 // Import middleware
-const { auth } = require('../../../middleware/auth');
-const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
+const { auth } = require('../../../../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../../../../middleware/validation');
 
 // Import validators
 const { 
@@ -23,7 +23,7 @@ const {
   updateVendorBusinessInformationByIdBodySchema, 
   getVendorBusinessInformationByIdSchema, 
   getAllVendorBusinessInformationSchema 
-} = require('../../../validators/vendor_business_information.validator');
+} = require('../../../../validators/vendor_business_information.validator');
 
 // Create vendor business information with auth
 router.post('/create', auth, validateBody(createVendorBusinessInformationSchema), createVendorBusinessInformation);

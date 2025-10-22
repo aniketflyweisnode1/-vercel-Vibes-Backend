@@ -9,11 +9,11 @@ const {
   updateFeatured, 
   updateFeaturedByIdBody, 
   deleteFeatured 
-} = require('../../controllers/featured.controller'); 
+} = require('../../../controllers/featured.controller'); 
 
 // Import middleware
-const { auth } = require('../../../middleware/auth');
-const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
+const { auth } = require('../../../../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../../../../middleware/validation');
 
 // Import validators
 const { 
@@ -22,7 +22,7 @@ const {
   updateFeaturedByIdBodySchema, 
   getFeaturedByIdSchema, 
   getAllFeaturedSchema 
-} = require('../../../validators/featured.validator');
+} = require('../../../../validators/featured.validator');
 
 // Create featured with auth
 router.post('/create', auth, validateBody(createFeaturedSchema), createFeatured);

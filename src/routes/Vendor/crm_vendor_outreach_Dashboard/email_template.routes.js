@@ -9,11 +9,11 @@ const {
   updateEmailTemplate, 
   updateEmailTemplateByIdBody, 
   deleteEmailTemplate 
-} = require('../../controllers/email_template.controller'); 
+} = require('../../../controllers/email_template.controller'); 
 
 // Import middleware
-const { auth } = require('../../../middleware/auth');
-const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
+const { auth } = require('../../../../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../../../../middleware/validation');
 
 // Import validators
 const { 
@@ -22,7 +22,7 @@ const {
   updateEmailTemplateByIdBodySchema, 
   getEmailTemplateByIdSchema, 
   getAllEmailTemplateSchema 
-} = require('../../../validators/email_template.validator');
+} = require('../../../../validators/email_template.validator');
 
 // Create email template with auth
 router.post('/create', auth, validateBody(createEmailTemplateSchema), createEmailTemplate);
