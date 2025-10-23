@@ -4,6 +4,7 @@ const router = express.Router();
 // Import route modules
 const userRoutes = require('./routes/User/user.routes.js');
 const walletRoutes = require('./routes/User/wallet.routes.js');
+const fileUploadRoutes = require('./routes/User/file_upload.routes.js');
 const eventTypeRoutes = require('./routes/Admin/event_type.routes.js');
 const roleRoutes = require('./routes/Admin/role.routes.js');
 const eventCategoryTagsRoutes = require('./routes/Admin/event_category_tags.routes.js');
@@ -128,6 +129,7 @@ router.get('/health', (req, res) => {
 // Mount route modules
 router.use('/users', userRoutes);
 router.use('/wallets', walletRoutes);
+router.use('/file-upload', fileUploadRoutes);
 router.use('/event-types', eventTypeRoutes);
 router.use('/roles', roleRoutes);
 router.use('/event-category-tags', eventCategoryTagsRoutes);

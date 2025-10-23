@@ -279,13 +279,13 @@ const CateringMarketplaceBookingPayment = asyncHandler(async (req, res) => {
       CGST: 0,
       SGST: 0,
       TotalGST: 0,
-      metadata: {
+      metadata: JSON.stringify({
         stripe_payment_intent_id: paymentIntent.paymentIntentId,
         stripe_client_secret: paymentIntent.clientSecret,
         customer_id: customerId,
         catering_marketplace_booking_id: catering_marketplace_booking_id,
         description: description
-      },
+      }),
       created_by: req.userId
     };
 

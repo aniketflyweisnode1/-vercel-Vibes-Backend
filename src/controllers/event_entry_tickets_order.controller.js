@@ -419,13 +419,13 @@ const processPayment = asyncHandler(async (req, res) => {
       CGST: 0,
       SGST: 0,
       TotalGST: order.tax,
-      metadata: {
+      metadata: JSON.stringify({
         stripe_payment_intent_id: paymentIntent.paymentIntentId,
         stripe_client_secret: paymentIntent.clientSecret,
         customer_id: customerId,
         order_id: order.event_entry_tickets_order_id,
         event_id: order.event_id
-      },
+      }),
       created_by: req.userId
     };
 
