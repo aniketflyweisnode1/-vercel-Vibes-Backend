@@ -76,7 +76,7 @@ const userSchema = new mongoose.Schema({
   user_img: {
     type: String,
     trim: true,
-   
+
   },
   postal_code: {
     type: String,
@@ -124,12 +124,24 @@ const userSchema = new mongoose.Schema({
   id_proof_owner_img: {
     type: String,
     trim: true,
-   
+
+  },
+  PlatFormFee_status: {
+    type: String,
+    trim: true
+  },
+  PlatFormFee: {
+    type: String,
+    trim: true
+  },
+  trangaction_id: {
+    type: Number,
+    ref: 'Transaction'
   },
   licenses_certificate_file: {
     type: String,
     trim: true,
-   
+
   },
   bank_account_holder_name: {
     type: String,
@@ -179,7 +191,7 @@ const userSchema = new mongoose.Schema({
 userSchema.plugin(AutoIncrement, { inc_field: 'user_id' });
 
 // Transform output to remove sensitive data
-userSchema.methods.toJSON = function() {
+userSchema.methods.toJSON = function () {
   const userObject = this.toObject();
   delete userObject.password;
   return userObject;

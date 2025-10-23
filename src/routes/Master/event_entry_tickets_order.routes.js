@@ -29,5 +29,6 @@ router.post('/EntryTicketsPayments', auth, validateBody(processPaymentSchema), p
 
 // Confirm payment for order (with auth) - Confirms Stripe payment intent
 router.post('/confirm-payment', auth, confirmPayment);
+
 module.exports = router;
 

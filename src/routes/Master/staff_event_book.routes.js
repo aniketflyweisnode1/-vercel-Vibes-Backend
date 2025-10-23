@@ -12,6 +12,9 @@ const {
   deleteStaffEventBook
 } = require('../../controllers/staff_event_book.controller');
 
+// Import payment controller
+const { StaffBookingPayment } = require('../../controllers/staff_event_book.controller');
+
 // Import transaction controller
 const { createStaffBookingTransaction } = require('../../controllers/transaction.controller');
 
@@ -52,6 +55,9 @@ router.delete('/delete/:id', auth, validateParams(getStaffEventBookByIdSchema), 
 
 // Create staff booking transaction (automatically sets transactionType to StaffBooking) with auth
 router.post('/create-transaction', auth, validateBody(createStaffBookingTransactionSchema), createStaffBookingTransaction);
+
+// Process staff booking payment (with auth) - Creates StaffBooking transaction with Stripe
+router.post('/StaffBookingPayment', auth, StaffBookingPayment);
 
 module.exports = router;
 

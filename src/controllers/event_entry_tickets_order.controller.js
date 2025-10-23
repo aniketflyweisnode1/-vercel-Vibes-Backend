@@ -336,7 +336,7 @@ const deleteEventEntryTicketsOrder = asyncHandler(async (req, res) => {
  */
 const processPayment = asyncHandler(async (req, res) => {
   try {
-    const { order_id, payment_method_id } = req.body;
+    const { order_id, payment_method_id, billingDetails } = req.body;
 
     // Find the order
     const order = await EventEntryTicketsOrder.findOne({ 
@@ -385,6 +385,7 @@ const processPayment = asyncHandler(async (req, res) => {
     try {
       const paymentOptions = {
         amount: order.final_amount,
+        billingDetails: billingDetails,
         currency: 'usd',
         customerEmail: user.email,
         metadata: {
@@ -403,6 +404,7 @@ const processPayment = asyncHandler(async (req, res) => {
       return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
     }
 
+    console.log(order);
     // Create transaction data
     const transactionData = {
       user_id: req.userId,

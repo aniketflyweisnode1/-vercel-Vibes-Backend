@@ -1,5 +1,6 @@
 const User = require('../models/user.model');
 const OTP = require('../models/otp.model');
+const Transaction = require('../models/transaction.model');
 const StaffWorkingPrice = require('../models/staff_working_price.model');
 const StaffCategory = require('../models/staff_category.model');
 const StaffEventBook = require('../models/staff_event_book.model');
@@ -17,6 +18,7 @@ const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../u
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { generateOTP } = require('../../utils/helpers');
 const emailService = require('../../utils/emailService');
+const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 
 /**
  * Helper function to populate all referenced IDs with complete data
@@ -888,6 +890,139 @@ const logout = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Process platform fee payment
+ * Creates a transaction with transactionType = "PlatformFee"
+ * Updates user's PlatFormFee_status and trangaction_id
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const PlatFormFeePayment = asyncHandler(async (req, res) => {
+  try {
+    const { 
+      payment_method_id, 
+      billingDetails,
+      amount,
+      description = 'Platform fee payment'
+    } = req.body;
+
+    // Validate required fields
+    if (!payment_method_id || !amount) {
+      return sendError(res, 'payment_method_id and amount are required', 400);
+    }
+
+    // Get user information for Stripe customer creation
+    const user = await User.findOne({ user_id: req.userId });
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    // Create or get Stripe customer
+    let customerId = null;
+    try {
+      const customerData = {
+        email: user.email,
+        name: user.name,
+        phone: user.mobile,
+        metadata: {
+          user_id: req.userId,
+          payment_type: 'platform_fee'
+        }
+      };
+
+      const customer = await createCustomer(customerData);
+      customerId = customer.customerId;
+    } catch (customerError) {
+      console.error('Customer creation error:', customerError);
+      // Continue without customer if creation fails
+    }
+
+    // Create Stripe payment intent
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        amount: Math.round(amount * 100), // Convert to cents
+        billingDetails: billingDetails,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: req.userId,
+          customer_id: customerId,
+          payment_type: 'platform_fee',
+          description: description
+        }
+      };
+
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      console.error('Payment intent creation error:', paymentError);
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
+
+    // Create transaction data
+    const transactionData = {
+      user_id: req.userId,
+      amount: amount,
+      currency: 'USD',
+      status: paymentIntent.status,
+      payment_method_id: payment_method_id,
+      transactionType: 'PlatformFee',
+      transaction_date: new Date(),
+      reference_number: paymentIntent.paymentIntentId,
+      coupon_code_id: null,
+      CGST: 0,
+      SGST: 0,
+      TotalGST: 0,
+      metadata: {
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        customer_id: customerId,
+        description: description
+      },
+      created_by: req.userId
+    };
+
+    // Create transaction
+    const transaction = await Transaction.create(transactionData);
+
+    // Update the user with platform fee payment details
+    const updatedUser = await User.findOneAndUpdate(
+      { user_id: req.userId },
+      {
+        PlatFormFee_status: transaction.status,
+        PlatFormFee: amount.toString(),
+        trangaction_id: transaction.transaction_id,
+        updated_by: req.userId,
+        updated_on: new Date()
+      },
+      { new: true }
+    );
+
+    sendSuccess(res, {
+      transaction_id: transaction.transaction_id,
+      payment_intent_id: paymentIntent.paymentIntentId,
+      client_secret: paymentIntent.clientSecret,
+      amount: amount,
+      currency: 'USD',
+      status: paymentIntent.status,
+      customer_id: customerId,
+      user: {
+        user_id: updatedUser.user_id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        PlatFormFee_status: updatedUser.PlatFormFee_status,
+        PlatFormFee: updatedUser.PlatFormFee,
+        trangaction_id: updatedUser.trangaction_id
+      },
+      message: 'Platform fee payment intent created successfully and user updated'
+    }, 'Platform fee payment intent created successfully and user updated');
+
+  } catch (error) {
+    console.error('Platform fee payment error:', error);
+    throw error;
+  }
+});
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -904,6 +1039,7 @@ module.exports = {
   verifyOTP,
   getUsersByRoleId,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  PlatFormFeePayment
 };
 

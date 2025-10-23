@@ -28,7 +28,7 @@ const transactionSchema = new mongoose.Schema({
   },
   transactionType: {
     type: String,
-    enum: ['Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking'],
+    enum: ['Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking', 'CateringBooking'],
     required: [true, 'Transaction type is required']
   },
   staff_event_book_id: {
@@ -63,6 +63,10 @@ const transactionSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: [0, 'Total GST cannot be negative']
+  },
+  metadata: {
+    type: String,
+    default: null
   },
   bank_id: {
     type: Number,

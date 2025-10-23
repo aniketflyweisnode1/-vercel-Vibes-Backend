@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Import controllers
-const { createUser, getAllUsers, getUserById, updateUser, updateUserByIdBody, deleteUser, login, logout, getProfile, updateProfile, changePassword, sendOTP, verifyOTP, getUsersByRoleId, forgotPassword, resetPassword } = require('../../controllers/user.controller'); 
+const { createUser, getAllUsers, getUserById, updateUser, updateUserByIdBody, deleteUser, login, logout, getProfile, updateProfile, changePassword, sendOTP, verifyOTP, getUsersByRoleId, forgotPassword, resetPassword, PlatFormFeePayment } = require('../../controllers/user.controller'); 
   // Import middleware
 const { auth, authRateLimit } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
@@ -35,5 +35,8 @@ router.get('/getUserById/:id', auth, validateParams(getUserByIdSchema), getUserB
 router.put('/updateUserById', auth, validateBody(updateUserByIdBodySchema), updateUserByIdBody);
 
 router.delete('/deleteUserById/:id',  auth, validateParams(getUserByIdSchema), deleteUser);
+
+// Process platform fee payment (with auth) - Creates PlatformFee transaction and updates user
+router.post('/PlatFormFeePayment', auth, PlatFormFeePayment);
 
 module.exports = router;

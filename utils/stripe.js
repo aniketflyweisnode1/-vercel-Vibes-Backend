@@ -18,6 +18,7 @@ const createPaymentIntent = async (options) => {
       amount,
       currency = 'usd',
       customerEmail,
+      billingDetails,
       metadata = {}
     } = options;
 
@@ -27,14 +28,14 @@ const createPaymentIntent = async (options) => {
       receipt_email: customerEmail,
       // "payment_method_types": ["card"],
       metadata: {
-        integration: 'vibes_ticket_booking',
+        integration: billingDetails,
         ...metadata
       },
       automatic_payment_methods: {
         enabled: true
       }
     });
-    console.log(paymentIntent);
+    // console.log(paymentIntent);
 
     return {
       success: true,
