@@ -59,15 +59,49 @@ const getCommunityDesignById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const communityDesign = await CommunityDesigns.findOne({community_designs_id: parseInt(id)})
-      .populate('categories_id', 'category_id category_name emozi status')
-      .populate('created_by', 'user_id name email user_img')
-      .populate('updated_by', 'user_id name email user_img');
+    const communityDesign = await CommunityDesigns.findOne({community_designs_id: parseInt(id)});
 
     if (!communityDesign) {
       return sendNotFound(res, 'Community Design not found');
     }
-    sendSuccess(res, communityDesign, 'Community Design retrieved successfully');
+
+    // Manually populate the related data since the fields are Number type, not ObjectId
+    let populatedDesign = communityDesign.toObject();
+
+    // Populate category data if categories_id exists
+    if (communityDesign.categories_id) {
+      try {
+        const Category = require('../models/category.model');
+        const category = await Category.findOne({ category_id: communityDesign.categories_id });
+        populatedDesign.categories_id = category;
+      } catch (error) {
+        console.log('Category not found for ID:', communityDesign.categories_id);
+      }
+    }
+
+    // Populate created_by user data if created_by exists
+    if (communityDesign.created_by) {
+      try {
+        const User = require('../models/user.model');
+        const createdByUser = await User.findOne({ user_id: communityDesign.created_by });
+        populatedDesign.created_by = createdByUser;
+      } catch (error) {
+        console.log('User not found for created_by ID:', communityDesign.created_by);
+      }
+    }
+
+    // Populate updated_by user data if updated_by exists
+    if (communityDesign.updated_by) {
+      try {
+        const User = require('../models/user.model');
+        const updatedByUser = await User.findOne({ user_id: communityDesign.updated_by });
+        populatedDesign.updated_by = updatedByUser;
+      } catch (error) {
+        console.log('User not found for updated_by ID:', communityDesign.updated_by);
+      }
+    }
+
+    sendSuccess(res, populatedDesign, 'Community Design retrieved successfully');
   } catch (error) {
     throw error;
   }
