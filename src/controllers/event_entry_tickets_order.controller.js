@@ -4,8 +4,10 @@ const EventEntryTickets = require('../models/event_entry_tickets.model');
 const Event = require('../models/event.model');
 const Transaction = require('../models/transaction.model');
 const CouponCode = require('../models/coupon_code.model');
+const User = require('../models/user.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
+const { createPaymentIntent, createCustomer, confirmPaymentIntent } = require('../../utils/stripe');
 
 /**
  * Create a new event entry tickets order
@@ -328,13 +330,13 @@ const deleteEventEntryTicketsOrder = asyncHandler(async (req, res) => {
 
 /**
  * Process payment for event entry tickets order
- * Creates a transaction with type 'TicketBooking'
+ * Creates a Stripe payment intent and transaction with type 'TicketBooking'
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
 const processPayment = asyncHandler(async (req, res) => {
   try {
-    const { order_id, payment_method_id, reference_number,  status } = req.body;
+    const { order_id, payment_method_id } = req.body;
 
     // Find the order
     const order = await EventEntryTicketsOrder.findOne({ 
@@ -350,29 +352,85 @@ const processPayment = asyncHandler(async (req, res) => {
       return sendError(res, 'Unauthorized: This order does not belong to you', 403);
     }
 
-    // Check if order is already paid (you can add a payment_status field to order model if needed)
-    // For now, we'll check if a transaction already exists for this order
+    // Get user information for Stripe customer creation
+    const user = await User.findOne({ user_id: req.userId });
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    //const paymentMethod = await PaymentMethods.findOne({ payment_methods_id: parseInt(payment_method_id) });
+
+    // Create or get Stripe customer
+    let customerId = null;
+    try {
+      const customerData = {
+        email: user.email,
+        name: user.name,
+        phone: user.mobile,
+        metadata: {
+          user_id: req.userId,
+          order_id: order.event_entry_tickets_order_id
+        }
+      };
+
+      const customer = await createCustomer(customerData);
+      customerId = customer.customerId;
+    } catch (customerError) {
+      console.error('Customer creation error:', customerError);
+      // Continue without customer if creation fails
+    }
+
+    // Create Stripe payment intent
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        amount: order.final_amount,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: req.userId,
+          customer_id: customerId,
+          order_id: order.event_entry_tickets_order_id,
+          event_id: order.event_id,
+          payment_type: 'ticket_booking',
+          description: `Event ticket booking for order ${order.event_entry_tickets_order_id}`
+        }
+      };
+
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      console.error('Payment intent creation error:', paymentError);
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
 
     // Create transaction data
     const transactionData = {
       user_id: req.userId,
-      amount: order.final_amount, // Use final_amount instead of total
-      status: status,
-      payment_method_id: parseInt(payment_method_id),
+      amount: order.final_amount,
+      currency: 'USD',
+      status: paymentIntent.status,
+      payment_method_id: payment_method_id,
       transactionType: 'TicketBooking',
       transaction_date: new Date(),
-      reference_number: reference_number || `ORD-${order.event_entry_tickets_order_id}-${Date.now()}`,
+      reference_number: paymentIntent.paymentIntentId,
       coupon_code_id: order.coupon_code_id,
       CGST: 0,
       SGST: 0,
       TotalGST: order.tax,
+      metadata: {
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        customer_id: customerId,
+        order_id: order.event_entry_tickets_order_id,
+        event_id: order.event_id
+      },
       created_by: req.userId
     };
 
     // Create the transaction
     const transaction = await Transaction.create(transactionData);
 
-    // Update order status to mark as paid (you might want to add a payment_status field)
+    // Update order status to mark as paid
     await EventEntryTicketsOrder.findOneAndUpdate(
       { event_entry_tickets_order_id: parseInt(order_id) },
       { 
@@ -382,8 +440,16 @@ const processPayment = asyncHandler(async (req, res) => {
     );
 
     sendSuccess(res, {
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
+      },
       transaction: transaction,
       order: order,
+      customer_id: customerId,
       payment_summary: {
         order_id: order.event_entry_tickets_order_id,
         subtotal: order.subtotal,
@@ -394,10 +460,76 @@ const processPayment = asyncHandler(async (req, res) => {
         amount_paid: transaction.amount,
         transaction_id: transaction.transaction_id,
         transaction_type: 'TicketBooking',
-        payment_status: 'completed',
-        reference_number: transaction.reference_number
+        payment_status: transaction.status,
+        reference_number: transaction.reference_number,
+        stripe_payment_intent_id: paymentIntent.paymentIntentId
       }
-    }, 'Payment processed successfully', 201);
+    }, 'Payment intent created successfully. Use client_secret to complete payment on frontend.', 201);
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Confirm payment for event entry tickets order
+ * Confirms the Stripe payment intent and updates transaction status
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const confirmPayment = asyncHandler(async (req, res) => {
+  try {
+    const { payment_intent_id, payment_method_id } = req.body;
+
+    if (!payment_intent_id) {
+      return sendError(res, 'Payment intent ID is required', 400);
+    }
+
+    // Find the transaction by payment intent ID
+    const transaction = await Transaction.findOne({
+      reference_number: payment_intent_id,
+      user_id: req.userId
+    });
+
+    if (!transaction) {
+      return sendNotFound(res, 'Transaction not found for this payment intent');
+    }
+
+    // Confirm payment intent with Stripe
+    let confirmedPayment = null;
+    try {
+      confirmedPayment = await confirmPaymentIntent(payment_intent_id, payment_method_id);
+    } catch (confirmError) {
+      console.error('Payment confirmation error:', confirmError);
+      return sendError(res, `Payment confirmation failed: ${confirmError.message}`, 400);
+    }
+
+    // Update transaction status based on Stripe response
+    const updatedTransaction = await Transaction.findOneAndUpdate(
+      { reference_number: payment_intent_id },
+      {
+        status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed',
+        updated_by: req.userId,
+        updated_at: new Date()
+      },
+      { new: true }
+    );
+
+    // Update order status if payment succeeded
+    if (confirmedPayment.status === 'succeeded') {
+      await EventEntryTicketsOrder.findOneAndUpdate(
+        { event_entry_tickets_order_id: transaction.metadata.order_id },
+        { 
+          updatedBy: req.userId,
+          updatedAt: new Date()
+        }
+      );
+    }
+
+    sendSuccess(res, {
+      paymentIntent: confirmedPayment,
+      transaction: updatedTransaction,
+      payment_status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed'
+    }, `Payment ${confirmedPayment.status === 'succeeded' ? 'confirmed successfully' : 'confirmation failed'}`, 200);
   } catch (error) {
     throw error;
   }
@@ -410,6 +542,7 @@ module.exports = {
   getEventEntryTicketsOrdersByAuth,
   updateEventEntryTicketsOrder,
   deleteEventEntryTicketsOrder,
-  processPayment
+  processPayment,
+  confirmPayment
 };
 

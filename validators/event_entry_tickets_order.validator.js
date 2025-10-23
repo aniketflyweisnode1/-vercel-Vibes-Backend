@@ -102,14 +102,6 @@ const processPaymentSchema = Joi.object({
     'number.integer': 'Payment method ID must be an integer',
     'number.min': 'Payment method ID must be greater than 0',
     'any.required': 'Payment method ID is required'
-  }),
-  reference_number: Joi.string().trim().max(100).allow('').messages({
-    'string.max': 'Reference number cannot exceed 100 characters'
-  }),
-  coupon_code_id: Joi.number().integer().min(1).allow(null).messages({
-    'number.base': 'Coupon code ID must be a number',
-    'number.integer': 'Coupon code ID must be an integer',
-    'number.min': 'Coupon code ID must be greater than 0'
   })
 });
 

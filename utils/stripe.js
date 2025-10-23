@@ -1,4 +1,7 @@
-const stripe = require('stripe');
+// Initialize Stripe with secret key
+const stripe = require('stripe')('sk_test_51QkIm6IG3GnT9n5tlvKodmyGrRhlTmre4QtC1QXJxYAVj1hsVPAEwIGyi8nXZ3Fbc2HGyTwhEeJ79cq8mX0SUUaU00lr2JkZbF');
+
+
 
 /**
  * Create a payment intent for ticket booking
@@ -22,6 +25,7 @@ const createPaymentIntent = async (options) => {
       amount: Math.round(amount * 100), // Convert to cents
       currency: currency.toLowerCase(),
       receipt_email: customerEmail,
+      // "payment_method_types": ["card"],
       metadata: {
         integration: 'vibes_ticket_booking',
         ...metadata
@@ -30,6 +34,7 @@ const createPaymentIntent = async (options) => {
         enabled: true
       }
     });
+    console.log(paymentIntent);
 
     return {
       success: true,
