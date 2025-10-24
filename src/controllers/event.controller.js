@@ -107,15 +107,100 @@ const getAllEvents = asyncHandler(async (req, res) => {
       Event.countDocuments(filter)
     ]);
 
-    // Manually fetch venue details for each event
-    const eventsWithVenues = await Promise.all(events.map(async (event) => {
+    // Manually populate all ID fields for each event
+    const eventsWithPopulatedData = await Promise.all(events.map(async (event) => {
       const eventObj = event.toObject();
-      if (event.venue_details_id) {
-        const venueDetails = await VenueDetails.findOne({
-          venue_details_id: parseInt(event.venue_details_id)
-        }).select('venue_details_id name address capacity type map');
-        eventObj.venue_details = venueDetails;
+      
+      // Populate event_type_id
+      if (event.event_type_id) {
+        try {
+          const EventType = require('../models/event_type.model');
+          const eventType = await EventType.findOne({ event_type_id: event.event_type_id });
+          eventObj.event_type_id = eventType;
+        } catch (error) {
+          console.log('EventType not found for ID:', event.event_type_id);
+        }
       }
+
+      // Populate venue_details_id
+      if (event.venue_details_id) {
+        try {
+          const VenueDetails = require('../models/venue_details.model');
+          const venueDetails = await VenueDetails.findOne({
+            venue_details_id: parseInt(event.venue_details_id)
+          }).select('venue_details_id name address capacity type map');
+          eventObj.venue_details_id = venueDetails;
+        } catch (error) {
+          console.log('VenueDetails not found for ID:', event.venue_details_id);
+        }
+      }
+
+      // Populate country_id
+      if (event.country_id) {
+        try {
+          const Country = require('../models/country.model');
+          const country = await Country.findOne({ country_id: event.country_id });
+          eventObj.country_id = country;
+        } catch (error) {
+          console.log('Country not found for ID:', event.country_id);
+        }
+      }
+
+      // Populate state_id
+      if (event.state_id) {
+        try {
+          const State = require('../models/state.model');
+          const state = await State.findOne({ state_id: event.state_id });
+          eventObj.state_id = state;
+        } catch (error) {
+          console.log('State not found for ID:', event.state_id);
+        }
+      }
+
+      // Populate city_id
+      if (event.city_id) {
+        try {
+          const City = require('../models/city.model');
+          const city = await City.findOne({ city_id: event.city_id });
+          eventObj.city_id = city;
+        } catch (error) {
+          console.log('City not found for ID:', event.city_id);
+        }
+      }
+
+      // Populate event_category_tags_id
+      if (event.event_category_tags_id) {
+        try {
+          const EventCategoryTags = require('../models/event_category_tags.model');
+          const eventCategoryTags = await EventCategoryTags.findOne({ event_category_tags_id: event.event_category_tags_id });
+          eventObj.event_category_tags_id = eventCategoryTags;
+        } catch (error) {
+          console.log('EventCategoryTags not found for ID:', event.event_category_tags_id);
+        }
+      }
+
+      // Populate created_by
+      if (event.created_by) {
+        try {
+          const User = require('../models/user.model');
+          const createdByUser = await User.findOne({ user_id: event.created_by });
+          eventObj.created_by = createdByUser;
+        } catch (error) {
+          console.log('User not found for created_by ID:', event.created_by);
+        }
+      }
+
+      // Populate updated_by
+      if (event.updated_by) {
+        try {
+          const User = require('../models/user.model');
+          const updatedByUser = await User.findOne({ user_id: event.updated_by });
+          eventObj.updated_by = updatedByUser;
+        } catch (error) {
+          console.log('User not found for updated_by ID:', event.updated_by);
+        }
+      }
+
       return eventObj;
     }));
 
@@ -132,7 +217,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
       hasNextPage,
       hasPrevPage
     };
-    sendPaginated(res, eventsWithVenues, pagination, 'Events retrieved successfully');
+    sendPaginated(res, eventsWithPopulatedData, pagination, 'Events retrieved successfully');
   } catch (error) {
     throw error;
   }
