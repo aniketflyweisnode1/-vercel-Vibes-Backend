@@ -241,6 +241,53 @@ const verifyWebhookSignature = (payload, signature, webhookSecret) => {
   }
 };
 
+/**
+ * Verify payment status using client secret
+ * @param {String} clientSecret - Client secret from payment intent
+ * @returns {Object} Payment status result
+ */
+const verifyPaymentStatus = async (clientSecret) => {
+  try {
+    const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret);
+    
+    return {
+      success: true,
+      paymentIntent,
+      error,
+      status: error ? 'error' : (paymentIntent ? paymentIntent.status : 'unknown')
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      status: 'error'
+    };
+  }
+};
+
+/**
+ * Get payment intent by ID
+ * @param {String} paymentIntentId - Payment intent ID
+ * @returns {Object} Payment intent result
+ */
+const getPaymentIntentById = async (paymentIntentId) => {
+  try {
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    
+    return {
+      success: true,
+      paymentIntent,
+      status: paymentIntent.status
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      status: 'error'
+    };
+  }
+};
+
 module.exports = {
   stripe,
   createPaymentIntent,
@@ -249,6 +296,8 @@ module.exports = {
   cancelPaymentIntent,
   createCustomer,
   createRefund,
-  verifyWebhookSignature
+  verifyWebhookSignature,
+  verifyPaymentStatus,
+  getPaymentIntentById
 };
 

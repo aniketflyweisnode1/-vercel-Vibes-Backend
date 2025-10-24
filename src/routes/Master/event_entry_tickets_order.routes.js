@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
-const { createEventEntryTicketsOrderSchema, updateEventEntryTicketsOrderSchema, querySchema, idSchema, processPaymentSchema } = require('../../../validators/event_entry_tickets_order.validator');
-const { createEventEntryTicketsOrder, getAllEventEntryTicketsOrders, getEventEntryTicketsOrderById, getEventEntryTicketsOrdersByAuth, updateEventEntryTicketsOrder, deleteEventEntryTicketsOrder, processPayment, confirmPayment } = require('../../controllers/event_entry_tickets_order.controller');
+const { createEventEntryTicketsOrderSchema, updateEventEntryTicketsOrderSchema, querySchema, idSchema, processPaymentSchema, checkPaymentStatusSchema } = require('../../../validators/event_entry_tickets_order.validator');
+const { createEventEntryTicketsOrder, getAllEventEntryTicketsOrders, getEventEntryTicketsOrderById, getEventEntryTicketsOrdersByAuth, updateEventEntryTicketsOrder, deleteEventEntryTicketsOrder, processPayment, confirmPayment, checkPaymentStatus } = require('../../controllers/event_entry_tickets_order.controller');
 
 // Create event entry tickets order (with auth)
 router.post('/create', auth, validateBody(createEventEntryTicketsOrderSchema), createEventEntryTicketsOrder);
@@ -29,6 +29,9 @@ router.post('/EntryTicketsPayments', auth, validateBody(processPaymentSchema), p
 
 // Confirm payment for order (with auth) - Confirms Stripe payment intent
 router.post('/confirm-payment', auth, confirmPayment);
+
+// Check payment status using client secret (with auth) - Uses Stripe confirmCardPayment
+router.post('/check-payment-status', auth, validateBody(checkPaymentStatusSchema), checkPaymentStatus);
 
 module.exports = router;
 

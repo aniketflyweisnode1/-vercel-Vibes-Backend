@@ -7,8 +7,8 @@ const CouponCode = require('../models/coupon_code.model');
 const User = require('../models/user.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const { createPaymentIntent, createCustomer, confirmPaymentIntent } = require('../../utils/stripe');
-
+const { createPaymentIntent, createCustomer, confirmPaymentIntent, verifyPaymentStatus, getPaymentIntentById } = require('../../utils/stripe');
+const PaymentMethods = require('../models/payment_methods.model');
 /**
  * Create a new event entry tickets order
  * Automatically finds purchase by event_id and authenticated user
@@ -432,6 +432,20 @@ const processPayment = asyncHandler(async (req, res) => {
     // Create the transaction
     const transaction = await Transaction.create(transactionData);
 
+    // Populate payment_method_id
+    let populatedTransaction = transaction.toObject();
+    if (transaction.payment_method_id) {
+      try {
+        const PaymentMethods = require('../models/payment_methods.model');
+        const paymentMethod = await PaymentMethods.findOne({ 
+          payment_methods_id: transaction.payment_method_id 
+        });
+        populatedTransaction.payment_method_id = paymentMethod;
+      } catch (error) {
+        console.log('PaymentMethod not found for ID:', transaction.payment_method_id);
+      }
+    }
+
     // Update order status to mark as paid
     await EventEntryTicketsOrder.findOneAndUpdate(
       { event_entry_tickets_order_id: parseInt(order_id) },
@@ -449,7 +463,7 @@ const processPayment = asyncHandler(async (req, res) => {
         currency: paymentIntent.currency,
         status: paymentIntent.status
       },
-      transaction: transaction,
+      transaction: populatedTransaction,
       order: order,
       customer_id: customerId,
       payment_summary: {
@@ -496,13 +510,38 @@ const confirmPayment = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Transaction not found for this payment intent');
     }
 
+    // Check if transaction is already completed
+    if (transaction.status === 'completed') {
+      return sendError(res, 'Payment has already been confirmed and completed', 400);
+    }
+
     // Confirm payment intent with Stripe
     let confirmedPayment = null;
     try {
       confirmedPayment = await confirmPaymentIntent(payment_intent_id, payment_method_id);
     } catch (confirmError) {
       console.error('Payment confirmation error:', confirmError);
-      return sendError(res, `Payment confirmation failed: ${confirmError.message}`, 400);
+      
+      // Check if the error is because payment is already confirmed
+      if (confirmError.message.includes('already succeeded') || 
+          confirmError.message.includes('already confirmed')) {
+        
+        // Return success with status information instead of error
+        return sendSuccess(res, {
+          payment_status: 'already_confirmed',
+          payment_intent_id: payment_intent_id,
+          transaction: transaction,
+          message: 'Payment has already been confirmed and cannot be confirmed again'
+        }, 'Payment status checked - already confirmed', 200);
+      }
+      
+      // For other errors, return status instead of error
+      return sendSuccess(res, {
+        payment_status: 'confirmation_failed',
+        error_message: confirmError.message,
+        payment_intent_id: payment_intent_id,
+        message: 'Payment confirmation failed'
+      }, 'Payment confirmation failed', 200);
     }
 
     // Update transaction status based on Stripe response
@@ -515,6 +554,20 @@ const confirmPayment = asyncHandler(async (req, res) => {
       },
       { new: true }
     );
+
+    // Populate payment_method_id
+    let populatedTransaction = updatedTransaction.toObject();
+    if (updatedTransaction.payment_method_id) {
+      try {
+       
+        const paymentMethod = await PaymentMethods.findOne({ 
+          payment_methods_id: updatedTransaction.payment_method_id 
+        });
+        populatedTransaction.payment_method_id = paymentMethod;
+      } catch (error) {
+        console.log('PaymentMethod not found for ID:', updatedTransaction.payment_method_id);
+      }
+    }
 
     // Update order status if payment succeeded
     if (confirmedPayment.status === 'succeeded') {
@@ -529,10 +582,121 @@ const confirmPayment = asyncHandler(async (req, res) => {
 
     sendSuccess(res, {
       paymentIntent: confirmedPayment,
-      transaction: updatedTransaction,
+      transaction: populatedTransaction,
       payment_status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed'
     }, `Payment ${confirmedPayment.status === 'succeeded' ? 'confirmed successfully' : 'confirmation failed'}`, 200);
   } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Check payment status using client secret
+ * Uses Stripe's confirmCardPayment to check payment status
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const checkPaymentStatus = asyncHandler(async (req, res) => {
+  try {
+    const { payment_intent_id } = req.body;
+
+    if (!payment_intent_id) {
+      return sendError(res, 'Payment intent ID is required', 400);
+    }
+
+    // Get payment intent using stripe utility
+    const paymentResult = await getPaymentIntentById(payment_intent_id);
+
+    if (!paymentResult.success) {
+      // Handle error - return status instead of error
+      return sendSuccess(res, {
+        payment_status: 'error',
+        error_message: paymentResult.error,
+        payment_intent: null,
+        message: 'Payment verification failed'
+      }, 'Payment status checked with error', 200);
+    }
+
+    const { paymentIntent } = paymentResult;
+
+    if (paymentIntent.status === 'succeeded') {
+      // Handle successful payment
+      
+      // Find the transaction by payment intent ID
+      const transaction = await Transaction.findOne({
+        reference_number: paymentIntent.id,
+        user_id: req.userId
+      });
+
+      if (!transaction) {
+        return sendNotFound(res, 'Transaction not found for this payment intent');
+      }
+
+      // Update transaction status to completed
+      const updatedTransaction = await Transaction.findOneAndUpdate(
+        { reference_number: paymentIntent.id },
+        {
+          status: 'completed',
+          updated_by: req.userId,
+          updated_at: new Date()
+        },
+        { new: true }
+      );
+
+      // Populate payment_method_id
+      let populatedTransaction = updatedTransaction.toObject();
+      if (updatedTransaction.payment_method_id) {
+        try {
+          const paymentMethod = await PaymentMethods.findOne({ 
+            payment_methods_id: updatedTransaction.payment_method_id 
+          });
+          populatedTransaction.payment_method_id = paymentMethod;
+        } catch (error) {
+          console.log('PaymentMethod not found for ID:', updatedTransaction.payment_method_id);
+        }
+      }
+
+      // Update order status if payment succeeded
+      if (transaction.metadata) {
+        const metadata = JSON.parse(transaction.metadata);
+        if (metadata.order_id) {
+          await EventEntryTicketsOrder.findOneAndUpdate(
+            { event_entry_tickets_order_id: metadata.order_id },
+            { 
+              updatedBy: req.userId,
+              updatedAt: new Date()
+            }
+          );
+        }
+      }
+
+      sendSuccess(res, {
+        payment_status: 'succeeded',
+        payment_intent: {
+          id: paymentIntent.id,
+          status: paymentIntent.status,
+          amount: paymentIntent.amount / 100,
+          currency: paymentIntent.currency,
+          created: paymentIntent.created
+        },
+        transaction: populatedTransaction,
+        message: 'Payment verified and confirmed successfully'
+      }, 'Payment verified and confirmed successfully', 200);
+    } else {
+      // Payment not succeeded
+      sendSuccess(res, {
+        payment_status: paymentIntent ? paymentIntent.status : 'unknown',
+        payment_intent: paymentIntent ? {
+          id: paymentIntent.id,
+          status: paymentIntent.status,
+          amount: paymentIntent.amount / 100,
+          currency: paymentIntent.currency
+        } : null,
+        message: 'Payment status checked but not succeeded'
+      }, 'Payment status checked', 200);
+    }
+  } catch (error) {
+    console.error('Payment status check error:', error);
     throw error;
   }
 });
@@ -545,6 +709,7 @@ module.exports = {
   updateEventEntryTicketsOrder,
   deleteEventEntryTicketsOrder,
   processPayment,
-  confirmPayment
+  confirmPayment,
+  checkPaymentStatus
 };
 

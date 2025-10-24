@@ -105,11 +105,20 @@ const processPaymentSchema = Joi.object({
   })
 });
 
+// Validation schema for checking payment status
+const checkPaymentStatusSchema = Joi.object({
+  payment_intent_id: Joi.string().required().messages({
+    'string.base': 'Payment intent ID must be a string',
+    'any.required': 'Payment intent ID is required'
+  })
+});
+
 module.exports = {
   createEventEntryTicketsOrderSchema,
   updateEventEntryTicketsOrderSchema,
   querySchema,
   idSchema,
-  processPaymentSchema
+  processPaymentSchema,
+  checkPaymentStatusSchema
 };
 
