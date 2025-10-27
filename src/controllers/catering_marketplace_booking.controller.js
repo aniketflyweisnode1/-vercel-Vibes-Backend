@@ -63,7 +63,7 @@ const createCateringMarketplaceBooking = asyncHandler(async (req, res) => {
       amount: amount || 0,
       status: 'pending',
       payment_method_id: 1, // Default payment method
-      transactionType: 'CateringMarketplaceBooking',
+      transactionType: 'CateringBooking',
       catering_marketplace_booking_id: booking.catering_marketplace_booking_id,
       created_by: req.userId
     };
