@@ -265,6 +265,96 @@ const updateAfterTransaction = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get vibe business plan subscribed by authenticated user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getByAuthPlanSubscribed = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status, transaction_status } = req.query;
+
+    // Build filter object
+    const filter = {
+      user_id: req.userId
+    };
+
+    if (status !== undefined) {
+      filter.status = status === 'true';
+    }
+
+    if (transaction_status) {
+      filter.transaction_status = transaction_status;
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get total count
+    const total = await VibeBusinessPlanSubscribed.countDocuments(filter);
+
+    // Get plans with pagination
+    const plans = await VibeBusinessPlanSubscribed.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Populate plan details and transaction details
+    const populatedPlans = await Promise.all(
+      plans.map(async (plan) => {
+        // Get plan details
+        const planDetails = await VibeBusinessSubscription.findOne({ plan_id: plan.plan_id });
+        
+        // Get transaction details
+        let transactionDetails = null;
+        if (plan.transaction_id) {
+          transactionDetails = await Transaction.findOne({ transaction_id: plan.transaction_id });
+        }
+
+        return {
+          ...plan.toObject(),
+          plan_details: planDetails ? {
+            plan_id: planDetails.plan_id,
+            plan_name: planDetails.plan_name,
+            description: planDetails.description,
+            price: planDetails.price,
+            duration_days: planDetails.duration_days,
+            features: planDetails.features,
+            status: planDetails.status
+          } : null,
+          transaction_details: transactionDetails ? {
+            transaction_id: transactionDetails.transaction_id,
+            amount: transactionDetails.amount,
+            currency: transactionDetails.currency,
+            status: transactionDetails.status,
+            transaction_date: transactionDetails.transaction_date,
+            reference_number: transactionDetails.reference_number,
+            payment_method_id: transactionDetails.payment_method_id
+          } : null
+        };
+      })
+    );
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / parseInt(limit));
+    const hasNextPage = parseInt(page) < totalPages;
+    const hasPrevPage = parseInt(page) > 1;
+
+    const paginationInfo = {
+      current_page: parseInt(page),
+      total_pages: totalPages,
+      total_items: total,
+      items_per_page: parseInt(limit),
+      has_next_page: hasNextPage,
+      has_prev_page: hasPrevPage
+    };
+
+    sendPaginated(res, populatedPlans, 'User plan subscriptions retrieved successfully', paginationInfo);
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * Delete vibe business plan subscribed
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -291,5 +381,6 @@ module.exports = {
   getVibeBusinessPlanSubscribedById,
   updateVibeBusinessPlanSubscribed,
   updateAfterTransaction,
-  deleteVibeBusinessPlanSubscribed
+  deleteVibeBusinessPlanSubscribed,
+  getByAuthPlanSubscribed
 };
