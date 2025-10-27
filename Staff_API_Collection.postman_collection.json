@@ -1,0 +1,342 @@
+{
+  "info": {
+    "name": "Staff API Collection",
+    "description": "Complete Staff API collection with User and StaffWorkingPrice integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "vibes",
+      "value": "http://localhost:3009",
+      "type": "string"
+    },
+    {
+      "key": "auth",
+      "value": "your_bearer_token_here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Staff Management",
+      "item": [
+        {
+          "name": "Create Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staff_id\": 123,\n  \"staff_category_id\": 5,\n  \"price\": 150.00,\n  \"review_count\": 0,\n  \"status\": true\n}"
+            },
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/create",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/getAll?page=1&limit=10&search=&staff_category_id=&min_price=&max_price=&status=&sort_by=created_at&sort_order=desc",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "getAll"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by staff_id"
+                },
+                {
+                  "key": "staff_category_id",
+                  "value": "",
+                  "description": "Filter by category ID"
+                },
+                {
+                  "key": "min_price",
+                  "value": "",
+                  "description": "Minimum price filter"
+                },
+                {
+                  "key": "max_price",
+                  "value": "",
+                  "description": "Maximum price filter"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status (true/false)"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "created_at",
+                  "description": "Sort field"
+                },
+                {
+                  "key": "sort_order",
+                  "value": "desc",
+                  "description": "Sort order (asc/desc)"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Staff by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/getById/1",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "getById", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Staff by Category ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/getByCategoryId/5",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "getByCategoryId", "5"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Staff by User ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/getByUserId/123",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "getByUserId", "123"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Staff",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staff_working_price_id\": 1,\n  \"staff_id\": 123,\n  \"staff_category_id\": 5,\n  \"price\": 200.00,\n  \"review_count\": 5,\n  \"status\": true\n}"
+            },
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/update",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Staff",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/delete/1",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "delete", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Staff Statistics",
+      "item": [
+        {
+          "name": "Get Staff Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/statistics",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "statistics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Staff Statistics for User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/getStaffStatisticsForUser/123",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "getStaffStatisticsForUser", "123"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Staff Management",
+      "item": [
+        {
+          "name": "Create Staff for User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 123,\n  \"staff_category_id\": 5,\n  \"price\": 150.00,\n  \"review_count\": 0\n}"
+            },
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/createForUser",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "createForUser"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Staff Info for User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/getStaffInfoForUser/123",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "getStaffInfoForUser", "123"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Check if User is Staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/checkUserIsStaff/123",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "checkUserIsStaff", "123"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documentation",
+      "item": [
+        {
+          "name": "Get Field Mappings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{vibes}}/api/master/staff/fieldMappings",
+              "host": ["{{vibes}}"],
+              "path": ["api", "master", "staff", "fieldMappings"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-generate timestamp for requests",
+          "pm.globals.set('timestamp', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Basic response validation",
+          "pm.test('Status code is successful', function () {",
+          "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);",
+          "});",
+          "",
+          "pm.test('Response has success property', function () {",
+          "    const jsonData = pm.response.json();",
+          "    pm.expect(jsonData).to.have.property('success');",
+          "});",
+          "",
+          "pm.test('Response time is less than 5000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});"
+        ]
+      }
+    }
+  ]
+}
