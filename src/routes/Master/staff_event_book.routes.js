@@ -42,7 +42,7 @@ router.get('/getAll', getAllStaffEventBooks);
 router.get('/getByAuth', auth, getStaffEventBooksByAuth);
 
 // Get staff event bookings by vendor ID with auth
-router.get('/getStaffByVendorId', auth, validateParams(getStaffEventBooksByVendorIdSchema), getStaffEventBooksByVendorId);
+router.get('/getStaffByVendorId', auth,  getStaffEventBooksByVendorId);
 
 // Get staff event booking by ID with auth
 router.get('/getById/:id', auth, validateParams(getStaffEventBookByIdSchema), getStaffEventBookById);
