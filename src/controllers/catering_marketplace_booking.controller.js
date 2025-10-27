@@ -24,14 +24,20 @@ const createCateringMarketplaceBooking = asyncHandler(async (req, res) => {
       event_to_time,
       event_from_time,
       guest_count,
-      amount
+      amount,
+      venue_details_id,
+      max_capacity
     } = req.body;
 
     // First create the event
     const eventData = {
       name_title: event_name,
-      address: event_address,
+      street_address: event_address,
       event_type_id: event_type_id,
+      venue_details_id: venue_details_id || 1, // Default venue if not provided
+      date: event_from_date, // Use event_from_date as the main event date
+      time: event_from_time, // Use event_from_time as the main event time
+      max_capacity: max_capacity || guest_count, // Use max_capacity or fallback to guest_count
       created_by: req.userId
     };
 

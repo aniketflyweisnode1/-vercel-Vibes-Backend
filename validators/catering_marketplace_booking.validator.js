@@ -90,6 +90,24 @@ const createCateringMarketplaceBookingSchema = Joi.object({
     .messages({
       'number.base': 'Amount must be a number',
       'number.min': 'Amount cannot be negative'
+    }),
+  venue_details_id: Joi.number()
+    .integer()
+    .positive()
+    .optional()
+    .messages({
+      'number.base': 'Venue Details ID must be a number',
+      'number.integer': 'Venue Details ID must be an integer',
+      'number.positive': 'Venue Details ID must be a positive number'
+    }),
+  max_capacity: Joi.number()
+    .integer()
+    .min(1)
+    .optional()
+    .messages({
+      'number.base': 'Max Capacity must be a number',
+      'number.integer': 'Max Capacity must be an integer',
+      'number.min': 'Max Capacity must be at least 1'
     })
 });
 
