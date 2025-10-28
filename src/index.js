@@ -95,6 +95,7 @@ const leadContactedRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboa
 const onboardingStartedRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/onboarding_started.routes.js');
 const featuredRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/featured.routes.js');
 const vendorOverviewRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/vendor_overview.routes.js');
+const vendorOnboardingPortalRoutes = require('./routes/Vendor/vendor_onboarding_portal.routes.js');
 
 // Import middleware
 const { sendSuccess } = require('../utils/response.js');
@@ -221,5 +222,6 @@ router.use('/vendor/lead-contacted', leadContactedRoutes);
 router.use('/vendor/onboarding-started', onboardingStartedRoutes);
 router.use('/vendor/featured', featuredRoutes);
 router.use('/vendor/overview', vendorOverviewRoutes);
+router.use('/vendor/onboarding-portal', vendorOnboardingPortalRoutes);
 
 module.exports = router;
