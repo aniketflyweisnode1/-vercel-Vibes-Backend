@@ -96,6 +96,10 @@ const onboardingStartedRoutes = require('./routes/Vendor/crm_vendor_outreach_Das
 const featuredRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/featured.routes.js');
 const vendorOverviewRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/vendor_overview.routes.js');
 const vendorOnboardingPortalRoutes = require('./routes/Vendor/vendor_onboarding_portal.routes.js');
+const corporateDashboardClientRoutes = require('./routes/Vendor/corporate_Dashboard_Client.routes.js');
+const corporateDashboardPricingPlansRoutes = require('./routes/Vendor/corporate_Dashboard_PricingPlans.routes.js');
+const corporateDashboardRoutes = require('./routes/Vendor/corporate_Dashboard.routes.js');
+const premiumDashboardRoutes = require('./routes/Vendor/premium_Dashboard.routes.js');
 
 // Import middleware
 const { sendSuccess } = require('../utils/response.js');
@@ -223,5 +227,9 @@ router.use('/vendor/onboarding-started', onboardingStartedRoutes);
 router.use('/vendor/featured', featuredRoutes);
 router.use('/vendor/overview', vendorOverviewRoutes);
 router.use('/vendor/onboarding-portal', vendorOnboardingPortalRoutes);
+router.use('/vendor/corporate-dashboard-client', corporateDashboardClientRoutes);
+router.use('/vendor/corporate-dashboard-pricing-plans', corporateDashboardPricingPlansRoutes);
+router.use('/vendor/corporate-dashboard', corporateDashboardRoutes);
+router.use('/vendor/premium-dashboard', premiumDashboardRoutes);
 
 module.exports = router;
