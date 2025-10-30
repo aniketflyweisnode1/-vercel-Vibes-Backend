@@ -52,11 +52,12 @@ const createCateringMarketplaceBooking = asyncHandler(async (req, res) => {
       event_to_time: event_to_time,
       event_from_time: event_from_time,
       guest_count: guest_count,
+      total_amount: amount || 0,
       created_by: req.userId
     };
 
     const booking = await CateringMarketplaceBooking.create(bookingData);
-
+console.log(booking);
     // Create transaction
     const transactionData = {
       user_id: req.userId,
@@ -210,16 +211,42 @@ const CateringMarketplaceBookingPayment = asyncHandler(async (req, res) => {
     const cateringBooking = await CateringMarketplaceBooking.findOne({ 
       catering_marketplace_booking_id: parseInt(catering_marketplace_booking_id) 
     });
-
+console.log(cateringBooking);
     if (!cateringBooking) {
       return sendNotFound(res, 'Catering marketplace booking not found');
     }
+ 
+    // Resolve amount: prefer stored total_amount, else request body, else legacy amount field
+    let amount = (cateringBooking.total_amount !== undefined && cateringBooking.total_amount !== null)
+      ? cateringBooking.total_amount
+      : (req.body.amount !== undefined ? req.body.amount : cateringBooking.amount);
 
-    // Get the amount from the booking (assuming it's stored in the booking)
-    const amount = cateringBooking.total_amount || cateringBooking.amount;
+    if (amount === undefined || amount === null) {
+      return sendError(res, 'Amount not found in booking record. Provide amount in request body.', 400);
+    }
 
-    if (!amount) {
-      return sendError(res, 'Amount not found in booking record', 400);
+    // Normalize and validate Stripe USD constraints
+    amount = Number(amount);
+    if (Number.isNaN(amount)) {
+      return sendError(res, 'Invalid amount. It must be a numeric value.', 400);
+    }
+    if (amount < 0.5) {
+      return sendError(res, 'Amount must be at least $0.50', 400);
+    }
+    if (amount > 999999.99) {
+      return sendError(res, 'Amount exceeds maximum allowed of $999,999.99', 400);
+    }
+
+    // Persist resolved amount if booking lacks total_amount
+    if (cateringBooking.total_amount === undefined || cateringBooking.total_amount === null) {
+      try {
+        await CateringMarketplaceBooking.findOneAndUpdate(
+          { catering_marketplace_booking_id: cateringBooking.catering_marketplace_booking_id },
+          { total_amount: amount, updated_by: req.userId, updated_at: new Date() }
+        );
+      } catch (e) {
+        // non-fatal
+      }
     }
 
     // Get user information for Stripe customer creation
@@ -252,7 +279,7 @@ const CateringMarketplaceBookingPayment = asyncHandler(async (req, res) => {
     let paymentIntent = null;
     try {
       const paymentOptions = {
-        amount: Math.round(amount * 100), // Convert to cents
+        amount: Math.round(amount), // Convert to cents
         billingDetails: billingDetails,
         currency: 'usd',
         customerEmail: user.email,
