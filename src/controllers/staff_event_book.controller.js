@@ -19,15 +19,15 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
     };
 
     const staffEventBook = await StaffEventBook.create(staffEventBookData);
-
+console.log(staffEventBook);
     // Try to fetch staff price based on staff_id and staff_category_id
     let staffPrice = null;
-    if (staffEventBook.staff_id && staffEventBook.staff_category_id) {
+    if (staffEventBook.staff_id) {
       const priceDoc = await StaffWorkingPrice.findOne({
         staff_id: staffEventBook.staff_id,
-        staff_category_id: staffEventBook.staff_category_id,
         status: true
       });
+      console.log(priceDoc);
       staffPrice = priceDoc ? priceDoc.price : null;
     }
 
