@@ -201,14 +201,13 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
     if (!staffEventBook) {
       return sendNotFound(res, 'Staff event booking not found');
     }
-
+// console.log(staffEventBook);
     // Get the staff working price for the staff and category
     const staffWorkingPrice = await StaffWorkingPrice.findOne({
       staff_id: staffEventBook.staff_id,
-      staff_category_id: staffEventBook.staff_category_id,
       status: true
     });
-
+console.log(staffWorkingPrice);
     if (!staffWorkingPrice) {
       return sendNotFound(res, 'Staff working price not found for this staff and category');
     }
