@@ -207,12 +207,13 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
       staff_id: staffEventBook.staff_id,
       status: true
     });
-console.log(staffWorkingPrice);
+// console.log(staffWorkingPrice);
     if (!staffWorkingPrice) {
       return sendNotFound(res, 'Staff working price not found for this staff and category');
     }
 
     const amount = staffWorkingPrice.price;
+    console.log(amount);
 
     // Get user information for Stripe customer creation
     const user = await User.findOne({ user_id: req.userId });

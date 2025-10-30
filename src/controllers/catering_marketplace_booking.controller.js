@@ -211,7 +211,7 @@ const CateringMarketplaceBookingPayment = asyncHandler(async (req, res) => {
     const cateringBooking = await CateringMarketplaceBooking.findOne({ 
       catering_marketplace_booking_id: parseInt(catering_marketplace_booking_id) 
     });
-console.log(cateringBooking);
+// console.log(cateringBooking);
     if (!cateringBooking) {
       return sendNotFound(res, 'Catering marketplace booking not found');
     }
@@ -230,8 +230,9 @@ console.log(cateringBooking);
     if (Number.isNaN(amount)) {
       return sendError(res, 'Invalid amount. It must be a numeric value.', 400);
     }
-    if (amount < 0.5) {
-      return sendError(res, 'Amount must be at least $0.50', 400);
+    
+    if (amount <= 0) {
+      return sendError(res, 'Amount not less than  and equal to 0', 400);
     }
     if (amount > 999999.99) {
       return sendError(res, 'Amount exceeds maximum allowed of $999,999.99', 400);
@@ -274,7 +275,7 @@ console.log(cateringBooking);
       console.error('Customer creation error:', customerError);
       // Continue without customer if creation fails
     }
-
+console.log(amount);
     // Create Stripe payment intent
     let paymentIntent = null;
     try {
