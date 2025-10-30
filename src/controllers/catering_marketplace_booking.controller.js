@@ -345,6 +345,13 @@ console.log(amount);
       amount: amount,
       currency: 'USD',
       status: paymentIntent.status,
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
+      },
       customer_id: customerId,
       catering_marketplace_booking_id: catering_marketplace_booking_id,
       catering_booking: {

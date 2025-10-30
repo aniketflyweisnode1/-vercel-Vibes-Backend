@@ -310,6 +310,13 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
       amount: amount,
       currency: 'USD',
       status: paymentIntent.status,
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
+      },
       customer_id: customerId,
       staff_event_book_id: staff_event_book_id,
       staff_event_book: {
