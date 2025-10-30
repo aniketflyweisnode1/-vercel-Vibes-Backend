@@ -319,13 +319,13 @@ const login = asyncHandler(async (req, res) => {
     const otp = await OTP.create(otpData);
 
     // Send OTP via email
-    const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name);
-    
-    if (!emailSent) {
-      // If email fails, deactivate the OTP
-      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-      return sendError(res, 'Failed to send OTP email. Please try again.', 500);
-    }
+    // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name);
+    await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+    // if (!emailSent) {
+    //   // If email fails, deactivate the OTP
+    //   await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+    //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
+    // }
 
     sendSuccess(res, { 
       message: 'OTP sent successfully to your email address. Please verify to complete login.',
@@ -516,13 +516,13 @@ const sendOTP = asyncHandler(async (req, res) => {
     const otp = await OTP.create(otpData);
 
     // Send OTP via email
-    const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name);
-    
-    if (!emailSent) {
-      // If email fails, deactivate the OTP
-      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-      return sendError(res, 'Failed to send OTP email. Please try again.', 500);
-    }
+    // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name);
+    await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+    // if (!emailSent) {
+    //   // If email fails, deactivate the OTP
+    //   await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+    //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
+    // }
 
     sendSuccess(res, { 
       message: 'OTP sent successfully to your email address',
@@ -785,13 +785,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
     const otp = await OTP.create(otpData);
 
     // Send OTP via email
-    const emailSent = await emailService.sendForgotPasswordOTPEmail(email, otpCode, user.name);
-    
-    if (!emailSent) {
-      // If email fails, deactivate the OTP
-      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-      return sendError(res, 'Failed to send OTP email. Please try again.', 500);
-    }
+    // const emailSent = await emailService.sendForgotPasswordOTPEmail(email, otpCode, user.name);
+    await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+    // if (!emailSent) {
+    //   // If email fails, deactivate the OTP
+    //   await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+    //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
+    // }
 
     sendSuccess(res, { 
       message: 'OTP sent successfully to your email address for password reset.',
