@@ -312,6 +312,7 @@ const login = asyncHandler(async (req, res) => {
       otp: otpCode,
       email: email.toLowerCase(),
       otp_type: 1, // Login OTP type
+      status: true,
       expires_at: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
       created_by: null // No user created this OTP
     };
@@ -320,7 +321,7 @@ const login = asyncHandler(async (req, res) => {
 
     // Send OTP via email
     // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name);
-    await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+   // await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
     // if (!emailSent) {
     //   // If email fails, deactivate the OTP
     //   await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
@@ -509,6 +510,7 @@ const sendOTP = asyncHandler(async (req, res) => {
       otp: otpCode,
       email: email.toLowerCase(),
       otp_type: 1, // Login OTP type
+      status: true,
       expires_at: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
       created_by: null // No user created this OTP
     };
@@ -517,7 +519,7 @@ const sendOTP = asyncHandler(async (req, res) => {
 
     // Send OTP via email
     // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name);
-    await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+  //  await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
     // if (!emailSent) {
     //   // If email fails, deactivate the OTP
     //   await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
@@ -558,7 +560,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
 
     // Check if OTP is expired
     if (otpRecord.isExpired()) {
-      await OTP.findByIdAndUpdate(otpRecord._id, { 
+      await OTP.findOneAndUpdate({ otp_id: parseInt(otpRecord.otp_id) }, { 
         status: false,
         updated_at: new Date()
       });
@@ -582,7 +584,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
     }
 
     // Mark OTP as used
-    await OTP.findByIdAndUpdate(otpRecord._id, {
+    await OTP.findOneAndUpdate({ otp_id: parseInt(otpRecord.otp_id) }, {
       is_used: true,
       updated_at: new Date()
     });
