@@ -2,10 +2,7 @@ const Joi = require('joi');
 
 // Create schema
 const createVendorOnboardingPortalSchema = Joi.object({
-  Vendor_id: Joi.number().required().messages({
-    'any.required': 'Vendor ID is required',
-    'number.base': 'Vendor ID must be a number'
-  }),
+ 
   Basic_information_business_name: Joi.string().optional().allow('', null),
   Basic_information_LegalName: Joi.string().optional().allow('', null),
   Basic_information_Email: Joi.string().email().optional().allow('', null).messages({
