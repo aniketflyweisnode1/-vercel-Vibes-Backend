@@ -354,7 +354,7 @@ const login = asyncHandler(async (req, res) => {
     // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name || 'User');
     // if (!emailSent) {
     // If email fails, deactivate the OTP
-    await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+    // await OTP.findOneAndUpdate({ otp_id: otp.otp_id });
     //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
     // }
 
