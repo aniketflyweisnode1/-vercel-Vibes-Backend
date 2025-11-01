@@ -1,6 +1,9 @@
 const VibeBusinessPlanSubscribed = require('../models/vibe_business_plan_subscribed.model');
 const VibeBusinessSubscription = require('../models/vibe_business_subscription.model');
 const Transaction = require('../models/transaction.model');
+const User = require('../models/user.model');
+const { createNotificationHendlar } = require('../../utils/notificationHandler');
+const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -11,70 +14,161 @@ const { asyncHandler } = require('../../middleware/errorHandler');
  */
 const createVibeBusinessPlanSubscribed = asyncHandler(async (req, res) => {
   try {
+    const { plan_id, payment_method_id, billingDetails } = req.body;
+
     // Get plan details first
-    const plan = await VibeBusinessSubscription.findOne({ plan_id: parseInt(req.body.plan_id) });
+    const plan = await VibeBusinessSubscription.findOne({ plan_id: parseInt(plan_id) });
     if (!plan) {
       return sendError(res, 'Subscription plan not found', 404);
     }
 
-    let transactionId = req.body.transaction_id;
+    // Validate required fields for payment
+    if (!payment_method_id) {
+      return sendError(res, 'payment_method_id is required for subscription payment', 400);
+    }
 
-    // If no transaction_id is provided, create a new transaction automatically
-    if (!transactionId) {
-      // Create a new transaction for Package_Buy
-      const transactionData = {
-        user_id: req.userId,
-        amount: plan.price,
-        status: 'completed', // Auto-complete the transaction
-        payment_method_id: req.body.payment_method_id || null, // Optional payment method
-        transactionType: 'Package_Buy',
-        transaction_date: new Date(),
-        reference_number: `PLAN_${plan.plan_id}_${Date.now()}`,
-        created_by: req.userId
+    // Get user information for Stripe customer creation
+    const user = await User.findOne({ user_id: req.userId });
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    // Get amount from plan
+    const amount = plan.price;
+    if (!amount || amount <= 0) {
+      return sendError(res, 'Invalid plan price', 400);
+    }
+
+    // Create or get Stripe customer
+    let customerId = null;
+    try {
+      const customerData = {
+        email: user.email,
+        name: user.name,
+        phone: user.mobile,
+        metadata: {
+          user_id: req.userId,
+          plan_id: plan_id,
+          payment_type: 'subscription'
+        }
       };
 
-      const newTransaction = await Transaction.create(transactionData);
-      transactionId = newTransaction.transaction_id;
-    } else {
-      // If transaction_id is provided, validate it
-      const transaction = await Transaction.findOne({ transaction_id: parseInt(transactionId) });
-      if (!transaction) {
-        return sendError(res, 'Transaction not found', 404);
-      }
-      if (transaction.transactionType !== 'Package_Buy') {
-        return sendError(res, 'Transaction must be of type Package_Buy', 400);
-      }
-      if (transaction.status !== 'completed') {
-        return sendError(res, 'Transaction must be completed', 400);
-      }
+      const customer = await createCustomer(customerData);
+      customerId = customer.customerId;
+    } catch (customerError) {
+      console.error('Customer creation error:', customerError);
+      // Continue without customer if creation fails
     }
+
+    // Create Stripe payment intent
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        amount: Math.round(amount), // Convert to cents
+        billingDetails: billingDetails,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: req.userId,
+          customer_id: customerId,
+          plan_id: plan_id,
+          payment_type: 'subscription',
+          description: `Subscription payment for ${plan.plan_name || 'Plan'}`
+        }
+      };
+
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      console.error('Payment intent creation error:', paymentError);
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
+
+    // Create transaction data
+    const transactionData = {
+      user_id: req.userId,
+      amount: amount,
+      currency: 'USD',
+      status: paymentIntent.status,
+      payment_method_id: payment_method_id,
+      transactionType: 'Package_Buy',
+      transaction_date: new Date(),
+      reference_number: paymentIntent.paymentIntentId,
+      coupon_code_id: null,
+      CGST: 0,
+      SGST: 0,
+      TotalGST: 0,
+      metadata: JSON.stringify({
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        customer_id: customerId,
+        plan_id: plan_id,
+        description: `Subscription payment for ${plan.plan_name || 'Plan'}`
+      }),
+      created_by: req.userId
+    };
+
+    // Create transaction
+    const transaction = await Transaction.create(transactionData);
 
     // Create vibe business plan subscribed data
     const planSubscribedData = {
-      ...req.body,
-      transaction_id: transactionId,
-      transaction_status: 'completed', // Auto-set as completed
+      user_id: req.userId || req.body.user_id,
+      plan_id: parseInt(plan_id),
+      transaction_id: transaction.transaction_id,
+      transaction_status: paymentIntent.status === 'succeeded' ? 'completed' : 'pending',
       createdBy: req.userId
     };
 
-    // Set start_plan_date and calculate end_plan_date
-    planSubscribedData.start_plan_date = new Date();
-    
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    
-    if (plan.planDuration === 'Monthly') {
-      endDate.setMonth(endDate.getMonth() + 1);
-    } else if (plan.planDuration === 'Annually') {
-      endDate.setFullYear(endDate.getFullYear() + 1);
+    // Set start_plan_date and calculate end_plan_date (only if payment succeeded)
+    if (paymentIntent.status === 'succeeded') {
+      planSubscribedData.start_plan_date = new Date();
+      
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      
+      if (plan.planDuration === 'Monthly') {
+        endDate.setMonth(endDate.getMonth() + 1);
+      } else if (plan.planDuration === 'Annually') {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      }
+      
+      planSubscribedData.end_plan_date = endDate;
     }
-    
-    planSubscribedData.end_plan_date = endDate;
 
     // Create vibe business plan subscribed
     const planSubscribed = await VibeBusinessPlanSubscribed.create(planSubscribedData);
 
-    sendSuccess(res, planSubscribed, 'Vibe business plan subscribed created successfully with auto-generated transaction', 201);
+    // Create notification for subscription creation
+    try {
+      if (req.userId) {
+        await createNotificationHendlar(
+          req.userId,
+          4, // Notification type ID: 4 = Subscription related
+          `Your subscription to "${plan.plan_name || 'Plan'}" has been created successfully. Payment status: ${paymentIntent.status}`,
+          req.userId
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create subscription notification:', notificationError);
+    }
+
+    sendSuccess(res, {
+      planSubscribed: planSubscribed,
+      transaction: {
+        transaction_id: transaction.transaction_id,
+        amount: amount,
+        status: paymentIntent.status
+      },
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
+      },
+      customer_id: customerId,
+      message: 'Vibe business plan subscription created successfully with payment intent'
+    }, 'Vibe business plan subscribed created successfully with payment intent', 201);
   } catch (error) {
     throw error;
   }
@@ -192,6 +286,20 @@ const updateVibeBusinessPlanSubscribed = asyncHandler(async (req, res) => {
 
     if (!planSubscribed) {
       return sendNotFound(res, 'Vibe business plan subscribed not found');
+    }
+
+    // Create notification for subscription update
+    try {
+      if (req.userId) {
+        await createNotificationHendlar(
+          planSubscribed.user_id || req.userId,
+          4, // Notification type ID: 4 = Subscription related
+          `Your subscription has been updated successfully.`,
+          req.userId
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create subscription update notification:', notificationError);
     }
 
     sendSuccess(res, planSubscribed, 'Vibe business plan subscribed updated successfully');
@@ -369,7 +477,207 @@ const deleteVibeBusinessPlanSubscribed = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Vibe business plan subscribed not found');
     }
 
+    // Create notification for subscription deletion
+    try {
+      if (req.userId && planSubscribed.user_id) {
+        await createNotificationHendlar(
+          planSubscribed.user_id,
+          4, // Notification type ID: 4 = Subscription related
+          `Your subscription has been deleted successfully.`,
+          req.userId
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create subscription deletion notification:', notificationError);
+    }
+
     sendSuccess(res, null, 'Vibe business plan subscribed deleted successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Process payment for vibe business plan subscription
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const paymentSubscription = asyncHandler(async (req, res) => {
+  try {
+    const {
+      vibe_business_plan_subscribed_id,
+      payment_method_id,
+      billingDetails,
+      description = 'Subscription payment'
+    } = req.body;
+
+    // Validate required fields
+    if (!vibe_business_plan_subscribed_id || !payment_method_id) {
+      return sendError(res, 'vibe_business_plan_subscribed_id and payment_method_id are required', 400);
+    }
+
+    // Get the subscription to find details
+    const planSubscribed = await VibeBusinessPlanSubscribed.findOne({
+      vibe_business_plan_subscribed_id: parseInt(vibe_business_plan_subscribed_id)
+    });
+
+    if (!planSubscribed) {
+      return sendNotFound(res, 'Vibe business plan subscription not found');
+    }
+
+    // Get the subscription plan details
+    const plan = await VibeBusinessSubscription.findOne({ plan_id: parseInt(planSubscribed.plan_id) });
+    if (!plan) {
+      return sendError(res, 'Subscription plan not found', 404);
+    }
+
+    // Get amount from plan
+    const amount = plan.price;
+    if (!amount || amount <= 0) {
+      return sendError(res, 'Invalid plan price', 400);
+    }
+
+    // Get user information for Stripe customer creation
+    const user = await User.findOne({ user_id: req.userId });
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    // Create or get Stripe customer
+    let customerId = null;
+    try {
+      const customerData = {
+        email: user.email,
+        name: user.name,
+        phone: user.mobile,
+        metadata: {
+          user_id: req.userId,
+          vibe_business_plan_subscribed_id: vibe_business_plan_subscribed_id,
+          payment_type: 'subscription'
+        }
+      };
+
+      const customer = await createCustomer(customerData);
+      customerId = customer.customerId;
+    } catch (customerError) {
+      console.error('Customer creation error:', customerError);
+      // Continue without customer if creation fails
+    }
+
+    // Create Stripe payment intent
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        amount: Math.round(amount), // Convert to cents
+        billingDetails: billingDetails,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: req.userId,
+          customer_id: customerId,
+          vibe_business_plan_subscribed_id: vibe_business_plan_subscribed_id,
+          payment_type: 'subscription',
+          description: description
+        }
+      };
+
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      console.error('Payment intent creation error:', paymentError);
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
+
+    // Create transaction data
+    const transactionData = {
+      user_id: req.userId,
+      amount: amount,
+      currency: 'USD',
+      status: paymentIntent.status,
+      payment_method_id: payment_method_id,
+      transactionType: 'Package_Buy',
+      transaction_date: new Date(),
+      reference_number: paymentIntent.paymentIntentId,
+      coupon_code_id: null,
+      CGST: 0,
+      SGST: 0,
+      TotalGST: 0,
+      metadata: JSON.stringify({
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        customer_id: customerId,
+        vibe_business_plan_subscribed_id: vibe_business_plan_subscribed_id,
+        description: description
+      }),
+      created_by: req.userId
+    };
+
+    // Create transaction
+    const transaction = await Transaction.create(transactionData);
+
+    // Update the subscription with transaction details
+    const updatedPlanSubscribed = await VibeBusinessPlanSubscribed.findOneAndUpdate(
+      { vibe_business_plan_subscribed_id: parseInt(vibe_business_plan_subscribed_id) },
+      {
+        transaction_id: transaction.transaction_id,
+        transaction_status: paymentIntent.status === 'succeeded' ? 'completed' : 'pending',
+        updatedBy: req.userId,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    // If payment succeeded, update subscription dates
+    if (paymentIntent.status === 'succeeded') {
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+
+      if (plan.planDuration === 'Monthly') {
+        endDate.setMonth(endDate.getMonth() + 1);
+      } else if (plan.planDuration === 'Annually') {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      }
+
+      await VibeBusinessPlanSubscribed.findOneAndUpdate(
+        { vibe_business_plan_subscribed_id: parseInt(vibe_business_plan_subscribed_id) },
+        {
+          start_plan_date: startDate,
+          end_plan_date: endDate,
+          updatedBy: req.userId,
+          updatedAt: new Date()
+        }
+      );
+    }
+
+    // Create notification for subscription payment
+    try {
+      if (req.userId) {
+        await createNotificationHendlar(
+          req.userId,
+          4, // Notification type ID: 4 = Subscription related
+          `Your subscription payment for "${plan.plan_name || 'Plan'}" has been processed. Amount: $${amount.toFixed(2)}, Status: ${paymentIntent.status}`,
+          req.userId
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create subscription payment notification:', notificationError);
+    }
+
+    sendSuccess(res, {
+      planSubscribed: updatedPlanSubscribed,
+      transaction: {
+        transaction_id: transaction.transaction_id,
+        amount: amount,
+        status: paymentIntent.status
+      },
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
+      },
+      customer_id: customerId
+    }, 'Subscription payment processed successfully');
   } catch (error) {
     throw error;
   }
@@ -382,5 +690,6 @@ module.exports = {
   updateVibeBusinessPlanSubscribed,
   updateAfterTransaction,
   deleteVibeBusinessPlanSubscribed,
-  getByAuthPlanSubscribed
+  getByAuthPlanSubscribed,
+  paymentSubscription
 };

@@ -1,4 +1,5 @@
 const MarketPlaceBooking = require('../models/marketplace_booking.model');
+const { createNotificationHendlar } = require('../../utils/notificationHandler');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -15,6 +16,21 @@ const createMarketPlaceBooking = asyncHandler(async (req, res) => {
     };
 
     const booking = await MarketPlaceBooking.create(bookingData);
+
+    // Create notification for booking creation
+    try {
+      if (booking.created_by) {
+        await createNotificationHendlar(
+          booking.created_by,
+          2, // Notification type ID: 2 = Booking related
+          `Your marketplace booking for "${booking.event_name || 'Event'}" has been created successfully.`,
+          booking.created_by
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create marketplace booking notification:', notificationError);
+    }
+
     sendSuccess(res, booking, 'MarketPlace Booking created successfully', 201);
   } catch (error) {
     throw error;
@@ -136,6 +152,21 @@ const updateMarketPlaceBooking = asyncHandler(async (req, res) => {
     if (!booking) {
       return sendNotFound(res, 'MarketPlace Booking not found');
     }
+
+    // Create notification for booking update
+    try {
+      if (booking.created_by) {
+        await createNotificationHendlar(
+          booking.created_by,
+          2, // Notification type ID: 2 = Booking related
+          `Your marketplace booking "${booking.event_name || 'Event'}" has been updated successfully.`,
+          req.userId || booking.created_by
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create marketplace booking update notification:', notificationError);
+    }
+
     sendSuccess(res, booking, 'MarketPlace Booking updated successfully');
   } catch (error) {
     throw error;
@@ -164,6 +195,21 @@ const deleteMarketPlaceBooking = asyncHandler(async (req, res) => {
     if (!booking) {
       return sendNotFound(res, 'MarketPlace Booking not found');
     }
+
+    // Create notification for booking deletion
+    try {
+      if (booking.created_by) {
+        await createNotificationHendlar(
+          booking.created_by,
+          2, // Notification type ID: 2 = Booking related
+          `Your marketplace booking "${booking.event_name || 'Event'}" has been cancelled.`,
+          req.userId || booking.created_by
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create marketplace booking deletion notification:', notificationError);
+    }
+
     sendSuccess(res, booking, 'MarketPlace Booking deleted successfully');
   } catch (error) {
     throw error;

@@ -85,6 +85,7 @@ const staffRoutes = require('./routes/Master/staff.routes.js');
 const cateringMarketplaceCategoryRoutes = require('./routes/Master/catering_marketplace_category.routes.js');
 const cateringMarketplaceRoutes = require('./routes/Master/catering_marketplace.routes.js');
 const cateringMarketplaceBookingRoutes = require('./routes/Master/catering_marketplace_booking.routes.js');
+const contactVendorRoutes = require('./routes/Master/contact_vendor.routes.js');
 const emailTemplateRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/email_template.routes.js');
 
 // Import Vendor route modules
@@ -216,6 +217,7 @@ router.use('/master/staff', staffRoutes);
 router.use('/master/catering-marketplace-category', cateringMarketplaceCategoryRoutes);
 router.use('/master/catering-marketplace', cateringMarketplaceRoutes);
 router.use('/master/catering-marketplace-booking', cateringMarketplaceBookingRoutes);
+router.use('/master/contact-vendor', contactVendorRoutes);
 router.use('/vendor/email-template', emailTemplateRoutes);
 
 // Mount Vendor route modules

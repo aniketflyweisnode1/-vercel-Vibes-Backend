@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
-const { createVibeBusinessPlanSubscribedSchema, updateVibeBusinessPlanSubscribedSchema, updateAfterTransactionSchema, querySchema, idSchema } = require('../../../validators/vibe_business_plan_subscribed.validator');
-const { createVibeBusinessPlanSubscribed, getAllVibeBusinessPlansSubscribed, getVibeBusinessPlanSubscribedById, updateVibeBusinessPlanSubscribed, updateAfterTransaction, deleteVibeBusinessPlanSubscribed, getByAuthPlanSubscribed } = require('../../controllers/vibe_business_plan_subscribed.controller');
+const { createVibeBusinessPlanSubscribedSchema, updateVibeBusinessPlanSubscribedSchema, updateAfterTransactionSchema, paymentSubscriptionSchema, querySchema, idSchema } = require('../../../validators/vibe_business_plan_subscribed.validator');
+const { createVibeBusinessPlanSubscribed, getAllVibeBusinessPlansSubscribed, getVibeBusinessPlanSubscribedById, updateVibeBusinessPlanSubscribed, updateAfterTransaction, deleteVibeBusinessPlanSubscribed, getByAuthPlanSubscribed, paymentSubscription } = require('../../controllers/vibe_business_plan_subscribed.controller');
 
 // Create vibe business plan subscribed (with auth)
 router.post('/create', auth, validateBody(createVibeBusinessPlanSubscribedSchema), createVibeBusinessPlanSubscribed);
@@ -22,6 +22,9 @@ router.put('/update', auth, validateBody(updateVibeBusinessPlanSubscribedSchema)
 
 // Update vibe business plan subscribed after transaction completion (with auth)
 router.put('/update-after-transaction', auth, validateBody(updateAfterTransactionSchema), updateAfterTransaction);
+
+// Payment for subscription (with auth)
+router.post('/payment', auth, validateBody(paymentSubscriptionSchema), paymentSubscription);
 
 // Delete vibe business plan subscribed (with auth)
 router.delete('/delete/:id', auth, deleteVibeBusinessPlanSubscribed);

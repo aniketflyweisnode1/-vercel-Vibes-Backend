@@ -2,6 +2,7 @@ const CateringMarketplaceBooking = require('../models/catering_marketplace_booki
 const Event = require('../models/event.model');
 const Transaction = require('../models/transaction.model');
 const User = require('../models/user.model');
+const { createNotificationHendlar } = require('../../utils/notificationHandler');
 const { sendSuccess, sendError, sendNotFound } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
@@ -24,10 +25,13 @@ const createCateringMarketplaceBooking = asyncHandler(async (req, res) => {
       event_to_time,
       event_from_time,
       guest_count,
-      amount,
+      amount_per_guest,
       venue_details_id,
       max_capacity
     } = req.body;
+
+    // Calculate total amount from guest_count * amount_per_guest
+    const calculatedTotalAmount = guest_count * amount_per_guest;
 
     // First create the event
     const eventData = {
@@ -52,7 +56,8 @@ const createCateringMarketplaceBooking = asyncHandler(async (req, res) => {
       event_to_time: event_to_time,
       event_from_time: event_from_time,
       guest_count: guest_count,
-      total_amount: amount || 0,
+      amount_per_guest: amount_per_guest,
+      total_amount: calculatedTotalAmount,
       created_by: req.userId
     };
 
@@ -61,7 +66,7 @@ console.log(booking);
     // Create transaction
     const transactionData = {
       user_id: req.userId,
-      amount: amount || 0,
+      amount: calculatedTotalAmount,
       status: 'pending',
       payment_method_id: 1, // Default payment method
       transactionType: 'CateringBooking',
@@ -77,6 +82,21 @@ console.log(booking);
       { transaction_id: transaction.transaction_id },
       { new: true }
     );
+
+    // Create notification for booking creation
+    try {
+      if (req.userId) {
+        await createNotificationHendlar(
+          req.userId,
+          2, // Notification type ID: 2 = Booking related
+          `Your catering booking for "${event_name || 'Event'}" has been created successfully. Amount: $${calculatedTotalAmount.toFixed(2)}`,
+          req.userId
+        );
+      }
+    } catch (notificationError) {
+      // Log notification error but don't fail the booking creation
+      console.error('Failed to create booking notification:', notificationError);
+    }
 
     sendSuccess(res, {
       booking: updatedBooking,
@@ -153,6 +173,21 @@ const updateCateringMarketplaceBooking = asyncHandler(async (req, res) => {
     if (!cateringMarketplaceBooking) {
       return sendNotFound(res, 'Catering marketplace booking not found');
     }
+
+    // Create notification for booking update
+    try {
+      if (cateringMarketplaceBooking.created_by) {
+        await createNotificationHendlar(
+          cateringMarketplaceBooking.created_by,
+          2, // Notification type ID: 2 = Booking related
+          `Your catering booking has been updated successfully.`,
+          req.userId || cateringMarketplaceBooking.created_by
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create booking update notification:', notificationError);
+    }
+
     sendSuccess(res, cateringMarketplaceBooking, 'Catering marketplace booking updated successfully');
   } catch (error) {
     throw error;
@@ -181,6 +216,21 @@ const deleteCateringMarketplaceBooking = asyncHandler(async (req, res) => {
     if (!cateringMarketplaceBooking) {
       return sendNotFound(res, 'Catering marketplace booking not found');
     }
+
+    // Create notification for booking deletion
+    try {
+      if (cateringMarketplaceBooking.created_by) {
+        await createNotificationHendlar(
+          cateringMarketplaceBooking.created_by,
+          2, // Notification type ID: 2 = Booking related
+          `Your catering booking has been cancelled.`,
+          req.userId || cateringMarketplaceBooking.created_by
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create booking deletion notification:', notificationError);
+    }
+
     sendSuccess(res, cateringMarketplaceBooking, 'Catering marketplace booking deleted successfully');
   } catch (error) {
     throw error;
@@ -337,6 +387,21 @@ console.log(amount);
       },
       { new: true }
     );
+
+    // Create notification for payment completion
+    try {
+      if (req.userId && paymentIntent.status === 'succeeded') {
+        await createNotificationHendlar(
+          req.userId,
+          2, // Notification type ID: 2 = Booking related
+          `Payment successful! Your catering booking payment of $${amount.toFixed(2)} has been processed.`,
+          req.userId
+        );
+      }
+    } catch (notificationError) {
+      // Log notification error but don't fail the payment
+      console.error('Failed to create payment notification:', notificationError);
+    }
 
     sendSuccess(res, {
       transaction_id: transaction.transaction_id,

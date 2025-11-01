@@ -39,6 +39,11 @@ const cateringMarketplaceBookingSchema = new mongoose.Schema({
     required: [true, 'Guest Count is required'],
     min: [1, 'Guest Count must be at least 1']
   },
+  amount_per_guest: {
+    type: Number,
+    default: 0,
+    min: [0, 'Amount per guest cannot be negative']
+  },
   total_amount: {
     type: Number,
     default: 0,

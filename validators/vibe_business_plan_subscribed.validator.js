@@ -2,11 +2,10 @@ const Joi = require('joi');
 
 // Validation schema for creating vibe business plan subscribed
 const createVibeBusinessPlanSubscribedSchema = Joi.object({
-  user_id: Joi.number().integer().min(1).required().messages({
+  user_id: Joi.number().integer().min(1).optional().messages({
     'number.base': 'User ID must be a number',
     'number.integer': 'User ID must be an integer',
-    'number.min': 'User ID must be greater than 0',
-    'any.required': 'User ID is required'
+    'number.min': 'User ID must be greater than 0'
   }),
   plan_id: Joi.number().integer().min(1).required().messages({
     'number.base': 'Plan ID must be a number',
@@ -14,16 +13,30 @@ const createVibeBusinessPlanSubscribedSchema = Joi.object({
     'number.min': 'Plan ID must be greater than 0',
     'any.required': 'Plan ID is required'
   }),
-  transaction_id: Joi.number().integer().min(1).allow(null).messages({
+  transaction_id: Joi.number().integer().min(1).allow(null).optional().messages({
     'number.base': 'Transaction ID must be a number',
     'number.integer': 'Transaction ID must be an integer',
     'number.min': 'Transaction ID must be greater than 0'
   }),
-  payment_method_id: Joi.number().integer().min(1).allow(null).messages({
+  payment_method_id: Joi.number().integer().min(1).required().messages({
     'number.base': 'Payment method ID must be a number',
     'number.integer': 'Payment method ID must be an integer',
-    'number.min': 'Payment method ID must be greater than 0'
+    'number.min': 'Payment method ID must be greater than 0',
+    'any.required': 'Payment method ID is required for subscription payment'
   }),
+  billingDetails: Joi.object({
+    name: Joi.string().trim().optional(),
+    email: Joi.string().email().optional(),
+    phone: Joi.string().trim().optional(),
+    address: Joi.object({
+      line1: Joi.string().trim().optional(),
+      line2: Joi.string().trim().optional(),
+      city: Joi.string().trim().optional(),
+      state: Joi.string().trim().optional(),
+      postal_code: Joi.string().trim().optional(),
+      country: Joi.string().trim().optional()
+    }).optional()
+  }).optional(),
   transaction_status: Joi.string().valid('pending', 'completed', 'failed').default('pending').messages({
     'any.only': 'Transaction status must be one of: pending, completed, failed'
   }),
@@ -114,10 +127,43 @@ const updateAfterTransactionSchema = Joi.object({
   })
 });
 
+// Validation schema for subscription payment
+const paymentSubscriptionSchema = Joi.object({
+  vibe_business_plan_subscribed_id: Joi.number().integer().min(1).required().messages({
+    'number.base': 'Vibe Business Plan Subscribed ID must be a number',
+    'number.integer': 'Vibe Business Plan Subscribed ID must be an integer',
+    'number.min': 'Vibe Business Plan Subscribed ID must be greater than 0',
+    'any.required': 'Vibe Business Plan Subscribed ID is required'
+  }),
+  payment_method_id: Joi.number().integer().min(1).required().messages({
+    'number.base': 'Payment method ID must be a number',
+    'number.integer': 'Payment method ID must be an integer',
+    'number.min': 'Payment method ID must be greater than 0',
+    'any.required': 'Payment method ID is required'
+  }),
+  billingDetails: Joi.object({
+    name: Joi.string().trim().optional(),
+    email: Joi.string().email().optional(),
+    phone: Joi.string().trim().optional(),
+    address: Joi.object({
+      line1: Joi.string().trim().optional(),
+      line2: Joi.string().trim().optional(),
+      city: Joi.string().trim().optional(),
+      state: Joi.string().trim().optional(),
+      postal_code: Joi.string().trim().optional(),
+      country: Joi.string().trim().optional()
+    }).optional()
+  }).optional(),
+  description: Joi.string().trim().max(500).optional().messages({
+    'string.max': 'Description cannot exceed 500 characters'
+  })
+});
+
 module.exports = {
   createVibeBusinessPlanSubscribedSchema,
   updateVibeBusinessPlanSubscribedSchema,
   updateAfterTransactionSchema,
+  paymentSubscriptionSchema,
   querySchema,
   idSchema
 };

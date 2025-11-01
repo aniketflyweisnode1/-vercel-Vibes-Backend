@@ -13,6 +13,7 @@ const BusinessType = require('../models/business_type.model');
 const BankName = require('../models/bank_name.model');
 const BankBranchName = require('../models/bank_branch_name.model');
 const { createWalletForUser } = require('./wallet.controller');
+const { createNotificationHendlar } = require('../../utils/notificationHandler');
 const { generateTokens } = require('../../utils/jwt');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
@@ -103,6 +104,22 @@ const createUser = asyncHandler(async (req, res) => {
     } catch (walletError) {
       // Don't fail user creation if wallet creation fails
     }
+
+    // Create notification for user registration
+    try {
+      if (user.user_id) {
+        await createNotificationHendlar(
+          user.user_id,
+          3, // Notification type ID: 3 = Account/User related
+          `Welcome to Mr. Vibes! Your account has been created successfully.`,
+          req.userId || user.user_id
+        );
+      }
+    } catch (notificationError) {
+      // Log notification error but don't fail the user creation
+      console.error('Failed to create user registration notification:', notificationError);
+    }
+
     sendSuccess(res, user, 'User created successfully', 201);
   } catch (error) {
     throw error;
@@ -235,6 +252,20 @@ const updateUser = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'User not found');
     }
 
+    // Create notification for user update
+    try {
+      if (user.user_id) {
+        await createNotificationHendlar(
+          user.user_id,
+          3, // Notification type ID: 3 = Account/User related
+          `Your account profile has been updated successfully.`,
+          req.userId || user.user_id
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create user update notification:', notificationError);
+    }
+
     sendSuccess(res, user, 'User updated successfully');
   } catch (error) {
     
@@ -319,20 +350,18 @@ const login = asyncHandler(async (req, res) => {
 
     const otp = await OTP.create(otpData);
 
-    // Send OTP via email
-    // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name);
-   // await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-    // if (!emailSent) {
-    //   // If email fails, deactivate the OTP
-    //   await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-    //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
-    // }
+    // Send OTP via email with HTML template
+    const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name || 'User');
+    if (!emailSent) {
+      // If email fails, deactivate the OTP
+      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+      return sendError(res, 'Failed to send OTP email. Please try again.', 500);
+    }
 
     sendSuccess(res, { 
       message: 'OTP sent successfully to your email address. Please verify to complete login.',
       expiresIn: '10 minutes',
-      nextStep: 'verify-otp',
-      otp: otpCode
+      nextStep: 'verify-otp'
     }, 'OTP sent successfully');
   } catch (error) {
     
@@ -386,6 +415,20 @@ const updateProfile = asyncHandler(async (req, res) => {
 
     if (!user) {
       return sendNotFound(res, 'User not found');
+    }
+
+    // Create notification for profile update
+    try {
+      if (user.user_id) {
+        await createNotificationHendlar(
+          user.user_id,
+          3, // Notification type ID: 3 = Account/User related
+          `Your profile has been updated successfully.`,
+          req.userId || user.user_id
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create profile update notification:', notificationError);
     }
 
     sendSuccess(res, user, 'Profile updated successfully');
@@ -517,19 +560,17 @@ const sendOTP = asyncHandler(async (req, res) => {
 
     const otp = await OTP.create(otpData);
 
-    // Send OTP via email
-    // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name);
-  //  await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-    // if (!emailSent) {
-    //   // If email fails, deactivate the OTP
-    //   await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-    //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
-    // }
+    // Send OTP via email with HTML template
+    const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name || 'User');
+    if (!emailSent) {
+      // If email fails, deactivate the OTP
+      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+      return sendError(res, 'Failed to send OTP email. Please try again.', 500);
+    }
 
     sendSuccess(res, { 
       message: 'OTP sent successfully to your email address',
-      expiresIn: '10 minutes',
-      otp: otpCode
+      expiresIn: '10 minutes'
     }, 'OTP sent successfully');
   } catch (error) {
    
@@ -786,20 +827,18 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     const otp = await OTP.create(otpData);
 
-    // Send OTP via email
-    // const emailSent = await emailService.sendForgotPasswordOTPEmail(email, otpCode, user.name);
-    await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-    // if (!emailSent) {
-    //   // If email fails, deactivate the OTP
-    //   await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-    //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
-    // }
+    // Send OTP via email with HTML template
+    const emailSent = await emailService.sendForgotPasswordOTPEmail(email, otpCode, user.name || 'User');
+    if (!emailSent) {
+      // If email fails, deactivate the OTP
+      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+      return sendError(res, 'Failed to send OTP email. Please try again.', 500);
+    }
 
     sendSuccess(res, { 
       message: 'OTP sent successfully to your email address for password reset.',
       expiresIn: '10 minutes',
-      nextStep: 'reset-password',
-      otp: otpCode
+      nextStep: 'reset-password'
     }, 'OTP sent successfully');
   } catch (error) {
     throw error;

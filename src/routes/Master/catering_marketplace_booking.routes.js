@@ -8,7 +8,8 @@ const {
   getCateringMarketplaceBookingById, 
   updateCateringMarketplaceBooking, 
   deleteCateringMarketplaceBooking,
-  CateringMarketplaceBookingPayment
+  CateringMarketplaceBookingPayment,
+  getCateringBookingsByAuth
 } = require('../../controllers/catering_marketplace_booking.controller'); 
 
 // Import middleware
@@ -36,6 +37,9 @@ router.put('/update', auth, validateBody(updateCateringMarketplaceBookingSchema)
 
 // Delete catering marketplace booking by ID with auth
 router.delete('/delete/:id', auth, validateParams(getCateringMarketplaceBookingByIdSchema), deleteCateringMarketplaceBooking);
+
+// Get all catering bookings by authenticated user
+router.get('/CateringBookingsByAuth', auth, getCateringBookingsByAuth);
 
 router.post('/CateringBookingPayment', auth, CateringMarketplaceBookingPayment);
 module.exports = router;

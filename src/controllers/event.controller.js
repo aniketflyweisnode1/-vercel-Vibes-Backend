@@ -1,5 +1,8 @@
 const Event = require('../models/event.model');
 const VenueDetails = require('../models/venue_details.model');
+const User = require('../models/user.model');
+const emailService = require('../../utils/emailService');
+const { createNotificationHendlar } = require('../../utils/notificationHandler');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -18,6 +21,54 @@ const createEvent = asyncHandler(async (req, res) => {
 
     // Create event
     const event = await Event.create(eventData);
+    
+    // Send email with calendar attachment to the user who created the event
+    try {
+      const userId = req.userId || event.created_by;
+      if (userId) {
+        // Fetch user details
+        const user = await User.findOne({ user_id: userId }).select('email name');
+        
+        if (user && user.email) {
+          // Prepare event data for email
+          const emailEventData = {
+            title: event.name_title || 'Event',
+            date: event.date,
+            time: event.time,
+            location: event.street_address || 'Location TBD',
+            description: event.description || ''
+          };
+
+          // Send email with calendar attachment
+          await emailService.sendEventCreatedEmail(
+            user.email,
+            emailEventData,
+            user.name || 'User',
+            user.email
+          );
+        }
+      }
+    } catch (emailError) {
+      // Log email error but don't fail the event creation
+      console.error('Failed to send event creation email:', emailError);
+      // Continue with success response even if email fails
+    }
+
+    // Create notification for event creation
+    try {
+      const userId = req.userId || event.created_by;
+      if (userId) {
+        await createNotificationHendlar(
+          userId,
+          1, // Notification type ID: 1 = Event related
+          `Your event "${event.name_title || 'Event'}" has been created successfully.`,
+          userId
+        );
+      }
+    } catch (notificationError) {
+      // Log notification error but don't fail the event creation
+      console.error('Failed to create event notification:', notificationError);
+    }
     
     // Note: Number references cannot be populated directly
     sendSuccess(res, event, 'Event created successfully', 201);
@@ -283,6 +334,21 @@ const updateEvent = asyncHandler(async (req, res) => {
     if (!event) {
       return sendNotFound(res, 'Event not found');
     }
+
+    // Create notification for event update
+    try {
+      if (event.created_by) {
+        await createNotificationHendlar(
+          event.created_by,
+          1, // Notification type ID: 1 = Event related
+          `Your event "${event.name_title || 'Event'}" has been updated successfully.`,
+          req.userId || event.created_by
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create event update notification:', notificationError);
+    }
+
     sendSuccess(res, event, 'Event updated successfully');
   } catch (error) {
     throw error;
@@ -311,6 +377,21 @@ const deleteEvent = asyncHandler(async (req, res) => {
     if (!event) {
       return sendNotFound(res, 'Event not found');
     }
+
+    // Create notification for event deletion
+    try {
+      if (event.created_by) {
+        await createNotificationHendlar(
+          event.created_by,
+          1, // Notification type ID: 1 = Event related
+          `Your event "${event.name_title || 'Event'}" has been deleted.`,
+          req.userId || event.created_by
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create event deletion notification:', notificationError);
+    }
+
     sendSuccess(res, event, 'Event deleted successfully');
   } catch (error) {
     throw error;

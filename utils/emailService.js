@@ -22,8 +22,8 @@ class EmailService {
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          user: "movpankaj3@gmail.com", // Your email address
-          pass: "shjopoqudhknisxh" // Your email password or app password
+          user: "", // Your email address
+          pass: "" // Your email password or app password
         }
       });
 
@@ -80,14 +80,14 @@ class EmailService {
         this.transporter = nodemailer.createTransporter({
           service: 'gmail',
           auth: {
-            user: "movpankaj3@gmail.com",
-            pass: "shjopoqudhknisxh"
+            user: "",
+            pass: ""
           }
         });
       }
 
       const mailOptions = {
-        from: "movpankaj3@gmail.com",
+        from: "",
         to: to,
         subject: 'Password Reset OTP - Mr. Vibes',
         html: this.generateForgotPasswordOTPEmailTemplate(otp, userName),
@@ -127,14 +127,14 @@ class EmailService {
         this.transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: "movpankaj3@gmail.com",
-            pass: "shjopoqudhknisxh"
+            user: "",
+            pass: ""
           }
         });
       }
 
       const mailOptions = {
-        from: "movpankaj3@gmail.com",
+        from: "",
         to: to,
         subject: 'Your Login OTP - Mr. Vibes',
         html: this.generateOTPEmailTemplate(otp, userName),
@@ -376,7 +376,7 @@ class EmailService {
       }
 
        const mailOptions = {
-         from: "movpankaj3@gmail.com",
+         from: "",
          to: to,
          subject: 'Welcome to Mr. Vibes!',
          html: this.generateWelcomeEmailTemplate(userName),
@@ -466,6 +466,341 @@ class EmailService {
         <div class="footer">
           <p>This is an automated message. Please do not reply to this email.</p>
           <p>&copy; 2024 Mr. Vibes. All rights reserved.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Generate ICS (iCalendar) file content for calendar event
+   * @param {Object} eventData - Event data object
+   * @param {string} eventData.title - Event title
+   * @param {Date} eventData.startDate - Event start date
+   * @param {string} eventData.startTime - Event start time (HH:mm format)
+   * @param {string} eventData.description - Event description
+   * @param {string} eventData.location - Event location
+   * @param {string} eventData.organizerEmail - Organizer email
+   * @param {string} eventData.organizerName - Organizer name
+   * @returns {string} ICS file content
+   */
+  generateICSFile(eventData) {
+    const { title, startDate, startTime, description, location, organizerEmail, organizerName } = eventData;
+    
+    // Parse time and combine with date
+    const [hours, minutes] = startTime.split(':');
+    const eventDateTime = new Date(startDate);
+    eventDateTime.setHours(parseInt(hours), parseInt(minutes || 0), 0, 0);
+    
+    // Event duration (default 2 hours)
+    const endDateTime = new Date(eventDateTime);
+    endDateTime.setHours(endDateTime.getHours() + 2);
+    
+    // Format date for ICS (YYYYMMDDTHHmmssZ)
+    const formatICSDate = (date) => {
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const hour = String(date.getUTCHours()).padStart(2, '0');
+      const minute = String(date.getUTCMinutes()).padStart(2, '0');
+      const second = String(date.getUTCSeconds()).padStart(2, '0');
+      return `${year}${month}${day}T${hour}${minute}${second}Z`;
+    };
+    
+    const dtstart = formatICSDate(eventDateTime);
+    const dtend = formatICSDate(endDateTime);
+    const dtstamp = formatICSDate(new Date());
+    
+    // Escape special characters in text fields
+    const escapeICS = (text) => {
+      if (!text) return '';
+      return String(text)
+        .replace(/\\/g, '\\\\')
+        .replace(/;/g, '\\;')
+        .replace(/,/g, '\\,')
+        .replace(/\n/g, '\\n');
+    };
+    
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Mr. Vibes//Event Calendar//EN
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:${Date.now()}-${Math.random().toString(36).substr(2, 9)}@mr vibes.com
+DTSTAMP:${dtstamp}
+DTSTART:${dtstart}
+DTEND:${dtend}
+SUMMARY:${escapeICS(title)}
+DESCRIPTION:${escapeICS(description)}
+LOCATION:${escapeICS(location)}
+ORGANIZER;CN=${escapeICS(organizerName)}:MAILTO:${organizerEmail || 'noreply@mrvibes.com'}
+STATUS:CONFIRMED
+SEQUENCE:0
+BEGIN:VALARM
+TRIGGER:-PT15M
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+    
+    return icsContent;
+  }
+
+  /**
+   * Send event creation email with calendar attachment
+   * @param {string} to - Recipient email address
+   * @param {Object} eventData - Event data object
+   * @param {string} eventData.title - Event title
+   * @param {Date} eventData.date - Event date
+   * @param {string} eventData.time - Event time
+   * @param {string} eventData.location - Event location
+   * @param {string} eventData.description - Event description
+   * @param {string} userName - User's name
+   * @param {string} userEmail - User's email
+   * @returns {Promise<boolean>} Success status
+   */
+  async sendEventCreatedEmail(to, eventData, userName, userEmail) {
+    try {
+      // Create transporter if it doesn't exist
+      if (!this.transporter) {
+        logger.info('Creating new transporter...');
+        this.transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: "movpankaj3@gmail.com",
+            pass: "shjopoqudhknisxh"
+          }
+        });
+      }
+
+      // Generate ICS file
+      const icsContent = this.generateICSFile({
+        title: eventData.title,
+        startDate: eventData.date,
+        startTime: eventData.time,
+        description: eventData.description || '',
+        location: eventData.location || '',
+        organizerEmail: userEmail || 'noreply@mrvibes.com',
+        organizerName: userName || 'Mr. Vibes'
+      });
+
+      const mailOptions = {
+        from: "movpankaj3@gmail.com",
+        to: to,
+        subject: `Event Created: ${eventData.title} - Mr. Vibes`,
+        html: this.generateEventCreatedEmailTemplate(eventData, userName),
+        text: `Your event "${eventData.title}" has been created successfully. Please check the attached calendar file to add it to your calendar.`,
+        attachments: [
+          {
+            filename: 'event.ics',
+            content: Buffer.from(icsContent),
+            contentType: 'text/calendar; charset=UTF-8; method=REQUEST',
+            contentDisposition: 'attachment'
+          }
+        ]
+      };
+
+      logger.info('Attempting to send event created email...', { to, from: mailOptions.from });
+      const result = await this.transporter.sendMail(mailOptions);
+      logger.info('Event created email sent successfully', {
+        to,
+        messageId: result.messageId
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('Failed to send event created email', {
+        to,
+        error: error.message,
+        stack: error.stack
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Generate HTML email template for event creation
+   * @param {Object} eventData - Event data
+   * @param {string} userName - User's name
+   * @returns {string} HTML email template
+   */
+  generateEventCreatedEmailTemplate(eventData, userName) {
+    // Format date
+    const formatDate = (date) => {
+      if (!date) return 'Not specified';
+      const d = new Date(date);
+      return d.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    };
+
+    // Format time
+    const formatTime = (time) => {
+      if (!time) return 'Not specified';
+      // Assume time is in HH:mm format, convert to 12-hour format
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${minutes || '00'} ${ampm}`;
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Event Created - Mr. Vibes</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+          }
+          .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+          }
+          .content {
+            padding: 30px;
+          }
+          .event-details {
+            background-color: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .event-details h2 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 24px;
+          }
+          .detail-row {
+            margin: 15px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .detail-row:last-child {
+            border-bottom: none;
+          }
+          .detail-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+          }
+          .detail-value {
+            color: #333;
+            font-size: 16px;
+          }
+          .calendar-note {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .calendar-note p {
+            margin: 5px 0;
+          }
+          .footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #f9f9f9;
+            color: #666;
+            font-size: 14px;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 Event Created Successfully!</h1>
+            <p>Your event has been created and added to your calendar</p>
+          </div>
+          
+          <div class="content">
+            <h2>Hello ${userName || 'User'}!</h2>
+            
+            <p>Great news! Your event has been successfully created. We've attached a calendar file to this email so you can easily add it to your calendar.</p>
+            
+            <div class="event-details">
+              <h2>${eventData.title || 'Event'}</h2>
+              
+              <div class="detail-row">
+                <div class="detail-label">Date</div>
+                <div class="detail-value">${formatDate(eventData.date)}</div>
+              </div>
+              
+              <div class="detail-row">
+                <div class="detail-label">Time</div>
+                <div class="detail-value">${formatTime(eventData.time)}</div>
+              </div>
+              
+              ${eventData.location ? `
+              <div class="detail-row">
+                <div class="detail-label">Location</div>
+                <div class="detail-value">${eventData.location}</div>
+              </div>
+              ` : ''}
+              
+              ${eventData.description ? `
+              <div class="detail-row">
+                <div class="detail-label">Description</div>
+                <div class="detail-value">${eventData.description}</div>
+              </div>
+              ` : ''}
+            </div>
+            
+            <div class="calendar-note">
+              <p><strong>📅 Add to Calendar:</strong></p>
+              <p>We've attached a calendar file (event.ics) to this email. Simply open the attachment to add this event to your calendar application.</p>
+            </div>
+            
+            <p>If you need to make any changes to your event, you can do so through your account dashboard.</p>
+            
+            <p>Best regards,<br><strong>The Mr. Vibes Team</strong></p>
+          </div>
+          
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>&copy; 2024 Mr. Vibes. All rights reserved.</p>
+          </div>
         </div>
       </body>
       </html>

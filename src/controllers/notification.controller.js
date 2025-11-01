@@ -1,5 +1,6 @@
 const Notification = require('../models/notification.model');
 const User = require('../models/user.model');
+const { createNotificationHendlar, createNotificationsForUsers } = require('../../utils/notificationHandler');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -44,18 +45,13 @@ const createNotificationByRoleId = asyncHandler(async (req, res) => {
     }
 
     // Create notifications for all users
-    const notifications = [];
-    for (const user of users) {
-      const notificationData = {
-        notification_type_id: parseInt(notification_type_id),
-        notification_txt,
-        user_id: user.user_id,
-        created_by: req.userId || null
-      };
-      
-      const notification = await Notification.create(notificationData);
-      notifications.push(notification);
-    }
+    const userIds = users.map(user => user.user_id);
+    const notifications = await createNotificationsForUsers(
+      userIds,
+      parseInt(notification_type_id),
+      notification_txt,
+      req.userId || null
+    );
     sendSuccess(res, {
       message: `Notifications sent to ${notifications.length} users`,
       notifications: notifications
@@ -84,18 +80,13 @@ const createNotificationSendAll = asyncHandler(async (req, res) => {
     }
 
     // Create notifications for all users
-    const notifications = [];
-    for (const user of users) {
-      const notificationData = {
-        notification_type_id: parseInt(notification_type_id),
-        notification_txt,
-        user_id: user.user_id,
-        created_by: req.userId || null
-      };
-      
-      const notification = await Notification.create(notificationData);
-      notifications.push(notification);
-    }
+    const userIds = users.map(user => user.user_id);
+    const notifications = await createNotificationsForUsers(
+      userIds,
+      parseInt(notification_type_id),
+      notification_txt,
+      req.userId || null
+    );
     sendSuccess(res, {
       message: `Notifications sent to ${notifications.length} users`,
       notifications: notifications
