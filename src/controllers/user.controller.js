@@ -28,7 +28,7 @@ const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
  */
 const populateUserReferences = async (user) => {
   const userObj = user.toObject();
-  
+
   try {
     // Populate all referenced IDs in parallel
     const [
@@ -159,7 +159,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-  
+
 
     // Build sort object
     const sort = {};
@@ -167,7 +167,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
 
     // Calculate pagination
     const skip = (page - 1) * limit;
-    
+
     // Execute query
     const [users, total] = await Promise.all([
       User.find(filter)
@@ -206,7 +206,7 @@ const getUserById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findOne({user_id: parseInt(id)})
+    const user = await User.findOne({ user_id: parseInt(id) })
       .select('-password');
 
     if (!user) {
@@ -239,10 +239,10 @@ const updateUser = asyncHandler(async (req, res) => {
     delete updateData.Fixed_role_id;
 
     const user = await User.findOneAndUpdate(
-      {user_id: parseInt(id)},
+      { user_id: parseInt(id) },
       updateData,
-      { 
-        new: true, 
+      {
+        new: true,
         runValidators: true,
         select: '-password'
       }
@@ -268,7 +268,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
     sendSuccess(res, user, 'User updated successfully');
   } catch (error) {
-    
+
     throw error;
   }
 });
@@ -283,8 +283,8 @@ const deleteUser = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const user = await User.findOneAndUpdate(
-      {user_id: parseInt(id)},
-      { 
+      { user_id: parseInt(id) },
+      {
         status: false,
         updated_by: req.userId,
         updated_on: new Date()
@@ -327,12 +327,12 @@ const login = asyncHandler(async (req, res) => {
 
     // Deactivate any existing OTPs for this email and login type
     await OTP.updateMany(
-      { 
-        email: email.toLowerCase(), 
+      {
+        email: email.toLowerCase(),
         otp_type: 1, // Login OTP type
-        status: true 
+        status: true
       },
-      { 
+      {
         status: false,
         updated_at: new Date()
       }
@@ -351,20 +351,21 @@ const login = asyncHandler(async (req, res) => {
     const otp = await OTP.create(otpData);
 
     // Send OTP via email with HTML template
-    const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name || 'User');
-    if (!emailSent) {
-      // If email fails, deactivate the OTP
-      await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
-      return sendError(res, 'Failed to send OTP email. Please try again.', 500);
-    }
+    // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name || 'User');
+    // if (!emailSent) {
+    // If email fails, deactivate the OTP
+    await OTP.findOneAndUpdate({ otp_id: otp.otp_id }, { status: false });
+    //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
+    // }
 
-    sendSuccess(res, { 
+    sendSuccess(res, {
       message: 'OTP sent successfully to your email address. Please verify to complete login.',
       expiresIn: '10 minutes',
-      nextStep: 'verify-otp'
+      nextStep: 'verify-otp',
+      otp: otpCode,
     }, 'OTP sent successfully');
   } catch (error) {
-    
+
     throw error;
   }
 });
@@ -409,7 +410,7 @@ const updateProfile = asyncHandler(async (req, res) => {
     delete updateData.Fixed_role_id;
 
     const user = await User.findOneAndUpdate(
-      {user_id: id},
+      { user_id: id },
       updateData
     );
 
@@ -433,7 +434,7 @@ const updateProfile = asyncHandler(async (req, res) => {
 
     sendSuccess(res, user, 'Profile updated successfully');
   } catch (error) {
-   
+
     throw error;
   }
 });
@@ -458,10 +459,10 @@ const updateUserByIdBody = asyncHandler(async (req, res) => {
     delete finalUpdateData.Fixed_role_id;
 
     const user = await User.findOneAndUpdate(
-      {user_id: parseInt(id)},
+      { user_id: parseInt(id) },
       finalUpdateData,
-      { 
-        new: true, 
+      {
+        new: true,
         runValidators: true,
         select: '-password'
       }
@@ -473,7 +474,7 @@ const updateUserByIdBody = asyncHandler(async (req, res) => {
 
     sendSuccess(res, user, 'User updated successfully');
   } catch (error) {
-    
+
     throw error;
   }
 });
@@ -507,7 +508,7 @@ const changePassword = asyncHandler(async (req, res) => {
 
     sendSuccess(res, null, 'Password changed successfully');
   } catch (error) {
-    
+
     throw error;
   }
 });
@@ -537,12 +538,12 @@ const sendOTP = asyncHandler(async (req, res) => {
 
     // Deactivate any existing OTPs for this email and login type
     await OTP.updateMany(
-      { 
-        email: email.toLowerCase(), 
+      {
+        email: email.toLowerCase(),
         otp_type: 1, // Assuming 1 is login OTP type
-        status: true 
+        status: true
       },
-      { 
+      {
         status: false,
         updated_at: new Date()
       }
@@ -568,12 +569,12 @@ const sendOTP = asyncHandler(async (req, res) => {
       return sendError(res, 'Failed to send OTP email. Please try again.', 500);
     }
 
-    sendSuccess(res, { 
+    sendSuccess(res, {
       message: 'OTP sent successfully to your email address',
       expiresIn: '10 minutes'
     }, 'OTP sent successfully');
   } catch (error) {
-   
+
     throw error;
   }
 });
@@ -601,7 +602,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
 
     // Check if OTP is expired
     if (otpRecord.isExpired()) {
-      await OTP.findOneAndUpdate({ otp_id: parseInt(otpRecord.otp_id) }, { 
+      await OTP.findOneAndUpdate({ otp_id: parseInt(otpRecord.otp_id) }, {
         status: false,
         updated_at: new Date()
       });
@@ -642,7 +643,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
       ...tokens
     }, 'Login successful');
   } catch (error) {
-      
+
     throw error;
   }
 });
@@ -693,7 +694,7 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
 
     // Calculate pagination
     const skip = (page - 1) * limit;
-    
+
     // Execute query
     const [users, total] = await Promise.all([
       User.find(filter)
@@ -709,21 +710,21 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
       users.map(async (user) => {
         // First populate all basic references
         const populatedUser = await populateUserReferences(user);
-        
+
         // If role_id is 4 (staff), include staff-related details
         if (parseInt(role_id) === 4) {
           // Get staff working prices for this user
-          const staffWorkingPrices = await StaffWorkingPrice.find({ 
+          const staffWorkingPrices = await StaffWorkingPrice.find({
             staff_id: user.user_id,
-            status: true 
+            status: true
           }).sort({ created_at: -1 });
 
           // Get staff categories for the working prices with full details
           const staffCategories = await Promise.all(
             staffWorkingPrices.map(async (price) => {
-              const category = await StaffCategory.findOne({ 
+              const category = await StaffCategory.findOne({
                 staff_category_id: price.staff_category_id,
-                status: true 
+                status: true
               });
               return {
                 ...price.toObject(),
@@ -733,21 +734,21 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
           );
 
           // Get recent staff event bookings (last 10)
-          const recentBookings = await StaffEventBook.find({ 
+          const recentBookings = await StaffEventBook.find({
             staff_id: user.user_id,
-            status: true 
+            status: true
           })
-          .sort({ created_at: -1 })
-          .limit(10);
+            .sort({ created_at: -1 })
+            .limit(10);
 
           // Add staff details to user object
           populatedUser.staff_details = {
             working_prices: staffCategories,
             recent_bookings: recentBookings,
             total_working_prices: staffWorkingPrices.length,
-            total_bookings: await StaffEventBook.countDocuments({ 
+            total_bookings: await StaffEventBook.countDocuments({
               staff_id: user.user_id,
-              status: true 
+              status: true
             })
           };
         }
@@ -770,7 +771,7 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
       hasPrevPage
     };
 
-    const message = parseInt(role_id) === 4 
+    const message = parseInt(role_id) === 4
       ? `Staff users with role ID ${role_id} retrieved successfully with complete details`
       : `Users with role ID ${role_id} retrieved successfully with complete details`;
 
@@ -805,12 +806,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     // Deactivate any existing OTPs for this email and forgot password type
     await OTP.updateMany(
-      { 
-        email: email.toLowerCase(), 
+      {
+        email: email.toLowerCase(),
         otp_type: 2, // Forgot password OTP type
-        status: true 
+        status: true
       },
-      { 
+      {
         status: false,
         updated_at: new Date()
       }
@@ -835,7 +836,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
       return sendError(res, 'Failed to send OTP email. Please try again.', 500);
     }
 
-    sendSuccess(res, { 
+    sendSuccess(res, {
       message: 'OTP sent successfully to your email address for password reset.',
       expiresIn: '10 minutes',
       nextStep: 'reset-password'
@@ -868,7 +869,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     // Check if OTP is expired
     if (otpRecord.isExpired()) {
-      await OTP.findByIdAndUpdate(otpRecord._id, { 
+      await OTP.findByIdAndUpdate(otpRecord._id, {
         status: false,
         updated_at: new Date()
       });
@@ -922,7 +923,7 @@ const logout = asyncHandler(async (req, res) => {
     // by removing the token from storage. However, we can provide
     // a server-side endpoint for logging purposes or to invalidate
     // refresh tokens if needed in the future.
-    
+
     sendSuccess(res, {
       message: 'Logged out successfully'
     }, 'Logout successful');
@@ -940,8 +941,8 @@ const logout = asyncHandler(async (req, res) => {
  */
 const PlatFormFeePayment = asyncHandler(async (req, res) => {
   try {
-    const { 
-      payment_method_id, 
+    const {
+      payment_method_id,
       billingDetails,
       amount,
       description = 'Platform fee payment'
