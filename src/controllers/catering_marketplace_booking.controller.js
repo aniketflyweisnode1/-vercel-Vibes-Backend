@@ -1,4 +1,5 @@
 const CateringMarketplaceBooking = require('../models/catering_marketplace_booking.model');
+const CateringMarketplace = require('../models/catering_marketplace.model');
 const Event = require('../models/event.model');
 const Transaction = require('../models/transaction.model');
 const User = require('../models/user.model');
@@ -25,10 +26,21 @@ const createCateringMarketplaceBooking = asyncHandler(async (req, res) => {
       event_to_time,
       event_from_time,
       guest_count,
-      amount_per_guest,
       venue_details_id,
       max_capacity
     } = req.body;
+
+    // Get the catering marketplace to fetch amount_per_guest
+    const cateringMarketplace = await CateringMarketplace.findOne({
+      catering_marketplace_id: parseInt(catering_marketplace_id)
+    });
+
+    if (!cateringMarketplace) {
+      return sendError(res, 'Catering marketplace not found', 404);
+    }
+
+    // Get amount_per_guest from marketplace
+    const amount_per_guest = cateringMarketplace.amount_per_guest || 0;
 
     // Calculate total amount from guest_count * amount_per_guest
     const calculatedTotalAmount = guest_count * amount_per_guest;
@@ -56,7 +68,6 @@ const createCateringMarketplaceBooking = asyncHandler(async (req, res) => {
       event_to_time: event_to_time,
       event_from_time: event_from_time,
       guest_count: guest_count,
-      amount_per_guest: amount_per_guest,
       total_amount: calculatedTotalAmount,
       created_by: req.userId
     };
@@ -153,13 +164,44 @@ const getCateringMarketplaceBookingById = asyncHandler(async (req, res) => {
  */
 const updateCateringMarketplaceBooking = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id, catering_marketplace_id, guest_count } = req.body;
 
+    // Get existing booking
+    const existingBooking = await CateringMarketplaceBooking.findOne({
+      catering_marketplace_booking_id: parseInt(id)
+    });
+
+    if (!existingBooking) {
+      return sendNotFound(res, 'Catering marketplace booking not found');
+    }
+
+    // Determine which marketplace to use (new or existing)
+    const marketplaceIdToUse = catering_marketplace_id || existingBooking.catering_marketplace_id;
+    const guestCountToUse = guest_count || existingBooking.guest_count;
+
+    // Get the catering marketplace to fetch amount_per_guest
+    const cateringMarketplace = await CateringMarketplace.findOne({
+      catering_marketplace_id: parseInt(marketplaceIdToUse)
+    });
+
+    if (!cateringMarketplace) {
+      return sendError(res, 'Catering marketplace not found', 404);
+    }
+
+    // Get amount_per_guest from marketplace and recalculate total_amount
+    const amount_per_guest = cateringMarketplace.amount_per_guest || 0;
+    const calculatedTotalAmount = guestCountToUse * amount_per_guest;
+
+    // Prepare update data
     const updateData = {
       ...req.body,
+      total_amount: calculatedTotalAmount,
       updated_by: req.userId,
       updated_at: new Date()
     };
+
+    // Remove id from updateData to avoid issues
+    delete updateData.id;
 
     const cateringMarketplaceBooking = await CateringMarketplaceBooking.findOneAndUpdate(
       { catering_marketplace_booking_id: parseInt(id) },
@@ -169,10 +211,6 @@ const updateCateringMarketplaceBooking = asyncHandler(async (req, res) => {
         runValidators: true
       }
     );
-
-    if (!cateringMarketplaceBooking) {
-      return sendNotFound(res, 'Catering marketplace booking not found');
-    }
 
     // Create notification for booking update
     try {

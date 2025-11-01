@@ -39,6 +39,11 @@ const cateringMarketplaceSchema = new mongoose.Schema({
     trim: true,
     match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number']
   },
+  amount_per_guest: {
+    type: Number,
+    default: 0,
+    min: [0, 'Amount per guest cannot be negative']
+  },
   status: {
     type: Boolean,
     default: true

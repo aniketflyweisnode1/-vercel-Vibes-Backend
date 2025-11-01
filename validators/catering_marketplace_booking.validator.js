@@ -84,14 +84,6 @@ const createCateringMarketplaceBookingSchema = Joi.object({
       'number.min': 'Guest Count must be at least 1',
       'any.required': 'Guest Count is required'
     }),
-  amount_per_guest: Joi.number()
-    .min(0)
-    .required()
-    .messages({
-      'number.base': 'Amount per guest must be a number',
-      'number.min': 'Amount per guest cannot be negative',
-      'any.required': 'Amount per guest is required'
-    }),
   venue_details_id: Joi.number()
     .integer()
     .positive()

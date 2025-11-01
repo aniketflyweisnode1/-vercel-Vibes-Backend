@@ -63,6 +63,13 @@ const createCateringMarketplaceSchema = Joi.object({
       'string.pattern.base': 'Please enter a valid 10-digit mobile number',
       'any.required': 'Mobile number is required'
     }),
+  amount_per_guest: Joi.number()
+    .min(0)
+    .optional()
+    .messages({
+      'number.base': 'Amount per guest must be a number',
+      'number.min': 'Amount per guest cannot be negative'
+    }),
   status: Joi.boolean()
     .default(true)
     .optional()
@@ -132,6 +139,13 @@ const updateCateringMarketplaceSchema = Joi.object({
     .optional()
     .messages({
       'string.pattern.base': 'Please enter a valid 10-digit mobile number'
+    }),
+  amount_per_guest: Joi.number()
+    .min(0)
+    .optional()
+    .messages({
+      'number.base': 'Amount per guest must be a number',
+      'number.min': 'Amount per guest cannot be negative'
     }),
   status: Joi.boolean()
     .optional()
