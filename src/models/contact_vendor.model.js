@@ -18,8 +18,8 @@ const contactVendorSchema = new mongoose.Schema({
   },
   event_id: {
     type: Number,
-    ref: 'Event',
-    required: [true, 'Event ID is required']
+  
+   
   },
   topic: {
     type: String,

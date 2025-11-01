@@ -13,12 +13,7 @@ const createContactVendorSchema = Joi.object({
     'number.integer': 'User ID must be an integer',
     'number.min': 'User ID must be greater than 0'
   }),
-  event_id: Joi.number().integer().min(1).required().messages({
-    'number.base': 'Event ID must be a number',
-    'number.integer': 'Event ID must be an integer',
-    'number.min': 'Event ID must be greater than 0',
-    'any.required': 'Event ID is required'
-  }),
+ 
   topic: Joi.string().trim().min(1).max(200).required().messages({
     'string.empty': 'Topic is required',
     'string.min': 'Topic must be at least 1 character long',
@@ -54,11 +49,7 @@ const updateContactVendorSchema = Joi.object({
     'number.integer': 'User ID must be an integer',
     'number.min': 'User ID must be greater than 0'
   }),
-  event_id: Joi.number().integer().min(1).messages({
-    'number.base': 'Event ID must be a number',
-    'number.integer': 'Event ID must be an integer',
-    'number.min': 'Event ID must be greater than 0'
-  }),
+  
   topic: Joi.string().trim().min(1).max(200).messages({
     'string.empty': 'Topic cannot be empty',
     'string.min': 'Topic must be at least 1 character long',
