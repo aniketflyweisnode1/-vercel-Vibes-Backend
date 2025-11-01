@@ -81,6 +81,7 @@ const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
   try {
     const portalData = {
       ...req.body,
+      Vendor_id: req.userId,
       CreateBy: req.userId,
       CreateAt: new Date()
     };
