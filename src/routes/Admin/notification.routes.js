@@ -9,7 +9,8 @@ const {
   getAllNotifications, 
   getNotificationById, 
   updateNotification, 
-  deleteNotification 
+  deleteNotification,
+  getNotificationsByAuth
 } = require('../../controllers/notification.controller');
 
 // Import middleware
@@ -23,7 +24,8 @@ const {
   createNotificationSendAllSchema, 
   updateNotificationSchema, 
   getNotificationByIdSchema, 
-  getAllNotificationsSchema 
+  getAllNotificationsSchema,
+  getNotificationsByAuthSchema
 } = require('../../../validators/notification.validator');
 
 // Create notification (with auth)
@@ -37,6 +39,9 @@ router.post('/createSendAll', auth, validateBody(createNotificationSendAllSchema
 
 // Get all notifications (with auth)
 router.get('/getAll', auth, validateQuery(getAllNotificationsSchema), getAllNotifications);
+
+// Get notifications by authenticated user (with auth)
+router.get('/getByAuth', auth, validateQuery(getNotificationsByAuthSchema), getNotificationsByAuth);
 
 // Get notification by ID (with auth)
 router.get('/getNotificationById/:id', auth, validateParams(getNotificationByIdSchema), getNotificationById);

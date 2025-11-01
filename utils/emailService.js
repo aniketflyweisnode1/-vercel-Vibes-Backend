@@ -19,11 +19,23 @@ class EmailService {
     try {
       // For development, you can use Gmail or other SMTP services
       // Make sure to set these environment variables in your .env file
+      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
+      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+
+      // Only create transporter if credentials are provided
+      if (!emailUser || !emailPass) {
+        logger.warn('Email credentials not configured. Email service will be disabled.');
+        this.transporter = null;
+        this.initialized = false;
+        this.transporterCreated = false;
+        return;
+      }
+
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          user: "", // Your email address
-          pass: "" // Your email password or app password
+          user: emailUser,
+          pass: emailPass
         }
       });
 
@@ -74,20 +86,29 @@ class EmailService {
    */
   async sendForgotPasswordOTPEmail(to, otp, userName = 'User') {
     try {
+      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
+      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+
+      // Check if email is configured
+      if (!emailUser || !emailPass) {
+        logger.warn('Email credentials not configured. Cannot send forgot password OTP email.');
+        return false;
+      }
+
       // Create transporter if it doesn't exist
       if (!this.transporter) {
         logger.info('Creating new transporter...');
         this.transporter = nodemailer.createTransporter({
           service: 'gmail',
           auth: {
-            user: "",
-            pass: ""
+            user: emailUser,
+            pass: emailPass
           }
         });
       }
 
       const mailOptions = {
-        from: "",
+        from: emailUser,
         to: to,
         subject: 'Password Reset OTP - Mr. Vibes',
         html: this.generateForgotPasswordOTPEmailTemplate(otp, userName),
@@ -121,20 +142,29 @@ class EmailService {
    */
   async sendOTPEmail(to, otp, userName = 'User') {
     try {
+      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
+      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+
+      // Check if email is configured
+      if (!emailUser || !emailPass) {
+        logger.warn('Email credentials not configured. Cannot send OTP email.');
+        return false;
+      }
+
       // Create transporter if it doesn't exist
       if (!this.transporter) {
         logger.info('Creating new transporter...');
         this.transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: "",
-            pass: ""
+            user: emailUser,
+            pass: emailPass
           }
         });
       }
 
       const mailOptions = {
-        from: "",
+        from: emailUser,
         to: to,
         subject: 'Your Login OTP - Mr. Vibes',
         html: this.generateOTPEmailTemplate(otp, userName),
@@ -366,6 +396,15 @@ class EmailService {
    */
   async sendWelcomeEmail(to, userName) {
     try {
+      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
+      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+
+      // Check if email is configured
+      if (!emailUser || !emailPass) {
+        logger.warn('Email credentials not configured. Cannot send welcome email.');
+        return false;
+      }
+
       // Wait for initialization if not ready
       if (!this.initialized) {
         await this.waitForInitialization();
@@ -376,7 +415,7 @@ class EmailService {
       }
 
        const mailOptions = {
-         from: "",
+         from: emailUser,
          to: to,
          subject: 'Welcome to Mr. Vibes!',
          html: this.generateWelcomeEmailTemplate(userName),
@@ -563,14 +602,23 @@ END:VCALENDAR`;
    */
   async sendEventCreatedEmail(to, eventData, userName, userEmail) {
     try {
+      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
+      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+
+      // Check if email is configured
+      if (!emailUser || !emailPass) {
+        logger.warn('Email credentials not configured. Cannot send event created email.');
+        return false;
+      }
+
       // Create transporter if it doesn't exist
       if (!this.transporter) {
         logger.info('Creating new transporter...');
         this.transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: "movpankaj3@gmail.com",
-            pass: "shjopoqudhknisxh"
+            user: emailUser,
+            pass: emailPass
           }
         });
       }
@@ -582,12 +630,12 @@ END:VCALENDAR`;
         startTime: eventData.time,
         description: eventData.description || '',
         location: eventData.location || '',
-        organizerEmail: userEmail || 'noreply@mrvibes.com',
+        organizerEmail: userEmail || emailUser || 'noreply@mrvibes.com',
         organizerName: userName || 'Mr. Vibes'
       });
 
       const mailOptions = {
-        from: "movpankaj3@gmail.com",
+        from: emailUser,
         to: to,
         subject: `Event Created: ${eventData.title} - Mr. Vibes`,
         html: this.generateEventCreatedEmailTemplate(eventData, userName),

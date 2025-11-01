@@ -262,6 +262,87 @@ const deleteNotification = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Get notifications by authenticated user with pagination and filtering
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getNotificationsByAuth = asyncHandler(async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      status,
+      notification_type_id,
+      is_read,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object - always filter by authenticated user
+    const filter = {
+      user_id: req.userId
+    };
+
+    // Add search filter
+    if (search) {
+      filter.$or = [
+        { notification_txt: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Add notification_type_id filter
+    if (notification_type_id && notification_type_id !== '') {
+      filter.notification_type_id = parseInt(notification_type_id);
+    }
+
+    // Add is_read filter
+    if (is_read !== undefined && is_read !== '') {
+      filter.is_read = is_read === 'true';
+    }
+
+    // Add status filter
+    if (status !== undefined && status !== '') {
+      filter.status = status === 'true';
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Execute query
+    const [notifications, total] = await Promise.all([
+      Notification.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Notification.countDocuments(filter)
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / parseInt(limit));
+    const hasNextPage = parseInt(page) < totalPages;
+    const hasPrevPage = parseInt(page) > 1;
+
+    const pagination = {
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage,
+      hasPrevPage
+    };
+
+    sendPaginated(res, notifications, pagination, 'User notifications retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createNotification,
   createNotificationByRoleId,
@@ -269,6 +350,7 @@ module.exports = {
   getAllNotifications,
   getNotificationById,
   updateNotification,
-  deleteNotification
+  deleteNotification,
+  getNotificationsByAuth
 };
 

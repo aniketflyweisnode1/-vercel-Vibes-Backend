@@ -136,6 +136,81 @@ const getAllCateringMarketplaceBookings = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get catering marketplace bookings by authenticated user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getCateringBookingsByAuth = asyncHandler(async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      status,
+      transaction_status,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object - always filter by authenticated user
+    const filter = {
+      created_by: req.userId
+    };
+
+    // Add search filter
+    if (search) {
+      filter.$or = [
+        { transaction_status: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Add status filter
+    if (status !== undefined && status !== '') {
+      filter.status = status === 'true';
+    }
+
+    // Add transaction_status filter
+    if (transaction_status) {
+      filter.transaction_status = transaction_status;
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Execute query
+    const [bookings, total] = await Promise.all([
+      CateringMarketplaceBooking.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      CateringMarketplaceBooking.countDocuments(filter)
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / parseInt(limit));
+    const hasNextPage = parseInt(page) < totalPages;
+    const hasPrevPage = parseInt(page) > 1;
+
+    const pagination = {
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage,
+      hasPrevPage
+    };
+
+    sendPaginated(res, bookings, pagination, 'User catering bookings retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * Get catering marketplace booking by ID
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -479,5 +554,6 @@ module.exports = {
   getCateringMarketplaceBookingById,
   updateCateringMarketplaceBooking,
   deleteCateringMarketplaceBooking,
-  CateringMarketplaceBookingPayment
+  CateringMarketplaceBookingPayment,
+  getCateringBookingsByAuth
 };

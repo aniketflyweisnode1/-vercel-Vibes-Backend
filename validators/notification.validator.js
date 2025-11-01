@@ -169,11 +169,55 @@ const getAllNotificationsSchema = Joi.object({
     })
 });
 
+// Get notifications by authenticated user query validation schema
+const getNotificationsByAuthSchema = Joi.object({
+  page: Joi.number().integer().min(1).optional()
+    .messages({
+      'number.base': 'Page must be a number',
+      'number.integer': 'Page must be an integer',
+      'number.min': 'Page must be at least 1'
+    }),
+  limit: Joi.number().integer().min(1).max(100).optional()
+    .messages({
+      'number.base': 'Limit must be a number',
+      'number.integer': 'Limit must be an integer',
+      'number.min': 'Limit must be at least 1',
+      'number.max': 'Limit cannot exceed 100'
+    }),
+  search: Joi.string().max(100).allow('').optional()
+    .messages({
+      'string.max': 'Search term cannot exceed 100 characters'
+    }),
+  status: Joi.string().valid('true', 'false').allow('').optional()
+    .messages({
+      'any.only': 'Status must be either "true" or "false"'
+    }),
+  notification_type_id: Joi.number().integer().positive().allow('').optional()
+    .messages({
+      'number.base': 'Notification type ID must be a number',
+      'number.integer': 'Notification type ID must be an integer',
+      'number.positive': 'Notification type ID must be a positive number'
+    }),
+  is_read: Joi.string().valid('true', 'false').allow('').optional()
+    .messages({
+      'any.only': 'Is read must be either "true" or "false"'
+    }),
+  sortBy: Joi.string().valid('created_at', 'updated_at', 'notification_id').optional()
+    .messages({
+      'any.only': 'Sort by must be one of: created_at, updated_at, notification_id'
+    }),
+  sortOrder: Joi.string().valid('asc', 'desc').optional()
+    .messages({
+      'any.only': 'Sort order must be either "asc" or "desc"'
+    })
+});
+
 module.exports = {
   createNotificationSchema,
   createNotificationByRoleIdSchema,
   createNotificationSendAllSchema,
   updateNotificationSchema,
   getNotificationByIdSchema,
-  getAllNotificationsSchema
+  getAllNotificationsSchema,
+  getNotificationsByAuthSchema
 };
