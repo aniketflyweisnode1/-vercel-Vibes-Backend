@@ -8,7 +8,8 @@ const {
   getEventById, 
   updateEvent,
   deleteEvent,
-  getEventsByAuth
+  getEventsByAuth,
+  eventPayment
 } = require('../../controllers/event.controller'); 
 
 // Import middleware
@@ -40,5 +41,8 @@ router.put('/updateById', auth, validateBody(updateEventSchema), updateEvent);
 
 // Delete event by ID with auth
 router.delete('/deleteById/:id', auth, validateParams(getEventByIdSchema), deleteEvent);
+
+// Create event payment intent (Stripe) and record transaction
+router.post('/EventPayment', auth, eventPayment);
 
 module.exports = router;

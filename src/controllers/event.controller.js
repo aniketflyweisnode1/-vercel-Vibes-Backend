@@ -2,6 +2,8 @@ const Event = require('../models/event.model');
 const VenueDetails = require('../models/venue_details.model');
 const User = require('../models/user.model');
 const emailService = require('../../utils/emailService');
+const Transaction = require('../models/transaction.model');
+const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const { createNotificationHendlar } = require('../../utils/notificationHandler');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
@@ -399,6 +401,115 @@ const deleteEvent = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Create Stripe payment intent for an event and record a transaction
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const eventPayment = asyncHandler(async (req, res) => {
+  try {
+    const {
+      amount,
+      payment_method_id,
+      billingDetails,
+      description = 'Event payment',
+      event_id
+    } = req.body;
+
+    // Validate required fields
+    if (amount === undefined || amount === null) {
+      return sendError(res, 'Amount is required', 400);
+    }
+    if (!payment_method_id) {
+      return sendError(res, 'payment_method_id is required', 400);
+    }
+
+    // Normalize and validate
+    const normalizedAmount = Number(amount);
+    if (Number.isNaN(normalizedAmount)) {
+      return sendError(res, 'Invalid amount. It must be a numeric value.', 400);
+    }
+    if (normalizedAmount <= 0) {
+      return sendError(res, 'Amount must be greater than 0', 400);
+    }
+
+    // Fetch user for email
+    const user = await User.findOne({ user_id: req.userId }).select('email name');
+    if (!user || !user.email) {
+      return sendError(res, 'User email not found for Stripe receipt', 400);
+    }
+
+    // Optionally create/reuse a customer in Stripe (simple metadata-only for now)
+    const customerId = undefined;
+
+    // Create payment intent
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        amount: Math.round(normalizedAmount),
+        billingDetails,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: req.userId,
+          event_id: event_id || '',
+          payment_type: 'event_payment',
+          description
+        }
+      };
+
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
+
+    // Create transaction record
+    const transactionData = {
+      user_id: req.userId,
+      amount: normalizedAmount,
+      status: paymentIntent.status,
+      payment_method_id: payment_method_id,
+      transactionType: 'EventPayment',
+      transaction_date: new Date(),
+      reference_number: paymentIntent.paymentIntentId,
+      coupon_code_id: null,
+      CGST: 0,
+      SGST: 0,
+      TotalGST: 0,
+      metadata: JSON.stringify({
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        event_id: event_id || null,
+        description
+      }),
+      created_by: req.userId
+    };
+
+    const transaction = await Transaction.create(transactionData);
+
+    // Success response
+    return sendSuccess(res, {
+      transaction_id: transaction.transaction_id,
+      payment_intent_id: paymentIntent.paymentIntentId,
+      client_secret: paymentIntent.clientSecret,
+      amount: normalizedAmount,
+      currency: 'USD',
+      status: paymentIntent.status,
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
+      },
+      event_id: event_id || null,
+      message: 'Event payment intent created successfully'
+    }, 'Event payment intent created successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * Get events created by authenticated user
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -519,6 +630,7 @@ module.exports = {
   getEventById,
   updateEvent,
   deleteEvent,
-  getEventsByAuth
+  getEventsByAuth,
+  eventPayment
 };
 
