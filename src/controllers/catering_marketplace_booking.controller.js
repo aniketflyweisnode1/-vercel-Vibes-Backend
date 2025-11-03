@@ -4,7 +4,7 @@ const Event = require('../models/event.model');
 const Transaction = require('../models/transaction.model');
 const User = require('../models/user.model');
 const { createNotificationHendlar } = require('../../utils/notificationHandler');
-const { sendSuccess, sendError, sendNotFound } = require('../../utils/response');
+const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 

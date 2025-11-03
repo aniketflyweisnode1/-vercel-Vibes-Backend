@@ -39,7 +39,10 @@ router.put('/update', auth, validateBody(updateCateringMarketplaceBookingSchema)
 router.delete('/delete/:id', auth, validateParams(getCateringMarketplaceBookingByIdSchema), deleteCateringMarketplaceBooking);
 
 // Get all catering bookings by authenticated user
+// Support both route names for backward compatibility
+router.get('/getCateringBookingsByAuth', auth, getCateringBookingsByAuth);
 router.get('/CateringBookingsByAuth', auth, getCateringBookingsByAuth);
 
-router.post('/CateringBookingPayment', auth, CateringMarketplaceBookingPayment);
+// Catering marketplace booking payment
+router.post('/cateringBookingPayment', auth, CateringMarketplaceBookingPayment);
 module.exports = router;
