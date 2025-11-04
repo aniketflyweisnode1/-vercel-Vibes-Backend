@@ -8,7 +8,8 @@ const {
   getVibeFundCampaignByAuth, 
   updateVibeFundCampaign, 
   deleteVibeFundCampaign,
-  changeApprovedStatus 
+  changeApprovedStatus,
+  getVibeFound
 } = require('../../controllers/vibe_fund_campaign.controller');
 
 const { auth } = require('../../../middleware/auth');
@@ -42,6 +43,9 @@ router.delete('/deleteVibeFundCampaignById/:id', auth, validateParams(getVibeFun
 
 // Change approved status of vibe fund campaign (with auth)
 router.patch('/changeApprovedStatus', auth, validateBody(changeApprovedStatusSchema), changeApprovedStatus);
+
+// Get Vibe Fund statistics (with auth)
+router.get('/getVibeFound', auth, getVibeFound);
 
 module.exports = router;
 

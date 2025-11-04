@@ -1,4 +1,5 @@
 const VibeFundCampaign = require('../models/vibe_fund_campaign.model');
+const VibeFundingCampaign = require('../models/vibe_funding_campaign.model');
 const BusinessCategory = require('../models/business_category.model');
 const CompaignType = require('../models/compaign_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
@@ -357,6 +358,66 @@ const changeApprovedStatus = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Get Vibe Fund statistics
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getVibeFound = asyncHandler(async (req, res) => {
+  try {
+    // Active campaigns count (status=true and approved_status=true)
+    const ActiveCompaignsCount = await VibeFundCampaign.countDocuments({
+      status: true,
+      approved_status: true
+    });
+
+    // Total raised (sum of fund_amount from VibeFundingCampaign where status=true)
+    const totalRaisedResult = await VibeFundingCampaign.aggregate([
+      {
+        $match: { status: true }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$fund_amount' }
+        }
+      }
+    ]);
+    const TotalRaised = totalRaisedResult.length > 0 ? totalRaisedResult[0].total : 0;
+
+    // Total campaigns count
+    const TotalCampaigns = await VibeFundCampaign.countDocuments({});
+
+    // Average funding (average of funding_goal from all campaigns)
+    const avgFundingResult = await VibeFundCampaign.aggregate([
+      {
+        $group: {
+          _id: null,
+          avg: { $avg: '$funding_goal' }
+        }
+      }
+    ]);
+    const Avg_Funding = avgFundingResult.length > 0 ? Math.round(avgFundingResult[0].avg * 100) / 100 : 0;
+
+    // Inactive campaigns count (status=false)
+    const InActiveCompaigns = await VibeFundCampaign.countDocuments({
+      status: false
+    });
+
+    const statistics = {
+      ActiveCompaignsCount,
+      TotalRaised,
+      TotalCampaigns,
+      Avg_Funding,
+      InActiveCompaigns
+    };
+
+    sendSuccess(res, statistics, 'Vibe Fund statistics retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createVibeFundCampaign,
   getAllVibeFundCampaign,
@@ -364,6 +425,7 @@ module.exports = {
   updateVibeFundCampaign,
   deleteVibeFundCampaign,
   getVibeFundCampaignByAuth,
-  changeApprovedStatus
+  changeApprovedStatus,
+  getVibeFound
 };
 

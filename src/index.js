@@ -31,6 +31,7 @@ const notificationTypeRoutes = require('./routes/Admin/notification_type.routes.
 const notificationRoutes = require('./routes/Admin/notification.routes.js');
 const couponCodeRoutes = require('./routes/Admin/coupon_code.routes.js');
 const compaignTypeRoutes = require('./routes/Admin/compaign_type.routes.js');
+const categoriesFeesRoutes = require('./routes/Admin/categories_fees.routes.js');
 
 // Import Master route modules
 const transactionRoutes = require('./routes/Master/transaction.routes.js');
@@ -163,6 +164,7 @@ router.use('/admin/notification-types', notificationTypeRoutes);
 router.use('/admin/notifications', notificationRoutes);
 router.use('/admin/coupon-codes', couponCodeRoutes);
 router.use('/admin/compaign-types', compaignTypeRoutes);
+router.use('/admin/categories-fees', categoriesFeesRoutes);
 
 // Mount Master route modules
 router.use('/master/transactions', transactionRoutes);
