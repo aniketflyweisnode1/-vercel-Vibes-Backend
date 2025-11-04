@@ -9,7 +9,9 @@ const {
   updateVibeFundCampaign, 
   deleteVibeFundCampaign,
   changeApprovedStatus,
-  getVibeFound
+  getVibeFound,
+  getDisbursements,
+  getCampaigns
 } = require('../../controllers/vibe_fund_campaign.controller');
 
 const { auth } = require('../../../middleware/auth');
@@ -46,6 +48,12 @@ router.patch('/changeApprovedStatus', auth, validateBody(changeApprovedStatusSch
 
 // Get Vibe Fund statistics (with auth)
 router.get('/getVibeFound', auth, getVibeFound);
+
+// Get Disbursements (with auth)
+router.get('/getDisbursements', auth, getDisbursements);
+
+// Get Campaigns (with auth)
+router.get('/getCampaigns', auth, getCampaigns);
 
 module.exports = router;
 

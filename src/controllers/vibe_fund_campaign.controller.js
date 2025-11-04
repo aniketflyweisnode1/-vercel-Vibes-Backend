@@ -1,5 +1,8 @@
 const VibeFundCampaign = require('../models/vibe_fund_campaign.model');
 const VibeFundingCampaign = require('../models/vibe_funding_campaign.model');
+const Disbursement = require('../models/disbursement.model');
+const User = require('../models/user.model');
+const BankName = require('../models/bank_name.model');
 const BusinessCategory = require('../models/business_category.model');
 const CompaignType = require('../models/compaign_type.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
@@ -418,6 +421,146 @@ const getVibeFound = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Get Disbursements
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getDisbursements = asyncHandler(async (req, res) => {
+  try {
+    // Get all disbursements
+    const disbursements = await Disbursement.find({})
+      .sort({ request_date: -1 });
+
+    // Get unique IDs for population
+    const campaignIds = [...new Set(disbursements.map(d => d.vibe_fund_campaign_id).filter(Boolean))];
+    const userIds = [...new Set(disbursements.map(d => d.beneficiary_user_id).filter(Boolean))];
+    const bankIds = [...new Set(disbursements.map(d => d.bank_name_id).filter(Boolean))];
+
+    // Fetch related data
+    const [campaigns, users, banks] = await Promise.all([
+      VibeFundCampaign.find({ vibe_fund_campaign_id: { $in: campaignIds } })
+        .select('vibe_fund_campaign_id title'),
+      User.find({ user_id: { $in: userIds } })
+        .select('user_id name'),
+      BankName.find({ bank_name_id: { $in: bankIds } })
+        .select('bank_name_id bank_name')
+    ]);
+
+    // Create maps for quick lookup
+    const campaignMap = {};
+    campaigns.forEach(campaign => {
+      campaignMap[campaign.vibe_fund_campaign_id] = campaign;
+    });
+
+    const userMap = {};
+    users.forEach(user => {
+      userMap[user.user_id] = user;
+    });
+
+    const bankMap = {};
+    banks.forEach(bank => {
+      bankMap[bank.bank_name_id] = bank;
+    });
+
+    // Format disbursements data
+    const now = new Date();
+    const disbursementsData = disbursements.map(disbursement => {
+      const campaign = campaignMap[disbursement.vibe_fund_campaign_id];
+      const beneficiary = userMap[disbursement.beneficiary_user_id];
+      const bank = bankMap[disbursement.bank_name_id];
+
+      // Calculate age in hours
+      const requestDate = new Date(disbursement.request_date);
+      const diffMs = now - requestDate;
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+      return {
+        ReqId: disbursement.disbursement_id,
+        CampaignName: campaign ? campaign.title : 'N/A',
+        Beneficiary: beneficiary ? beneficiary.name : 'N/A',
+        Amount: disbursement.amount,
+        Bank: bank ? bank.bank_name : 'N/A',
+        Age_Hour: diffHours,
+        datetime: disbursement.request_date.toISOString()
+      };
+    });
+
+    sendSuccess(res, disbursementsData, 'Disbursements retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Get Campaigns (Funding contributions with campaign details)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getCampaigns = asyncHandler(async (req, res) => {
+  try {
+    // Get all funding contributions
+    const fundings = await VibeFundingCampaign.find({})
+      .sort({ created_at: -1 });
+
+    // Get unique IDs for population
+    const campaignIds = [...new Set(fundings.map(f => f.vibe_fund_campaign_id).filter(Boolean))];
+    const userIds = [...new Set(fundings.map(f => f.fundby_user_id).filter(Boolean))];
+
+    // Fetch related data
+    const [campaigns, users] = await Promise.all([
+      VibeFundCampaign.find({ vibe_fund_campaign_id: { $in: campaignIds } })
+        .select('vibe_fund_campaign_id title funding_goal status approved_status'),
+      User.find({ user_id: { $in: userIds } })
+        .select('user_id name')
+    ]);
+
+    // Create maps for quick lookup
+    const campaignMap = {};
+    campaigns.forEach(campaign => {
+      campaignMap[campaign.vibe_fund_campaign_id] = campaign;
+    });
+
+    const userMap = {};
+    users.forEach(user => {
+      userMap[user.user_id] = user;
+    });
+
+    // Format campaigns data
+    const campaignsData = fundings.map(funding => {
+      const campaign = campaignMap[funding.vibe_fund_campaign_id];
+      const funder = userMap[funding.fundby_user_id];
+
+      // Determine status - use campaign status if available, otherwise funding status
+      let status = 'Active';
+      if (campaign) {
+        if (!campaign.status) {
+          status = 'Inactive';
+        } else if (!campaign.approved_status) {
+          status = 'Pending Approval';
+        } else {
+          status = 'Active';
+        }
+      } else if (!funding.status) {
+        status = 'Inactive';
+      }
+
+      return {
+        Date: funding.created_at.toISOString(),
+        Campaign: campaign ? campaign.title : 'N/A',
+        Funder: funder ? funder.name : 'N/A',
+        Amount: funding.fund_amount,
+        Goal: campaign ? campaign.funding_goal : 0,
+        Status: status
+      };
+    });
+
+    sendSuccess(res, campaignsData, 'Campaigns retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createVibeFundCampaign,
   getAllVibeFundCampaign,
@@ -426,6 +569,8 @@ module.exports = {
   deleteVibeFundCampaign,
   getVibeFundCampaignByAuth,
   changeApprovedStatus,
-  getVibeFound
+  getVibeFound,
+  getDisbursements,
+  getCampaigns
 };
 
