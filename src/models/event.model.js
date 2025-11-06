@@ -20,6 +20,16 @@ const eventSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  Event_type: {
+    type: String,
+    enum: ['Private', 'Public'],
+    default: 'Public'
+  },
+  EntryPrice: {
+    type: Number,
+    default: 0,
+    min: [0, 'Entry price cannot be negative']
+  },
   description: {
     type: String,
     trim: true,

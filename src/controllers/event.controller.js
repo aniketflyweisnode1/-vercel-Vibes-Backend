@@ -92,6 +92,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
       search = '',
       status,
       event_type_id,
+      Event_type,
       country_id,
       state_id,
       city_id,
@@ -118,6 +119,11 @@ const getAllEvents = asyncHandler(async (req, res) => {
     // Add event_type_id filter
     if (event_type_id) {
       filter.event_type_id = event_type_id;
+    }
+
+    // Add Event_type filter (Private/Public)
+    if (Event_type) {
+      filter.Event_type = Event_type;
     }
 
     // Add country_id filter
@@ -522,6 +528,7 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
       search = '',
       status,
       event_type_id,
+      Event_type,
       country_id,
       state_id,
       city_id,
@@ -550,6 +557,11 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
     // Add event_type_id filter
     if (event_type_id) {
       filter.event_type_id = event_type_id;
+    }
+
+    // Add Event_type filter (Private/Public)
+    if (Event_type) {
+      filter.Event_type = Event_type;
     }
 
     // Add country_id filter
