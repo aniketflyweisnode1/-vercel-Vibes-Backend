@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Import controllers
-const { createUser, getAllUsers, getUserById, updateUser, updateUserByIdBody, deleteUser, login, logout, getProfile, updateProfile, changePassword, sendOTP, verifyOTP, getUsersByRoleId, forgotPassword, resetPassword, PlatFormFeePayment } = require('../../controllers/user.controller'); 
+const { createUser, getAllUsers, getUserById, updateUser, updateUserByIdBody, deleteUser, login, logout, getProfile, updateProfile, changePassword, sendOTP, verifyOTP, getUsersByRoleId, forgotPassword, resetPassword, PlatFormFeePayment, updateStaffProfile } = require('../../controllers/user.controller'); 
   // Import middleware
 const { auth, authRateLimit } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
@@ -27,6 +27,8 @@ router.get('/getByRoleId/:role_id', auth, validateParams(getUsersByRoleIdSchema)
 router.get('/getProfile', auth, getProfile);
 
 router.put('/updateProfile', auth, validateBody(updateUserSchema), updateProfile);    
+
+router.put('/updateStaffProfile', auth, updateStaffProfile);
 
 router.put('/changePassword', auth, validateBody(changePasswordSchema), changePassword);   
 

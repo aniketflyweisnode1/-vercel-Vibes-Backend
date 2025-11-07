@@ -138,6 +138,8 @@ const getAllUsers = asyncHandler(async (req, res) => {
       limit = 10,
       search = '',
       status,
+      zip_code,
+      Govt_id_type,
       sortBy = 'created_on',
       sortOrder = 'desc'
     } = req.query;
@@ -154,8 +156,23 @@ const getAllUsers = asyncHandler(async (req, res) => {
         { business_name: { $regex: search, $options: 'i' } },
         { business_description: { $regex: search, $options: 'i' } },
         { business_address: { $regex: search, $options: 'i' } },
-        { bank_account_holder_name: { $regex: search, $options: 'i' } }
+        { bank_account_holder_name: { $regex: search, $options: 'i' } },
+        { zip_code: { $regex: search, $options: 'i' } },
+        { postal_code: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } },
+        { Authorized_Person_Name: { $regex: search, $options: 'i' } },
+        { ID_Number: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    // Add zip_code filter
+    if (zip_code) {
+      filter.zip_code = zip_code;
+    }
+
+    // Add Govt_id_type filter
+    if (Govt_id_type) {
+      filter.Govt_id_type = Govt_id_type;
     }
 
     // Add status filter
@@ -661,6 +678,8 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
       limit = 10,
       search = '',
       status,
+      zip_code,
+      Govt_id_type,
       sortBy = 'created_on',
       sortOrder = 'desc'
     } = req.query;
@@ -679,8 +698,23 @@ const getUsersByRoleId = asyncHandler(async (req, res) => {
         { business_name: { $regex: search, $options: 'i' } },
         { business_description: { $regex: search, $options: 'i' } },
         { business_address: { $regex: search, $options: 'i' } },
-        { bank_account_holder_name: { $regex: search, $options: 'i' } }
+        { bank_account_holder_name: { $regex: search, $options: 'i' } },
+        { zip_code: { $regex: search, $options: 'i' } },
+        { postal_code: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } },
+        { Authorized_Person_Name: { $regex: search, $options: 'i' } },
+        { ID_Number: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    // Add zip_code filter
+    if (zip_code) {
+      filter.zip_code = zip_code;
+    }
+
+    // Add Govt_id_type filter
+    if (Govt_id_type) {
+      filter.Govt_id_type = Govt_id_type;
     }
 
     // Add status filter
@@ -1065,6 +1099,88 @@ const PlatFormFeePayment = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Update staff profile - Only allows updating specific fields
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const updateStaffProfile = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      return sendError(res, 'User ID is required', 400);
+    }
+
+    // Define allowed fields that can be updated
+    const allowedFields = [
+      'mobile',
+      'address',
+      'country_id',
+      'state_id',
+      'city_id',
+      'zip_code',
+      'Authorized_Person_Name',
+      'DOB',
+      'Govt_id_type',
+      'ID_Number',
+      'id_proof_owner_img',
+      'user_img'
+    ];
+
+    // Build update data object with only allowed fields
+    const updateData = {
+      updated_by: req.userId || userId,
+      updated_on: new Date()
+    };
+
+    // Only include fields that are in the allowed list and present in req.body
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    // Check if there's anything to update
+    if (Object.keys(updateData).length === 2) { // Only updated_by and updated_on
+      return sendError(res, 'No valid fields to update', 400);
+    }
+
+    // Find and update user
+    const user = await User.findOneAndUpdate(
+      { user_id: parseInt(userId) },
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+        select: '-password'
+      }
+    );
+
+    if (!user) {
+      return sendNotFound(res, 'User not found');
+    }
+
+    // Create notification for profile update
+    try {
+      if (user.user_id) {
+        await createNotificationHendlar(
+          user.user_id,
+          3, // Notification type ID: 3 = Account/User related
+          `Your staff profile has been updated successfully.`,
+          req.userId || user.user_id
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to create profile update notification:', notificationError);
+    }
+
+    sendSuccess(res, user, 'Staff profile updated successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -1082,6 +1198,7 @@ module.exports = {
   getUsersByRoleId,
   forgotPassword,
   resetPassword,
-  PlatFormFeePayment
+  PlatFormFeePayment,
+  updateStaffProfile
 };
 

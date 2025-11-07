@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Please enter a valid email']
+   // match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Please enter a valid email']
   },
   password: {
     type: String,
@@ -55,6 +55,11 @@ const userSchema = new mongoose.Schema({
     ref: 'City',
     default: 1
   },
+  zip_code: {
+    type: String,
+    trim: true,
+    maxlength: [10, 'Zip code cannot exceed 10 characters']
+  },
   role_id: {
     type: Number,
     ref: 'Role',
@@ -72,6 +77,24 @@ const userSchema = new mongoose.Schema({
   gender: {
     type: String,
     enum: ['male', 'female', 'other'],
+  },
+  Authorized_Person_Name: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Authorized person name cannot exceed 100 characters']
+  },
+  DOB: {
+    type: Date
+  },
+  Govt_id_type: {
+    type: String,
+    trim: true,
+    enum: ['Aadhaar', 'PAN', 'Passport', 'Driving License', 'Voter ID', 'Other']
+  },
+  ID_Number: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'ID number cannot exceed 50 characters']
   },
   user_img: {
     type: String,
