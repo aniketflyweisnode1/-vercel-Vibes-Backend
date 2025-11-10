@@ -2,6 +2,7 @@ const StaffEventBook = require('../models/staff_event_book.model');
 const Transaction = require('../models/transaction.model');
 const User = require('../models/user.model');
 const StaffWorkingPrice = require('../models/staff_working_price.model');
+const AvailabilityCalender = require('../models/availability_calender.model');
 const { sendSuccess, sendError, sendNotFound } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
@@ -19,7 +20,40 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
     };
 
     const staffEventBook = await StaffEventBook.create(staffEventBookData);
-console.log(staffEventBook);
+
+    // Create availability calendar entry for the booked slot
+    try {
+      const startDate = staffEventBook.dateFrom ? new Date(staffEventBook.dateFrom) : null;
+      const endDate = staffEventBook.dateTo ? new Date(staffEventBook.dateTo) : null;
+
+      if (startDate && !Number.isNaN(startDate.getTime())) {
+        const availabilityPayload = {
+          Year: startDate.getFullYear(),
+          Month: startDate.getMonth() + 1,
+          Date_start: startDate,
+          End_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
+          Start_time: staffEventBook.timeFrom || null,
+          End_time: staffEventBook.timeTo || null,
+          user_id: staffEventBook.staff_id,
+          Event_id: staffEventBook.event_id,
+          User_availabil: 'Book',
+          Status: true,
+          CreateBy: req.userId,
+          UpdatedBy: null
+        };
+
+        // Ensure Month within range in case of invalid dates
+        if (availabilityPayload.Month < 1 || availabilityPayload.Month > 12) {
+          availabilityPayload.Month = Math.min(Math.max(availabilityPayload.Month, 1), 12);
+        }
+
+        await AvailabilityCalender.create(availabilityPayload);
+      }
+    } catch (availabilityError) {
+      console.error('Failed to create availability calendar entry:', availabilityError);
+      // Do not fail booking if availability log fails; continue
+    }
+
     // Try to fetch staff price based on staff_id and staff_category_id
     let staffPrice = null;
     if (staffEventBook.staff_id) {
@@ -139,6 +173,43 @@ const updateStaffEventBook = asyncHandler(async (req, res) => {
     if (!staffEventBook) {
       return sendNotFound(res, 'Staff event booking not found');
     }
+
+    // Update related availability calendar entry
+    try {
+      const startDate = updateData.dateFrom ? new Date(updateData.dateFrom) : (staffEventBook.dateFrom ? new Date(staffEventBook.dateFrom) : null);
+      const endDate = updateData.dateTo ? new Date(updateData.dateTo) : (staffEventBook.dateTo ? new Date(staffEventBook.dateTo) : null);
+
+      if (startDate && !Number.isNaN(startDate.getTime())) {
+        const availabilityUpdate = {
+          Year: startDate.getFullYear(),
+          Month: startDate.getMonth() + 1,
+          Date_start: startDate,
+          End_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
+          Start_time: updateData.timeFrom !== undefined ? updateData.timeFrom || null : staffEventBook.timeFrom || null,
+          End_time: updateData.timeTo !== undefined ? updateData.timeTo || null : staffEventBook.timeTo || null,
+          User_availabil: updateData.User_availabil || 'Book',
+          Event_id: updateData.event_id || staffEventBook.event_id,
+          UpdatedBy: req.userId,
+          UpdatedAt: new Date()
+        };
+
+        if (availabilityUpdate.Month < 1 || availabilityUpdate.Month > 12) {
+          availabilityUpdate.Month = Math.min(Math.max(availabilityUpdate.Month, 1), 12);
+        }
+
+        await AvailabilityCalender.findOneAndUpdate(
+          {
+            user_id: staffEventBook.staff_id,
+            Event_id: staffEventBook.event_id
+          },
+          availabilityUpdate,
+          { upsert: true, new: true, runValidators: true }
+        );
+      }
+    } catch (availabilityError) {
+      console.error('Failed to update availability calendar entry:', availabilityError);
+    }
+
     sendSuccess(res, staffEventBook, 'Staff event booking updated successfully');
   } catch (error) {
     throw error;
@@ -167,6 +238,24 @@ const deleteStaffEventBook = asyncHandler(async (req, res) => {
     if (!staffEventBook) {
       return sendNotFound(res, 'Staff event booking not found');
     }
+
+    try {
+      await AvailabilityCalender.findOneAndUpdate(
+        {
+          user_id: staffEventBook.staff_id,
+          Event_id: staffEventBook.event_id
+        },
+        {
+          Status: false,
+          UpdatedBy: req.userId,
+          UpdatedAt: new Date()
+        },
+        { new: true }
+      );
+    } catch (availabilityError) {
+      console.error('Failed to soft delete availability calendar entry:', availabilityError);
+    }
+
     sendSuccess(res, staffEventBook, 'Staff event booking deleted successfully');
   } catch (error) {
     throw error;

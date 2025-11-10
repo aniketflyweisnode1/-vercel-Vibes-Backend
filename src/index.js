@@ -87,6 +87,8 @@ const cateringMarketplaceCategoryRoutes = require('./routes/Master/catering_mark
 const cateringMarketplaceRoutes = require('./routes/Master/catering_marketplace.routes.js');
 const cateringMarketplaceBookingRoutes = require('./routes/Master/catering_marketplace_booking.routes.js');
 const contactVendorRoutes = require('./routes/Master/contact_vendor.routes.js');
+const availabilityCalenderRoutes = require('./routes/Master/availability_calender.routes.js');
+const globalSearchRoutes = require('./routes/Master/global_search.routes.js');
 const emailTemplateRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/email_template.routes.js');
 
 // Import Vendor route modules
@@ -102,6 +104,7 @@ const corporateDashboardClientRoutes = require('./routes/Vendor/corporate_Dashbo
 const corporateDashboardPricingPlansRoutes = require('./routes/Vendor/corporate_Dashboard_PricingPlans.routes.js');
 const corporateDashboardRoutes = require('./routes/Vendor/corporate_Dashboard.routes.js');
 const premiumDashboardRoutes = require('./routes/Vendor/premium_Dashboard.routes.js');
+const vendorBookingRoutes = require('./routes/Vendor/vendor_booking.routes.js');
 
 // Import middleware
 const { sendSuccess } = require('../utils/response.js');
@@ -220,6 +223,8 @@ router.use('/master/catering-marketplace-category', cateringMarketplaceCategoryR
 router.use('/master/catering-marketplace', cateringMarketplaceRoutes);
 router.use('/master/catering-marketplace-booking', cateringMarketplaceBookingRoutes);
 router.use('/master/contact-vendor', contactVendorRoutes);
+router.use('/master/availability-calender', availabilityCalenderRoutes);
+router.use('/master/global-search', globalSearchRoutes);
 router.use('/vendor/email-template', emailTemplateRoutes);
 
 // Mount Vendor route modules
@@ -235,5 +240,6 @@ router.use('/vendor/corporate-dashboard-client', corporateDashboardClientRoutes)
 router.use('/vendor/corporate-dashboard-pricing-plans', corporateDashboardPricingPlansRoutes);
 router.use('/vendor/corporate-dashboard', corporateDashboardRoutes);
 router.use('/vendor/premium-dashboard', premiumDashboardRoutes);
+router.use('/vendor/bookings', vendorBookingRoutes);
 
 module.exports = router;

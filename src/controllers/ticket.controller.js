@@ -1,3 +1,25 @@
+const validateTicketDetail = (detail, index) => {
+  if (detail == null || typeof detail !== 'object') {
+    throw new Error(`ticketDateils[${index}] must be an object`);
+  }
+
+  if (detail.ticket_type_id === undefined || detail.ticket_type_id === null) {
+    throw new Error(`ticketDateils[${index}].ticket_type_id is required`);
+  }
+  if (detail.ticket_query === undefined || detail.ticket_query === null || detail.ticket_query === '') {
+    throw new Error(`ticketDateils[${index}].ticket_query is required`);
+  }
+  if (detail.price === undefined || detail.price === null) {
+    throw new Error(`ticketDateils[${index}].price is required`);
+  }
+
+  return {
+    ticket_type_id: Number(detail.ticket_type_id),
+    ticket_query: String(detail.ticket_query),
+    price: Number(detail.price)
+  };
+};
+
 const Ticket = require('../models/ticket.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
@@ -14,6 +36,16 @@ const createTicket = asyncHandler(async (req, res) => {
       ...req.body,
       created_by: req.userId || null
     };
+
+    if (!Array.isArray(ticketData.ticketDateils) || ticketData.ticketDateils.length === 0) {
+      return sendError(res, 'ticketDateils must be a non-empty array', 400);
+    }
+
+    try {
+      ticketData.ticketDateils = ticketData.ticketDateils.map((detail, index) => validateTicketDetail(detail, index));
+    } catch (validationError) {
+      return sendError(res, validationError.message, 400);
+    }
 
     // Create ticket
     const ticket = await Ticket.create(ticketData);
@@ -46,7 +78,7 @@ const getAllTickets = asyncHandler(async (req, res) => {
     // Add search filter
     if (search) {
       filter.$or = [
-        { ticket_query: { $regex: search, $options: 'i' } },
+        { 'ticketDateils.ticket_query': { $regex: search, $options: 'i' } },
         { reply: { $regex: search, $options: 'i' } }
       ];
     }
@@ -56,7 +88,7 @@ const getAllTickets = asyncHandler(async (req, res) => {
 
     // Add ticket_type_id filter
     if (ticket_type_id && ticket_type_id !== '') {
-      filter.ticket_type_id = parseInt(ticket_type_id);
+      filter['ticketDateils.ticket_type_id'] = parseInt(ticket_type_id);
     }
 
     // Build sort object
@@ -146,7 +178,7 @@ const getTicketByTicketType = asyncHandler(async (req, res) => {
 
     // Get tickets by ticket type
     const tickets = await Ticket.find({ 
-      ticket_type_id: parseInt(ticketTypeId) 
+      'ticketDateils.ticket_type_id': parseInt(ticketTypeId) 
     }).sort({ created_at: -1 });
     sendSuccess(res, tickets, 'Tickets retrieved successfully');
   } catch (error) {
@@ -161,14 +193,25 @@ const getTicketByTicketType = asyncHandler(async (req, res) => {
  */
 const updateTicket = asyncHandler(async (req, res) => {
   try {
-    const { ticket_id, ...updateFields } = req.body;
+    const { ticket_id, ticketDateils, ...updateFields } = req.body;
 
-    // Add update metadata
     const updateData = {
       ...updateFields,
       updated_by: req.userId,
       updated_at: new Date()
     };
+
+    if (ticketDateils !== undefined) {
+      if (!Array.isArray(ticketDateils) || ticketDateils.length === 0) {
+        return sendError(res, 'ticketDateils must be a non-empty array', 400);
+      }
+
+      try {
+        updateData.ticketDateils = ticketDateils.map((detail, index) => validateTicketDetail(detail, index));
+      } catch (validationError) {
+        return sendError(res, validationError.message, 400);
+      }
+    }
 
     const ticket = await Ticket.findOneAndUpdate(
       { ticket_id: parseInt(ticket_id) },

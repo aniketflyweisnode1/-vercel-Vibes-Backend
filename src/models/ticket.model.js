@@ -10,17 +10,24 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     ref: 'Event',
   },
-  ticket_type_id: {
-    type: Number,
-    ref: 'TicketType',
-    required: [true, 'Ticket type ID is required']
-  },
-  ticket_query: {
-    type: String,
-    required: [true, 'Ticket query is required'],
-    trim: true,
-    maxlength: [2000, 'Ticket query cannot exceed 2000 characters']
-  },
+  ticketDateils: [{
+    ticket_type_id: {
+      type: Number,
+      ref: 'TicketType',
+      required: [true, 'Ticket type ID is required']
+    },
+    ticket_query: {
+      type: String,
+      required: [true, 'Ticket query is required'],
+      trim: true,
+      maxlength: [2000, 'Ticket query cannot exceed 2000 characters']
+    },
+    price: {
+      type: Number,
+      required: [true, 'Price is required'],
+      min: [0, 'Price cannot be negative']
+    }
+  }],
   reply: {
     type: String,
     trim: true,
@@ -59,8 +66,9 @@ ticketSchema.plugin(AutoIncrement, { inc_field: 'ticket_id' });
 
 // Index for better performance
 ticketSchema.index({ ticket_id: 1 });
-ticketSchema.index({ ticket_type_id: 1 });
+ticketSchema.index({ 'ticketDateils.ticket_type_id': 1 });
 ticketSchema.index({ status: 1 });
 ticketSchema.index({ created_at: -1 });
+ticketSchema.index({ 'ticketDateils.ticket_query': 1 });
 
 module.exports = mongoose.model('Ticket', ticketSchema);

@@ -1,6 +1,7 @@
 const Event = require('../models/event.model');
 const VenueDetails = require('../models/venue_details.model');
 const User = require('../models/user.model');
+const Ticket = require('../models/ticket.model');
 const emailService = require('../../utils/emailService');
 const Transaction = require('../models/transaction.model');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
@@ -23,6 +24,19 @@ const createEvent = asyncHandler(async (req, res) => {
 
     // Create event
     const event = await Event.create(eventData);
+
+    if (event.Event_type === 'Public' && event.EntryPrice > 0) {
+      try {
+        await Ticket.create({
+          event_id: event.event_id,
+          ticketDateils,
+          status: true,
+          created_by: req.userId || event.created_by
+        });
+      } catch (ticketError) {
+        console.error('Failed to create automatic ticket for public event:', ticketError);
+      }
+    }
     
     // Send email with calendar attachment to the user who created the event
     try {

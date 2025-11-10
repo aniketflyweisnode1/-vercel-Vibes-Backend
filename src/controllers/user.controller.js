@@ -1106,11 +1106,25 @@ const PlatFormFeePayment = asyncHandler(async (req, res) => {
  */
 const updateStaffProfile = asyncHandler(async (req, res) => {
   try {
-    const userId = req.userId;
+    const { id } = req.body;
+    const candidateUserId = id || req.userId;
 
-    if (!userId) {
+    if (!candidateUserId) {
       return sendError(res, 'User ID is required', 400);
     }
+
+    const normalizedUserId = parseInt(candidateUserId, 10);
+    if (Number.isNaN(normalizedUserId)) {
+      return sendError(res, 'Invalid user ID', 400);
+    }
+
+    const existingUser = await User.findOne({ user_id: normalizedUserId }).select('-password');
+
+    if (!existingUser) {
+      return sendNotFound(res, 'User not found');
+    }
+
+    const numericFields = new Set(['country_id', 'state_id', 'city_id']);
 
     // Define allowed fields that can be updated
     const allowedFields = [
@@ -1128,27 +1142,160 @@ const updateStaffProfile = asyncHandler(async (req, res) => {
       'user_img'
     ];
 
+    let hasValidUpdate = false;
+
     // Build update data object with only allowed fields
     const updateData = {
-      updated_by: req.userId || userId,
+      updated_by: req.userId || existingUser.user_id,
       updated_on: new Date()
     };
 
     // Only include fields that are in the allowed list and present in req.body
-    allowedFields.forEach(field => {
+    for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
+        if (numericFields.has(field)) {
+          const rawValue = req.body[field];
+          if (rawValue === '' || rawValue === null) {
+            updateData[field] = null;
+          } else {
+            const numericValue = Number(rawValue);
+            if (Number.isNaN(numericValue)) {
+              return sendError(res, `${field} must be a numeric value`, 400);
+            }
+            updateData[field] = numericValue;
+          }
+        } else if (field === 'DOB' && req.body[field]) {
+          const dateValue = new Date(req.body[field]);
+          if (Number.isNaN(dateValue.getTime())) {
+            return sendError(res, 'Invalid DOB format', 400);
+          }
+          updateData[field] = dateValue;
+        } else {
+          updateData[field] = req.body[field];
+        }
+        hasValidUpdate = true;
       }
-    });
+    }
 
-    // Check if there's anything to update
-    if (Object.keys(updateData).length === 2) { // Only updated_by and updated_on
+    // Handle bank details section
+    const bankDetailsInput = (req.body.bankDetails && typeof req.body.bankDetails === 'object')
+      ? req.body.bankDetails
+      : (req.body.bank_details && typeof req.body.bank_details === 'object' ? req.body.bank_details : null);
+
+    if (bankDetailsInput) {
+      const bankFieldWhitelist = [
+        'bank_branch_name',
+        'bank_name_id',
+        'holderName',
+        'upi',
+        'ifsc',
+        'accountNo',
+        'address',
+        'cardNo',
+        'zipcode',
+        'emoji'
+      ];
+
+      const bankData = {};
+
+      bankFieldWhitelist.forEach((field) => {
+        if (bankDetailsInput[field] !== undefined && bankDetailsInput[field] !== null && bankDetailsInput[field] !== '') {
+          bankData[field] = bankDetailsInput[field];
+        }
+      });
+
+      if (bankData.bank_name_id !== undefined) {
+        const parsedBankNameId = parseInt(bankData.bank_name_id, 10);
+        if (Number.isNaN(parsedBankNameId)) {
+          return sendError(res, 'bank_name_id must be a numeric value', 400);
+        }
+        bankData.bank_name_id = parsedBankNameId;
+      }
+
+      let bankRecordId = bankDetailsInput.bank_branch_name_id || existingUser.bank_branch_id || null;
+      bankRecordId = bankRecordId !== undefined && bankRecordId !== null && bankRecordId !== ''
+        ? parseInt(bankRecordId, 10)
+        : null;
+
+      let bankRecord = null;
+      const hasBankData = Object.keys(bankData).length > 0;
+
+      if (bankRecordId && hasBankData) {
+        const bankUpdatePayload = {
+          ...bankData,
+          updated_by: req.userId || existingUser.user_id,
+          updated_at: new Date()
+        };
+
+        bankRecord = await BankBranchName.findOneAndUpdate(
+          { bank_branch_name_id: bankRecordId, created_by: existingUser.user_id },
+          bankUpdatePayload,
+          { new: true, runValidators: true }
+        );
+
+        if (!bankRecord) {
+          const requiredBankFields = ['bank_branch_name', 'bank_name_id', 'holderName', 'accountNo', 'address', 'zipcode'];
+          const missingFields = requiredBankFields.filter((field) => bankData[field] === undefined);
+
+          if (missingFields.length) {
+            return sendError(
+              res,
+              `Bank details not found for update. Missing required fields to create new record: ${missingFields.join(', ')}`,
+              400
+            );
+          }
+
+          bankRecord = await BankBranchName.create({
+            ...bankData,
+            created_by: existingUser.user_id,
+            updated_by: req.userId || existingUser.user_id,
+            updated_at: new Date()
+          });
+        }
+      } else if (bankRecordId && !hasBankData) {
+        bankRecord = await BankBranchName.findOne({
+          bank_branch_name_id: bankRecordId,
+          created_by: existingUser.user_id
+        });
+
+        if (!bankRecord) {
+          return sendError(res, 'Bank details not found for the provided bank_branch_name_id', 404);
+        }
+      } else if (!bankRecordId && hasBankData) {
+        const requiredBankFields = ['bank_branch_name', 'bank_name_id', 'holderName', 'accountNo', 'address', 'zipcode'];
+        const missingFields = requiredBankFields.filter((field) => bankData[field] === undefined);
+
+        if (missingFields.length) {
+          return sendError(
+            res,
+            `Missing required bank fields: ${missingFields.join(', ')}`,
+            400
+          );
+        }
+
+        bankRecord = await BankBranchName.create({
+          ...bankData,
+          created_by: existingUser.user_id,
+          updated_by: req.userId || existingUser.user_id,
+          updated_at: new Date()
+        });
+      }
+
+      if (bankRecord) {
+        updateData.bank_branch_id = bankRecord.bank_branch_name_id;
+        updateData.bank_name_id = bankRecord.bank_name_id;
+        updateData.bank_account_holder_name = bankRecord.holderName;
+        updateData.bank_account_no = bankRecord.accountNo;
+        hasValidUpdate = true;
+      }
+    }
+
+    if (!hasValidUpdate) {
       return sendError(res, 'No valid fields to update', 400);
     }
 
-    // Find and update user
     const user = await User.findOneAndUpdate(
-      { user_id: parseInt(userId) },
+      { user_id: normalizedUserId },
       updateData,
       {
         new: true,

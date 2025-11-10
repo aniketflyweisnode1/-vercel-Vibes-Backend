@@ -127,30 +127,35 @@ const vendorOnboardingPortalSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Service Categories with Pricing
+  service_categories: [{
+      category_id: {
+        type: Number
+      },
+      category_name: {
+        type: String,
+        trim: true
+      },
+      pricing: {
+        type: Number,
+        min: [0, 'Pricing must be a non-negative number']
+      },
+      pricing_currency: {
+        type: String,
+        trim: true,
+        maxlength: [10, 'Currency code cannot exceed 10 characters'],
+        default: 'USD'
+      }
+    }],
   // Payment Setup Section
-  Payment_Setup_HolderName: {
-    type: String,
-    trim: true
+  bank_branch_name_id: {
+    type: Number,
+    ref: 'BankBranchName',
+    default: null
   },
-  Payment_Setup_BankName: {
-    type: String,
-    trim: true
-  },
-  Payment_Setup_BranchName: {
-    type: String,
-    trim: true
-  },
-  Payment_Setup_AccountNo: {
-    type: String,
-    trim: true
-  },
-  Payment_Setup_Ifsc: {
-    type: String,
-    trim: true
-  },
-  Payment_Setup_UPI: {
-    type: String,
-    trim: true
+  initial_payment_required: {
+    type: Boolean,
+    default: false
   },
   // Status Fields
   ifConfirm: {

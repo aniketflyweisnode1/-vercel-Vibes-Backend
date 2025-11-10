@@ -39,6 +39,16 @@ const createVendorOnboardingPortalSchema = Joi.object({
   Payment_Setup_AccountNo: Joi.string().optional().allow('', null),
   Payment_Setup_Ifsc: Joi.string().optional().allow('', null),
   Payment_Setup_UPI: Joi.string().optional().allow('', null),
+  bank_branch_name_id: Joi.number().integer().optional().allow(null),
+  service_categories: Joi.array().items(
+    Joi.object({
+      category_id: Joi.number().optional().allow(null),
+      category_name: Joi.string().optional().allow('', null),
+      pricing: Joi.number().optional().allow(null),
+      pricing_currency: Joi.string().optional().allow('', null)
+    })
+  ).optional(),
+  initial_payment_required: Joi.boolean().optional(),
   ifConfirm: Joi.boolean().optional(),
   Status: Joi.boolean().optional()
 });
@@ -85,6 +95,16 @@ const updateVendorOnboardingPortalSchema = Joi.object({
   Payment_Setup_AccountNo: Joi.string().optional().allow('', null),
   Payment_Setup_Ifsc: Joi.string().optional().allow('', null),
   Payment_Setup_UPI: Joi.string().optional().allow('', null),
+  bank_branch_name_id: Joi.number().integer().optional().allow(null, ''),
+  service_categories: Joi.array().items(
+    Joi.object({
+      category_id: Joi.number().optional().allow(null),
+      category_name: Joi.string().optional().allow('', null),
+      pricing: Joi.number().optional().allow(null),
+      pricing_currency: Joi.string().optional().allow('', null)
+    })
+  ).optional(),
+  initial_payment_required: Joi.boolean().optional(),
   ifConfirm: Joi.boolean().optional(),
   Status: Joi.boolean().optional()
 });

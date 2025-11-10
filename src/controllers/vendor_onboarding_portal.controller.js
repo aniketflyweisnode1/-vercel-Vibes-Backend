@@ -3,6 +3,7 @@ const User = require('../models/user.model');
 const City = require('../models/city.model');
 const State = require('../models/state.model');
 const Country = require('../models/country.model');
+const BankBranchName = require('../models/bank_branch_name.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -69,7 +70,89 @@ const populateVendorOnboardingPortal = async (portal) => {
     } : null;
   }
 
+  if (portal.bank_branch_name_id) {
+    try {
+      const bankBranch = await BankBranchName.findOne({ bank_branch_name_id: portal.bank_branch_name_id });
+      populatedData.bank_branch_details = bankBranch || null;
+    } catch (error) {
+      populatedData.bank_branch_details = null;
+    }
+  }
+
   return populatedData;
+};
+
+/**
+ * Normalize service category input into a consistent array structure
+ * @param {any} input - Raw categories input
+ * @param {string} fieldName - Field name for error messaging
+ * @returns {{ provided: boolean, value?: Array }} Normalized result
+ */
+const parseServiceCategoriesInput = (input, fieldName = 'service_categories') => {
+  if (input === undefined) {
+    return { provided: false };
+  }
+
+  let rawValue = input;
+
+  if (typeof rawValue === 'string') {
+    if (!rawValue.trim()) {
+      return { provided: true, value: [] };
+    }
+    try {
+      rawValue = JSON.parse(rawValue);
+    } catch (error) {
+      throw new Error(`${fieldName} must be a valid JSON array`);
+    }
+  }
+
+  if (!Array.isArray(rawValue)) {
+    throw new Error(`${fieldName} must be an array of category objects`);
+  }
+
+  const normalized = [];
+
+  rawValue.forEach((item, index) => {
+    if (!item || typeof item !== 'object') {
+      return;
+    }
+
+    const normalizedItem = {};
+
+    if (item.category_id !== undefined && item.category_id !== null && item.category_id !== '') {
+      const categoryId = Number(item.category_id);
+      if (Number.isNaN(categoryId)) {
+        throw new Error(`category_id at index ${index} must be a numeric value`);
+      }
+      normalizedItem.category_id = categoryId;
+    }
+
+    if (item.category_name !== undefined && item.category_name !== null) {
+      normalizedItem.category_name = String(item.category_name).trim();
+    }
+
+    const rawPricing = item.pricing ?? item.price ?? item.amount;
+    if (rawPricing !== undefined && rawPricing !== null && rawPricing !== '') {
+      const pricingValue = Number(rawPricing);
+      if (Number.isNaN(pricingValue)) {
+        throw new Error(`pricing at index ${index} must be a numeric value`);
+      }
+      normalizedItem.pricing = pricingValue;
+    }
+
+    const rawCurrency = item.pricing_currency ?? item.currency ?? item.currency_code;
+    if (rawCurrency !== undefined && rawCurrency !== null) {
+      normalizedItem.pricing_currency = String(rawCurrency).trim();
+    } else if (normalizedItem.pricing !== undefined) {
+      normalizedItem.pricing_currency = 'USD';
+    }
+
+    if (Object.keys(normalizedItem).length > 0) {
+      normalized.push(normalizedItem);
+    }
+  });
+
+  return { provided: true, value: normalized };
 };
 
 /**
@@ -79,12 +162,83 @@ const populateVendorOnboardingPortal = async (portal) => {
  */
 const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
   try {
+    const initialPaymentInput = req.body.initial_payment_required;
+    const normalizedInitialPayment = initialPaymentInput === undefined
+      ? false
+      : (typeof initialPaymentInput === 'string'
+        ? initialPaymentInput === 'true'
+        : Boolean(initialPaymentInput));
+
+    let serviceCategoriesResult;
+    try {
+      serviceCategoriesResult = parseServiceCategoriesInput(
+        req.body.service_categories 
+      );
+    } catch (parseError) {
+      return sendError(res, parseError.message, 400);
+    }
+
     const portalData = {
       ...req.body,
+      initial_payment_required: normalizedInitialPayment,
       Vendor_id: req.userId,
       CreateBy: req.userId,
       CreateAt: new Date()
     };
+
+    delete portalData.categories;
+
+    if (serviceCategoriesResult?.provided) {
+      portalData.service_categories = serviceCategoriesResult.value;
+    } else {
+      delete portalData.service_categories;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(portalData, 'bank_branch_name_id')) {
+      if (portalData.bank_branch_name_id === null || portalData.bank_branch_name_id === '' || portalData.bank_branch_name_id === undefined) {
+        portalData.bank_branch_name_id = null;
+      } else {
+        const parsedBranchId = parseInt(portalData.bank_branch_name_id, 10);
+        if (Number.isNaN(parsedBranchId)) {
+          return sendError(res, 'bank_branch_name_id must be a numeric value', 400);
+        }
+
+        const bankBranch = await BankBranchName.findOne({
+          bank_branch_name_id: parsedBranchId,
+          created_by: req.userId
+        });
+
+        if (!bankBranch) {
+          const { bank_branch_name, holderName, upi, ifsc, accountNo, address, cardNo, zipcode, emoji, bank_name_id } = req.body.bank_branch_details || {};
+
+          if (!bank_branch_name || !holderName || !accountNo || !address || !zipcode) {
+            return sendError(res, 'Bank branch not found for the provided bank_branch_name_id and insufficient details to create a new branch', 400);
+          }
+
+          const newBankBranch = await BankBranchName.create({
+            bank_branch_name: bank_branch_name,
+            bank_name_id: bank_name_id || null,
+            holderName,
+            upi: upi || null,
+            ifsc: ifsc || null,
+            accountNo,
+            address,
+            cardNo: cardNo || null,
+            zipcode,
+            emoji: emoji || null,
+            status: true,
+            created_by: req.userId,
+            updated_by: req.userId
+          });
+
+          portalData.bank_branch_name_id = newBankBranch.bank_branch_name_id;
+        } else {
+          portalData.bank_branch_name_id = parsedBranchId;
+        }
+      }
+
+      delete portalData.bank_branch_details;
+    }
 
     const portal = await VendorOnboardingPortal.create(portalData);
     const populatedPortal = await populateVendorOnboardingPortal(portal);
@@ -213,6 +367,20 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Vendor onboarding portal not found');
     }
 
+    let serviceCategoriesResult;
+    const categoriesProvided = Object.prototype.hasOwnProperty.call(req.body, 'service_categories')
+      || Object.prototype.hasOwnProperty.call(req.body, 'categories');
+
+    if (categoriesProvided) {
+      try {
+        serviceCategoriesResult = parseServiceCategoriesInput(
+          req.body.service_categories ?? req.body.categories
+        );
+      } catch (parseError) {
+        return sendError(res, parseError.message, 400);
+      }
+    }
+
     // Prepare update data
     const updateData = {
       ...req.body,
@@ -222,6 +390,63 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
 
     // Remove ID from update data to avoid updating it
     delete updateData.Vendor_Onboarding_Portal_id;
+    delete updateData.categories;
+
+    if (categoriesProvided) {
+      updateData.service_categories = serviceCategoriesResult?.value ?? [];
+    } else {
+      delete updateData.service_categories;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateData, 'bank_branch_name_id')) {
+      if (updateData.bank_branch_name_id === null || updateData.bank_branch_name_id === '' || updateData.bank_branch_name_id === undefined) {
+        updateData.bank_branch_name_id = null;
+      } else {
+        const parsedBranchId = parseInt(updateData.bank_branch_name_id, 10);
+        if (Number.isNaN(parsedBranchId)) {
+          return sendError(res, 'bank_branch_name_id must be a numeric value', 400);
+        }
+
+        let bankBranch = await BankBranchName.findOne({
+          bank_branch_name_id: parsedBranchId,
+          created_by: req.userId
+        });
+
+        if (!bankBranch) {
+          const { bank_branch_name, holderName, upi, ifsc, accountNo, address, cardNo, zipcode, emoji, bank_name_id } = updateData.bank_branch_details || {};
+
+          if (!bank_branch_name || !holderName || !accountNo || !address || !zipcode) {
+            return sendError(res, 'Bank branch not found for the provided bank_branch_name_id and insufficient details to create a new branch', 400);
+          }
+
+          bankBranch = await BankBranchName.create({
+            bank_branch_name: bank_branch_name,
+            bank_name_id: bank_name_id || null,
+            holderName,
+            upi: upi || null,
+            ifsc: ifsc || null,
+            accountNo,
+            address,
+            cardNo: cardNo || null,
+            zipcode,
+            emoji: emoji || null,
+            status: true,
+            created_by: req.userId,
+            updated_by: req.userId
+          });
+        }
+
+        updateData.bank_branch_name_id = bankBranch.bank_branch_name_id;
+      }
+
+      delete updateData.bank_branch_details;
+    }
+
+    if (updateData.initial_payment_required !== undefined) {
+      updateData.initial_payment_required = typeof updateData.initial_payment_required === 'string'
+        ? updateData.initial_payment_required === 'true'
+        : Boolean(updateData.initial_payment_required);
+    }
 
     const updatedPortal = await VendorOnboardingPortal.findOneAndUpdate(
       { Vendor_Onboarding_Portal_id: parseInt(Vendor_Onboarding_Portal_id) },
