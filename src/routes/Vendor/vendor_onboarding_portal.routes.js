@@ -7,7 +7,8 @@ const {
   getAllVendorOnboardingPortals,
   getVendorOnboardingPortalById,
   updateVendorOnboardingPortal,
-  deleteVendorOnboardingPortal
+  deleteVendorOnboardingPortal,
+  getVendorFullDetailsPublic
 } = require('../../controllers/vendor_onboarding_portal.controller');
 
 // Import middleware
@@ -25,6 +26,9 @@ const {
 
 // Create vendor onboarding portal (with auth)
 router.post('/create', auth, validateBody(createVendorOnboardingPortalSchema), createVendorOnboardingPortal);
+
+// Public vendor details (no auth)
+router.get('/public/vendors', getVendorFullDetailsPublic);
 
 // Get all vendor onboarding portals (with auth)
 router.get('/getAll', auth, validateQuery(querySchema), getAllVendorOnboardingPortals);

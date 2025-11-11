@@ -27,6 +27,14 @@ const createEvent = asyncHandler(async (req, res) => {
 
     if (event.Event_type === 'Public' && event.EntryPrice > 0) {
       try {
+      const ticketDateils = [
+        {
+          ticket_type_id: 1,
+          ticket_query: `Automatic ticket created for public event ${event.event_id}`,
+          price: Number(event.EntryPrice) || 0
+        }
+      ];
+
         await Ticket.create({
           event_id: event.event_id,
           ticketDateils,

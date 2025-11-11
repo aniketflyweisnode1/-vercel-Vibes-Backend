@@ -20,7 +20,8 @@ const populateVendorOnboardingPortal = async (portal) => {
       user_id: vendor.user_id,
       name: vendor.name,
       email: vendor.email,
-      mobile: vendor.mobile
+      mobile: vendor.mobile,
+      role_id: vendor.role_id
     } : null;
   }
 
@@ -493,11 +494,37 @@ const deleteVendorOnboardingPortal = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Get public vendor details with categories and pricing (no auth)
+ */
+const getVendorFullDetailsPublic = asyncHandler(async (req, res) => {
+  try {
+    const filter = { Status: true };
+
+    const portals = await VendorOnboardingPortal.find(filter)
+      .sort({ CreateAt: -1 });
+
+    const populatedPortals = await Promise.all(
+      portals.map(portal => populateVendorOnboardingPortal(portal))
+    );
+
+    const vendorsWithRole = populatedPortals.filter(portal => {
+      const roleId = portal.vendor_details?.role_id;
+      return roleId !== undefined && roleId !== null ? Number(roleId) === 3 : false;
+    });
+
+    sendSuccess(res, vendorsWithRole, 'Vendor details retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createVendorOnboardingPortal,
   getAllVendorOnboardingPortals,
   getVendorOnboardingPortalById,
   updateVendorOnboardingPortal,
-  deleteVendorOnboardingPortal
+  deleteVendorOnboardingPortal,
+  getVendorFullDetailsPublic
 };
 

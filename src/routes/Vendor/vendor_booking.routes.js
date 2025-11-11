@@ -15,7 +15,8 @@ const {
   getVendorBookingById,
   updateVendorBooking,
   deleteVendorBooking,
-  getVendorBookingsByAuth
+  getVendorBookingsByAuth,
+  StaffBookingPayment
 } = require('../../controllers/vendor_booking.controller');
 
 // Create vendor booking (with auth)
@@ -36,5 +37,7 @@ router.put('/update', auth, validateBody(updateVendorBookingSchema), updateVendo
 // Delete vendor booking (with auth)
 router.delete('/delete/:id', auth, validateParams(getVendorBookingByIdSchema), deleteVendorBooking);
 
-module.exports = router;
+// Staff booking payment (with auth)
+router.post('/payment', auth, StaffBookingPayment);
 
+module.exports = router;

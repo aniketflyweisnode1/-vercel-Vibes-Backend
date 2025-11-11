@@ -2,6 +2,8 @@ const VendorBooking = require('../models/vendor_booking.model');
 const Event = require('../models/event.model');
 const Category = require('../models/category.model');
 const User = require('../models/user.model');
+const Transaction = require('../models/transaction.model');
+const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -513,12 +515,146 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Staff booking payment logged as transaction
+ */
+const StaffBookingPayment = asyncHandler(async (req, res) => {
+  try {
+    const {
+      vendor_booking_id,
+      payment_method_id,
+      billingDetails,
+      description = 'Vendor booking payment'
+    } = req.body;
+
+    if (!vendor_booking_id || !payment_method_id) {
+      return sendError(res, 'vendor_booking_id and payment_method_id are required', 400);
+    }
+
+    const booking = await VendorBooking.findOne({
+      Vendor_Booking_id: parseInt(vendor_booking_id, 10),
+      Status: true
+    });
+
+    if (!booking) {
+      return sendNotFound(res, 'Vendor booking not found or inactive');
+    }
+
+    const user = await User.findOne({ user_id: req.userId });
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    const amount = Number(booking.amount || booking.pricing || booking.total_price || 0);
+    if (!amount || amount <= 0) {
+      return sendError(res, 'Booking amount must be greater than 0', 400);
+    }
+
+    let customerId = null;
+    try {
+      const customerData = {
+        email: user.email,
+        name: user.name,
+        phone: user.mobile,
+        metadata: {
+          user_id: req.userId,
+          vendor_booking_id
+        }
+      };
+
+      const customer = await createCustomer(customerData);
+      customerId = customer.customerId;
+    } catch (customerError) {
+      console.error('Customer creation error:', customerError);
+    }
+
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        amount: Math.round(amount * 100),
+        billingDetails,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: req.userId,
+          customer_id: customerId,
+          vendor_booking_id,
+          payment_type: 'vendor_booking',
+          description
+        }
+      };
+
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      console.error('Payment intent creation error:', paymentError);
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
+
+    const transactionData = {
+      user_id: req.userId,
+      amount,
+      currency: 'USD',
+      status: paymentIntent.status,
+      payment_method_id,
+      transactionType: 'VendorBooking',
+      transaction_date: new Date(),
+      reference_number: paymentIntent.paymentIntentId,
+      coupon_code_id: null,
+      CGST: 0,
+      SGST: 0,
+      TotalGST: 0,
+      metadata: JSON.stringify({
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        customer_id: customerId,
+        vendor_booking_id,
+        description
+      }),
+      created_by: req.userId
+    };
+
+    const transaction = await Transaction.create(transactionData);
+
+    const updatedBooking = await VendorBooking.findOneAndUpdate(
+      { Vendor_Booking_id: parseInt(vendor_booking_id, 10) },
+      {
+        transaction_id: transaction.transaction_id,
+        vender_booking_status: 'confirmed',
+        UpdatedBy: req.userId,
+        UpdatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    sendSuccess(res, {
+      transaction_id: transaction.transaction_id,
+      payment_intent_id: paymentIntent.paymentIntentId,
+      client_secret: paymentIntent.clientSecret,
+      amount,
+      currency: 'USD',
+      status: paymentIntent.status,
+      customer_id: customerId,
+      vendor_booking_id,
+      vendor_booking: {
+        id: updatedBooking.Vendor_Booking_id,
+        transaction_id: updatedBooking.transaction_id,
+        vender_booking_status: updatedBooking.vender_booking_status
+      },
+      message: 'Vendor booking payment processed successfully'
+    }, 'Vendor booking payment processed successfully');
+  } catch (error) {
+    console.error('Vendor booking payment error:', error);
+    throw error;
+  }
+});
+
 module.exports = {
   createVendorBooking,
   getAllVendorBookings,
   getVendorBookingById,
   updateVendorBooking,
   deleteVendorBooking,
-  getVendorBookingsByAuth
+  getVendorBookingsByAuth,
+  StaffBookingPayment
 };
 
