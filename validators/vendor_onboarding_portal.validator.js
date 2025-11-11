@@ -48,7 +48,10 @@ const createVendorOnboardingPortalSchema = Joi.object({
       pricing_currency: Joi.string().optional().allow('', null)
     })
   ).optional(),
-  initial_payment_required: Joi.boolean().optional(),
+  initial_payment_required: Joi.alternatives().try(
+    Joi.boolean(),
+    Joi.number()
+  ).optional(),
   ifConfirm: Joi.boolean().optional(),
   Status: Joi.boolean().optional()
 });
@@ -104,7 +107,10 @@ const updateVendorOnboardingPortalSchema = Joi.object({
       pricing_currency: Joi.string().optional().allow('', null)
     })
   ).optional(),
-  initial_payment_required: Joi.boolean().optional(),
+  initial_payment_required: Joi.alternatives().try(
+    Joi.boolean(),
+    Joi.number()
+  ).optional(),
   ifConfirm: Joi.boolean().optional(),
   Status: Joi.boolean().optional()
 });
