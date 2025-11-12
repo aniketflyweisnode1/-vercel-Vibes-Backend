@@ -4,11 +4,130 @@ const Category = require('../models/category.model');
 const User = require('../models/user.model');
 const Transaction = require('../models/transaction.model');
 const VendorOnboardingPortal = require('../models/vendor_onboarding_portal.model');
+const CategoriesFees = require('../models/categories_fees.model');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
 const ALLOWED_VENDOR_BOOKING_STATUS = ['pending', 'confirmed', 'cancelled', 'rescheduled'];
+
+/**
+ * Helper function to populate vendor onboarding portal with all IDs
+ */
+const populateVendorOnboardingPortal = async (portal) => {
+  const populatedData = { ...portal.toObject() };
+
+  // Populate Vendor_id (User)
+  if (portal.Vendor_id) {
+    try {
+      const vendor = await User.findOne({ user_id: portal.Vendor_id });
+      populatedData.vendor_details = vendor ? {
+        user_id: vendor.user_id,
+        name: vendor.name,
+        email: vendor.email,
+        mobile: vendor.mobile,
+        role_id: vendor.role_id
+      } : null;
+    } catch (error) {
+      populatedData.vendor_details = null;
+    }
+  }
+
+  // Populate business_information_id
+  if (portal.business_information_id) {
+    try {
+      const VendorBusinessInformation = require('../models/vendor_business_information.model');
+      const businessInfo = await VendorBusinessInformation.findOne({
+        business_information_id: portal.business_information_id
+      });
+      populatedData.business_information_details = businessInfo || null;
+    } catch (error) {
+      populatedData.business_information_details = null;
+    }
+  }
+
+  // Populate bank_branch_name_id
+  if (portal.bank_branch_name_id) {
+    try {
+      const BankBranchName = require('../models/bank_branch_name.model');
+      const bankBranch = await BankBranchName.findOne({ bank_branch_name_id: portal.bank_branch_name_id });
+      populatedData.bank_branch_details = bankBranch || null;
+    } catch (error) {
+      populatedData.bank_branch_details = null;
+    }
+  }
+
+  // Populate categories_fees_id
+  if (portal.categories_fees_id && Array.isArray(portal.categories_fees_id) && portal.categories_fees_id.length > 0) {
+    try {
+      // console.log("portal.categories_fees_id\n\n\n",portal.categories_fees_id);
+      const categoriesFees = await CategoriesFees.find({
+        categories_fees_id: { $in: portal.categories_fees_id },
+        status: true
+      });
+      // console.log("categoriesFees\n\n\n",categoriesFees);
+      
+
+      // Populate category details for each categories fees
+      const populatedCategoriesFees = await Promise.all(
+        categoriesFees.map(async (fee) => {
+          const feeObj = fee.toObject();
+          if (fee.category_id) {
+            try {
+              const category = await Category.findOne({ category_id: fee.category_id });
+              feeObj.category_details = category ? {
+                category_id: category.category_id,
+                category_name: category.category_name,
+                emozi: category.emozi,
+                status: category.status
+              } : null;
+            } catch (error) {
+              feeObj.category_details = null;
+            }
+          }
+          return feeObj;
+        })
+      );
+
+      // console.log("populatedCategoriesFees\n\n\n",populatedCategoriesFees);
+
+      populatedData.categories_fees_details = populatedCategoriesFees;
+    } catch (error) {
+      populatedData.categories_fees_details = [];
+    }
+  } else {
+    populatedData.categories_fees_details = [];
+  }
+
+  // Populate CreateBy and UpdatedBy
+  if (portal.CreateBy) {
+    try {
+      const createdByUser = await User.findOne({ user_id: portal.CreateBy });
+      populatedData.created_by_details = createdByUser ? {
+        user_id: createdByUser.user_id,
+        name: createdByUser.name,
+        email: createdByUser.email
+      } : null;
+    } catch (error) {
+      populatedData.created_by_details = null;
+    }
+  }
+
+  if (portal.UpdatedBy) {
+    try {
+      const updatedByUser = await User.findOne({ user_id: portal.UpdatedBy });
+      populatedData.updated_by_details = updatedByUser ? {
+        user_id: updatedByUser.user_id,
+        name: updatedByUser.name,
+        email: updatedByUser.email
+      } : null;
+    } catch (error) {
+      populatedData.updated_by_details = null;
+    }
+  }
+
+  return populatedData;
+};
 
 /**
  * Normalize date inputs
@@ -40,6 +159,7 @@ const createVendorBooking = asyncHandler(async (req, res) => {
     const bookingData = {
       ...req.body,
       user_id: req.body.user_id || req.userId,
+      vendor_id: req.body.vendor_id || null,
       Date_start: startDate,
       End_date: endDate,
       Start_time: req.body.Start_time === '' ? null : req.body.Start_time || null,
@@ -88,6 +208,7 @@ const getAllVendorBookings = asyncHandler(async (req, res) => {
       page = 1,
       limit = 10,
       user_id,
+      vendor_id,
       Year,
       Month,
       Date_start,
@@ -105,6 +226,9 @@ const getAllVendorBookings = asyncHandler(async (req, res) => {
 
     if (user_id) {
       filter.user_id = parseInt(user_id, 10);
+    }
+    if (vendor_id) {
+      filter.vendor_id = parseInt(vendor_id, 10);
     }
     if (Year) {
       filter.Year = parseInt(Year, 10);
@@ -169,12 +293,12 @@ const getAllVendorBookings = asyncHandler(async (req, res) => {
         }
       }
 
-      if (booking.user_id) {
+      if (booking.vendor_id) {
         try {
-          const user = await User.findOne({ user_id: booking.user_id }).select('user_id name email mobile');
-          bookingObj.user_details = user || null;
+          const vendor = await User.findOne({ user_id: booking.vendor_id }).select('user_id name email mobile role_id');
+          bookingObj.vendor_details = vendor || null;
         } catch (error) {
-          bookingObj.user_details = null;
+          bookingObj.vendor_details = null;
         }
       }
 
@@ -255,6 +379,11 @@ const getVendorBookingById = asyncHandler(async (req, res) => {
     if (booking.user_id) {
       const user = await User.findOne({ user_id: booking.user_id }).select('user_id name email mobile');
       bookingObj.user_details = user || null;
+    }
+
+    if (booking.vendor_id) {
+      const vendor = await User.findOne({ user_id: booking.vendor_id }).select('user_id name email mobile role_id');
+      bookingObj.vendor_details = vendor || null;
     }
 
     if (booking.Event_id) {
@@ -459,6 +588,24 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
     const populatedBookings = await Promise.all(bookings.map(async (booking) => {
       const bookingObj = booking.toObject();
 
+      if (booking.user_id) {
+        try {
+          const user = await User.findOne({ user_id: booking.user_id }).select('user_id name email mobile');
+          bookingObj.user_details = user || null;
+        } catch (error) {
+          bookingObj.user_details = null;
+        }
+      }
+
+      if (booking.vendor_id) {
+        try {
+          const vendor = await User.findOne({ user_id: booking.vendor_id }).select('user_id name email mobile role_id');
+          bookingObj.vendor_details = vendor || null;
+        } catch (error) {
+          bookingObj.vendor_details = null;
+        }
+      }
+
       if (booking.Event_id) {
         try {
           const event = await Event.findOne({ event_id: booking.Event_id });
@@ -517,21 +664,22 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
 });
 
 /**
- * Staff booking payment logged as transaction
+ * Vendor booking payment function
+ * Gets vendor onboarding portal, matches categories, calculates amounts, and creates transaction
  */
 const VendorBookingPayment = asyncHandler(async (req, res) => {
   try {
     const {
       vendor_booking_id,
       payment_method_id,
-      billingDetails,
-      description = 'Vendor booking payment'
+      billingDetails
     } = req.body;
 
     if (!vendor_booking_id || !payment_method_id) {
       return sendError(res, 'vendor_booking_id and payment_method_id are required', 400);
     }
 
+    // Step 1: Get vendor booking
     const booking = await VendorBooking.findOne({
       Vendor_Booking_id: parseInt(vendor_booking_id, 10),
       Status: true
@@ -541,227 +689,88 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Vendor booking not found or inactive');
     }
 
-    const user = await User.findOne({ user_id: req.userId });
-    if (!user) {
-      return sendError(res, 'User not found', 404);
+    // Step 2: Get vendor onboarding portal using vendor_id from booking
+    const vendorId = booking.vendor_id;
+    if (!vendorId) {
+      return sendError(res, 'Vendor ID is missing from booking', 400);
+    }
+// console.log("vendorId\n\n\n",vendorId);
+    const vendorPortal = await VendorOnboardingPortal.findOne({
+      Vendor_id: Number(vendorId),
+      Status: true
+    });
+
+    // console.log(vendorPortal);
+
+    if (!vendorPortal) {
+      return sendError(res, `Vendor onboarding portal not found for vendor ID: ${vendorId}`, 404);
     }
 
-    // Get pricing from vendor onboarding portal based on Vendor_Category_id
-    let amount = 0;
-    if (booking.Vendor_Category_id && booking.Vendor_Category_id.length > 0) {
-      try {
-        // Verify categories exist in Category model
-        const categories = await Category.find({
-          category_id: { $in: booking.Vendor_Category_id },
-          status: true
+    // Step 3: Populate all IDs in vendor onboarding portal
+    const populatedPortal = await populateVendorOnboardingPortal(vendorPortal);
+
+    // Step 4: Get categories fees from portal
+    if (!populatedPortal.categories_fees_details || populatedPortal.categories_fees_details.length === 0) {
+      return sendError(res, 'Vendor has not configured any categories fees. Please ensure the vendor has set up categories with pricing.', 400);
+    }
+
+    // Step 5: Match vendor_booking.Vendor_Category_id with categories_fees.category_id
+    const bookingCategoryIds = booking.Vendor_Category_id.map(id => Number(id));
+    let totalAmount = 0; // amount (Price + PlatformFee)
+    let totalVendorAmount = 0; // vendor_amount (just Price)
+
+    const matchedCategories = [];
+    const missingCategories = [];
+
+    console.log("populatedPortal.categories_fees_details\n\n\n",bookingCategoryIds);
+    bookingCategoryIds.forEach(categoryId => {
+      // Find matching categories fees
+      // console.log("categoryId\n\n\n",categoryId, populatedPortal.categories_fees_details);
+      const matchingFee = populatedPortal.categories_fees_details.find(
+        fee => Number(fee.category_id) === Number(categoryId) && fee.status === true
+      );
+      // console.log("matchingFee\n\n\n",matchingFee);
+
+      if (matchingFee) {
+        const MinFee = Number(matchingFee.MinFee) || 0;
+        const price = Number(matchingFee.Price) || 0;
+        const platformFee = Number(matchingFee.PlatformFee) || 0;
+        
+        // Calculate amounts
+        const vendorAmount = MinFee; // vendor gets the price
+        const customerAmount = price; // customer pays price + platform fee
+
+        totalVendorAmount += vendorAmount;
+        totalAmount += customerAmount;
+
+        matchedCategories.push({
+          category_id: categoryId,
+          price: price,
+          platformFee: platformFee,
+          vendor_amount: totalVendorAmount,
+          amount: totalAmount
         });
-
-        if (!categories || categories.length === 0) {
-          return sendError(res, 'One or more selected categories are invalid or inactive', 400);
-        }
-
-        // Verify booking.user_id exists and is a vendor
-        if (!booking.user_id) {
-          return sendError(res, 'Vendor booking is missing user_id (vendor ID)', 400);
-        }
-
-        // Get vendor onboarding portal for the vendor (booking.user_id is the vendor)
-        // Match: vendor_booking.user_id === vendor_onboarding_portal.Vendor_id
-        const vendorPortal = await VendorBooking.findOne({
-          Vendor_id: Number(booking.user_id),
-          Status: true
-        });
-
-        console.log(vendorPortal);
-        if (!vendorPortal) {
-          console.log(vendorPortal);
-          return sendError(res, `Vendor onboarding portal not found for vendor ID: ${vendorPortal.user_id}. Please ensure the vendor has completed their onboarding process.`, 404);
-        }
-
-        if (vendorPortal && vendorPortal.Vendor_Category_id && Array.isArray(vendorPortal.Vendor_Category_id)) {
-          // Check if service_categories array is empty
-          if (vendorPortal.Vendor_Category_id.length === 0) {
-            return sendError(res, 'Vendor has not configured any service categories. Please ensure the vendor has set up service categories with pricing in their onboarding portal.', 400);
-          }
-
-          // Match booking categories with vendor service categories and sum pricing
-          const missingCategories = [];
-          const categoriesWithoutPricing = [];
-          const availableCategoryIds = vendorPortal.Vendor_Category_id.map(sc => Number(sc.category_id));
-
-          // Convert booking category IDs to numbers for comparison
-          const bookingCategoryIds = booking.Vendor_Category_id.map(id => Number(id));
-
-          bookingCategoryIds.forEach(categoryId => {
-            // Find service category with proper type coercion
-            const serviceCategory = vendorPortal.service_categories.find(
-              sc => Number(sc.category_id) === Number(categoryId)
-            );
-
-            if (!serviceCategory) {
-              // Category not found in vendor's service categories
-              missingCategories.push({
-                category_id: categoryId,
-                reason: 'Category not configured in vendor service categories'
-              });
-            } else if (serviceCategory.pricing === undefined || serviceCategory.pricing === null || serviceCategory.pricing === '') {
-              // Category found but pricing is not set
-              categoriesWithoutPricing.push({
-                category_id: categoryId,
-                category_name: serviceCategory.category_name || 'Unknown',
-                reason: 'Pricing not set for this category'
-              });
-            } else {
-              const pricingValue = Number(serviceCategory.pricing);
-              if (isNaN(pricingValue) || pricingValue <= 0) {
-                // Category found but pricing is invalid or zero
-                categoriesWithoutPricing.push({
-                  category_id: categoryId,
-                  category_name: serviceCategory.category_name || 'Unknown',
-                  reason: `Invalid pricing value: ${serviceCategory.pricing}`
-                });
-              } else {
-                // Valid pricing found
-                amount += pricingValue;
-              }
-            }
-          });
-
-          // Build detailed error message
-          if (amount === 0) {
-            const errorDetails = [];
-            
-            if (missingCategories.length > 0) {
-              errorDetails.push(`Categories not configured in vendor service: ${missingCategories.map(c => c.category_id).join(', ')}`);
-            }
-            
-            if (categoriesWithoutPricing.length > 0) {
-              const categoryDetails = categoriesWithoutPricing.map(c => {
-                const name = c.category_name !== 'Unknown' ? c.category_name : '';
-                return name ? `${name} (ID: ${c.category_id})` : `ID: ${c.category_id}`;
-              }).join(', ');
-              errorDetails.push(`Categories without valid pricing: ${categoryDetails}`);
-            }
-
-            const errorMessage = `Pricing not found for the selected categories. ${errorDetails.join('. ')}. Please ensure the vendor has configured these categories with valid pricing (greater than 0) in their onboarding portal.`;
-            
-            // Log detailed info for debugging
-            console.error('Pricing lookup failed:', {
-              booking_id: booking.Vendor_Booking_id,
-              vendor_id: booking.user_id,
-              booking_categories: bookingCategoryIds,
-              available_categories: availableCategoryIds,
-              vendor_service_categories: vendorPortal.service_categories.map(sc => ({
-                category_id: sc.category_id,
-                category_name: sc.category_name,
-                pricing: sc.pricing,
-                pricing_type: typeof sc.pricing
-              })),
-              missing: missingCategories,
-              without_pricing: categoriesWithoutPricing
-            });
-
-            return sendError(res, errorMessage, 400);
-          }
-
-          // Warn if some categories are missing pricing (but don't block payment)
-          if (missingCategories.length > 0 || categoriesWithoutPricing.length > 0) {
-            const warnings = [];
-            if (missingCategories.length > 0) {
-              warnings.push(`Categories not configured: ${missingCategories.map(c => c.category_id).join(', ')}`);
-            }
-            if (categoriesWithoutPricing.length > 0) {
-              warnings.push(`Categories without pricing: ${categoriesWithoutPricing.map(c => `${c.category_name} (ID: ${c.category_id})`).join(', ')}`);
-            }
-            console.warn(`Warning: ${warnings.join('; ')}. Proceeding with partial amount: ${amount}`);
-          }
-        } else {
-          return sendError(res, 'Vendor has not configured service categories. Please ensure the vendor has set up service categories with pricing in their onboarding portal.', 400);
-        }
-      } catch (pricingError) {
-        console.error('Error fetching pricing from vendor portal:', pricingError);
-        return sendError(res, `Failed to fetch pricing information for the booking: ${pricingError.message}`, 400);
+      } else {
+        missingCategories.push(categoryId);
       }
+    });
+
+    if (missingCategories.length > 0) {
+      return sendError(res, `Categories not found in vendor pricing: ${missingCategories.join(', ')}. Please ensure the vendor has set pricing for all selected categories.`, 400);
     }
 
-    // Fallback: if no pricing found from categories, try to get from booking fields
-    if (amount <= 0) {
-      amount = Number(booking.amount || booking.pricing || booking.total_price || 0);
+    if (totalAmount <= 0 || totalVendorAmount <= 0) {
+      return sendError(res, 'Invalid pricing calculation. Amount must be greater than 0.', 400);
     }
 
-    if (!amount || amount <= 0) {
-      return sendError(res, 'Booking amount must be greater than 0. Please ensure the vendor has set pricing for the selected categories.', 400);
-    }
-
-    let customerId = null;
-    try {
-      const customerData = {
-        email: user.email,
-        name: user.name,
-        phone: user.mobile,
-        metadata: {
-          user_id: req.userId,
-          vendor_booking_id
-        }
-      };
-
-      const customer = await createCustomer(customerData);
-      customerId = customer.customerId;
-    } catch (customerError) {
-      console.error('Customer creation error:', customerError);
-    }
-
-    let paymentIntent = null;
-    try {
-      const paymentOptions = {
-        amount: Math.round(amount * 100),
-        billingDetails,
-        currency: 'usd',
-        customerEmail: user.email,
-        metadata: {
-          user_id: req.userId,
-          customer_id: customerId,
-          vendor_booking_id,
-          payment_type: 'vendor_booking',
-          description
-        }
-      };
-
-      paymentIntent = await createPaymentIntent(paymentOptions);
-    } catch (paymentError) {
-      console.error('Payment intent creation error:', paymentError);
-      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
-    }
-
-    const transactionData = {
-      user_id: req.userId,
-      amount,
-      currency: 'USD',
-      status: paymentIntent.status,
-      payment_method_id,
-      transactionType: 'VendorBooking',
-      transaction_date: new Date(),
-      reference_number: paymentIntent.paymentIntentId,
-      coupon_code_id: null,
-      CGST: 0,
-      SGST: 0,
-      TotalGST: 0,
-      metadata: JSON.stringify({
-        stripe_payment_intent_id: paymentIntent.paymentIntentId,
-        stripe_client_secret: paymentIntent.clientSecret,
-        customer_id: customerId,
-        vendor_booking_id,
-        description
-      }),
-      created_by: req.userId
-    };
-
-    const transaction = await Transaction.create(transactionData);
-
+    // Step 6: Update VendorBooking with amount, vendor_amount, and status
     const updatedBooking = await VendorBooking.findOneAndUpdate(
       { Vendor_Booking_id: parseInt(vendor_booking_id, 10) },
       {
-        transaction_id: transaction.transaction_id,
+        amount: totalAmount,
+        vendor_amount: totalVendorAmount,
+        amount_status: 'confirmed',
+        vendor_amount_status: 'confirmed',
         vender_booking_status: 'confirmed',
         UpdatedBy: req.userId,
         UpdatedAt: new Date()
@@ -769,21 +778,49 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       { new: true }
     );
 
+    // Step 7: Create transaction
+    const transactionData = {
+      user_id: req.userId,
+      amount: totalAmount,
+      status: 'pending',
+      payment_method_id: parseInt(payment_method_id, 10),
+      transactionType: 'VendorBooking',
+      transaction_date: new Date(),
+      metadata: JSON.stringify({
+        vendor_booking_id: parseInt(vendor_booking_id, 10),
+        vendor_id: vendorId,
+        vendor_amount: totalVendorAmount,
+        amount: totalAmount,
+        billingDetails: billingDetails || null,
+        matched_categories: matchedCategories
+      }),
+      created_by: req.userId
+    };
+
+    const transaction = await Transaction.create(transactionData);
+
+    // Populate booking details for response
+    const bookingObj = updatedBooking.toObject();
+    if (updatedBooking.user_id) {
+      const user = await User.findOne({ user_id: updatedBooking.user_id }).select('user_id name email mobile');
+      bookingObj.user_details = user || null;
+    }
+    if (updatedBooking.vendor_id) {
+      const vendor = await User.findOne({ user_id: updatedBooking.vendor_id }).select('user_id name email mobile role_id');
+      bookingObj.vendor_details = vendor || null;
+    }
+
     sendSuccess(res, {
       transaction_id: transaction.transaction_id,
-      payment_intent_id: paymentIntent.paymentIntentId,
-      client_secret: paymentIntent.clientSecret,
-      amount,
-      currency: 'USD',
-      status: paymentIntent.status,
-      customer_id: customerId,
-      vendor_booking_id,
-      vendor_booking: {
-        id: updatedBooking.Vendor_Booking_id,
-        transaction_id: updatedBooking.transaction_id,
-        vender_booking_status: updatedBooking.vender_booking_status
-      },
-      message: 'Vendor booking payment processed successfully'
+      vendor_booking: bookingObj,
+      amount: totalAmount,
+      vendor_amount: totalVendorAmount,
+      matched_categories: matchedCategories,
+      vendor_portal: {
+        Vendor_Onboarding_Portal_id: populatedPortal.Vendor_Onboarding_Portal_id,
+        Vendor_id: populatedPortal.Vendor_id,
+        categories_fees_count: populatedPortal.categories_fees_details.length
+      }
     }, 'Vendor booking payment processed successfully');
   } catch (error) {
     console.error('Vendor booking payment error:', error);

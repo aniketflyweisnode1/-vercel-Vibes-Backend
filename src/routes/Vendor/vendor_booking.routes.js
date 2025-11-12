@@ -7,7 +7,8 @@ const {
   createVendorBookingSchema,
   updateVendorBookingSchema,
   getVendorBookingByIdSchema,
-  queryVendorBookingSchema
+  queryVendorBookingSchema,
+  vendorBookingPaymentSchema
 } = require('../../../validators/vendor_booking.validator');
 const {
   createVendorBooking,
@@ -37,7 +38,7 @@ router.put('/update', auth, validateBody(updateVendorBookingSchema), updateVendo
 // Delete vendor booking (with auth)
 router.delete('/delete/:id', auth, validateParams(getVendorBookingByIdSchema), deleteVendorBooking);
 
-// Staff booking payment (with auth)
-router.post('/payment', auth, VendorBookingPayment);
+// Vendor booking payment (with auth)
+router.post('/payment', auth, validateBody(vendorBookingPaymentSchema), VendorBookingPayment);
 
 module.exports = router;

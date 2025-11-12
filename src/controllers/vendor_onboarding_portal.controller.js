@@ -791,191 +791,196 @@ const getVendorFullDetailsPublic = asyncHandler(async (req, res) => {
 const createVendorPortal = asyncHandler(async (req, res) => {
   try {
     const userId = req.userId;
-
-    // Step 1: Create VendorBusinessInformation
-    const businessInfoData = {
-      business_name: req.body.Basic_information_business_name,
-      Basic_information_LegalName: req.body.Basic_information_LegalName,
-      business_email: req.body.Basic_information_Email,
-      business_phone: req.body.Basic_information_phone,
-      description: req.body.Basic_information_Business_Description,
-      Basic_information_Business_Description: req.body.Basic_information_Business_Description,
-      Basic_information_BusinessAddress: req.body.Basic_information_BusinessAddress,
-      Basic_information_City_id: req.body.Basic_information_City_id,
-      Basic_information_State_id: req.body.Basic_information_State_id,
-      Basic_information_ZipCode: req.body.Basic_information_ZipCode,
-      Basic_information_Country_id: req.body.Basic_information_Country_id,
-      Document_Business_Regis_Certificate: req.body.Document_Business_Regis_Certificate,
-      Document_GSTTaxCertificate: req.body.Document_GSTTaxCertificate,
-      Document_Pan: req.body.Document_Pan,
-      Document_bankbook: req.body.Document_bankbook,
-      Document_IDproofOwner: req.body.Document_IDproofOwner,
-      Document_TradeLicense: req.body.Document_TradeLicense,
-      KYC_fullname: req.body.KYC_fullname,
-      KYC_DoB: req.body.KYC_DoB ? new Date(req.body.KYC_DoB) : undefined,
-      KYC_GovtIdtype: req.body.KYC_GovtIdtype,
-      KYC_Idno: req.body.KYC_Idno,
-      KYC_Business_PanCard: req.body.KYC_Business_PanCard,
-      KYC_GSTNo: req.body.KYC_GSTNo,
-      KYC_UploadIdDocument: req.body.KYC_UploadIdDocument,
-      KYC_photo: req.body.KYC_photo,
-      service_areas_locaiton: req.body.service_areas_locaiton,
-      service_areas_Regions: req.body.service_areas_Regions,
-      service_areas_pincode: req.body.service_areas_pincode,
-      service_areas_workingHoures: req.body.service_areas_workingHoures,
-      vendor_id: userId,
-      created_by: userId,
-      status: req.body.Status !== undefined ? req.body.Status : true
-    };
-
-    const businessInfo = await VendorBusinessInformation.create(businessInfoData);
-
-    // Step 2: Create BankBranchName from Payment_Setup fields
-    let bankBranchNameId = null;
-    if (req.body.Payment_Setup_HolderName && req.body.Payment_Setup_AccountNo && req.body.Payment_Setup_BranchName) {
-      // Find or create BankName
-      let bankNameId = req.body.bank_name_id;
-      
-      if (!bankNameId) {
-        // Try to find bank by name
-        const existingBank = await BankName.findOne({
-          bank_name: "ICI_Bank",
-          status: true
-        });
-        
-        if (existingBank) {
-          bankNameId = existingBank.bank_name_id;
-        } else {
-          // Create new bank if not found
-          const newBank = await BankName.create({
-            bank_name: "ICI_Bank",
-            status: true,
-            created_by: userId
-          });
-          bankNameId = newBank.bank_name_id;
-        }
-      }
-      
-      if (!bankNameId) {
-        return sendError(res, 'bank_name_id is required. Please provide either bank_name_id or ICI_Bank', 400);
-      }
-
-      const bankBranchData = {
-        bank_branch_name: req.body.Payment_Setup_BranchName,
-        bank_name_id: bankNameId,
-        holderName: req.body.Payment_Setup_HolderName,
-        upi: req.body.Payment_Setup_UPI || null,
-        ifsc: req.body.Payment_Setup_Ifsc || null,
-        accountNo: req.body.Payment_Setup_AccountNo,
-        address: req.body.Basic_information_BusinessAddress || '',
-        zipcode: req.body.Basic_information_ZipCode || '',
-        status: true,
+    const user = await VendorOnboardingPortal.findOne({ Vendor_id: userId, Status: true });
+    if (user) {
+      return sendError(res, 'Vendor portal already exists Update only your portal', 400);
+    } else {
+      // Step 1: Create VendorBusinessInformation
+      const businessInfoData = {
+        business_name: req.body.Basic_information_business_name,
+        Basic_information_LegalName: req.body.Basic_information_LegalName,
+        business_email: req.body.Basic_information_Email,
+        business_phone: req.body.Basic_information_phone,
+        description: req.body.Basic_information_Business_Description,
+        Basic_information_Business_Description: req.body.Basic_information_Business_Description,
+        Basic_information_BusinessAddress: req.body.Basic_information_BusinessAddress,
+        Basic_information_City_id: req.body.Basic_information_City_id,
+        Basic_information_State_id: req.body.Basic_information_State_id,
+        Basic_information_ZipCode: req.body.Basic_information_ZipCode,
+        Basic_information_Country_id: req.body.Basic_information_Country_id,
+        Document_Business_Regis_Certificate: req.body.Document_Business_Regis_Certificate,
+        Document_GSTTaxCertificate: req.body.Document_GSTTaxCertificate,
+        Document_Pan: req.body.Document_Pan,
+        Document_bankbook: req.body.Document_bankbook,
+        Document_IDproofOwner: req.body.Document_IDproofOwner,
+        Document_TradeLicense: req.body.Document_TradeLicense,
+        KYC_fullname: req.body.KYC_fullname,
+        KYC_DoB: req.body.KYC_DoB ? new Date(req.body.KYC_DoB) : undefined,
+        KYC_GovtIdtype: req.body.KYC_GovtIdtype,
+        KYC_Idno: req.body.KYC_Idno,
+        KYC_Business_PanCard: req.body.KYC_Business_PanCard,
+        KYC_GSTNo: req.body.KYC_GSTNo,
+        KYC_UploadIdDocument: req.body.KYC_UploadIdDocument,
+        KYC_photo: req.body.KYC_photo,
+        service_areas_locaiton: req.body.service_areas_locaiton,
+        service_areas_Regions: req.body.service_areas_Regions,
+        service_areas_pincode: req.body.service_areas_pincode,
+        service_areas_workingHoures: req.body.service_areas_workingHoures,
+        vendor_id: userId,
         created_by: userId,
-        updated_by: userId
+        status: req.body.Status !== undefined ? req.body.Status : true
       };
 
-      const bankBranch = await BankBranchName.create(bankBranchData);
-      bankBranchNameId = bankBranch.bank_branch_name_id;
-    }
+      const businessInfo = await VendorBusinessInformation.create(businessInfoData);
 
-    // Step 3: Create CategoriesFees from service_categories
-    const categoriesFeesIds = [];
-    if (req.body.service_categories && Array.isArray(req.body.service_categories) && req.body.service_categories.length > 0) {
-      for (const item of req.body.service_categories) {
-        try {
-          // Validate category_id exists
-          if (!item.category_id) {
-            continue;
-          }
+      // Step 2: Create BankBranchName from Payment_Setup fields
+      let bankBranchNameId = null;
+      if (req.body.Payment_Setup_HolderName && req.body.Payment_Setup_AccountNo && req.body.Payment_Setup_BranchName) {
+        // Find or create BankName
+        let bankNameId = req.body.bank_name_id;
 
-          const category = await Category.findOne({
-            category_id: Number(item.category_id),
+        if (!bankNameId) {
+          // Try to find bank by name
+          const existingBank = await BankName.findOne({
+            bank_name: "ICI_Bank",
             status: true
           });
 
-          if (!category) {
-            continue;
+          if (existingBank) {
+            bankNameId = existingBank.bank_name_id;
+          } else {
+            // Create new bank if not found
+            const newBank = await BankName.create({
+              bank_name: "ICI_Bank",
+              status: true,
+              created_by: userId
+            });
+            bankNameId = newBank.bank_name_id;
           }
+        }
 
-          // Check if categories fees already exists for this category_id
-          const existingFees = await CategoriesFees.findOne({
-            category_id: Number(item.category_id),
-            status: true
-          });
+        if (!bankNameId) {
+          return sendError(res, 'bank_name_id is required. Please provide either bank_name_id or ICI_Bank', 400);
+        }
 
-          if (existingFees) {
-            // Update existing fees
-            const updatedFees = await CategoriesFees.findOneAndUpdate(
-              { category_id: Number(item.category_id), status: true },
-              {
-                pricing_currency: item.pricing_currency || 'USD',
-                PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
-                Price: item.Price !== undefined ? Number(item.Price) : existingFees.Price,
-                MinFee: parseFloat(item.Price / 100) * parseFloat(item.MinFee),
-                updated_by: userId,
-                updated_at: new Date()
-              },
-              { new: true }
-            );
-            categoriesFeesIds.push(updatedFees.categories_fees_id);
-            continue;
+        const bankBranchData = {
+          bank_branch_name: req.body.Payment_Setup_BranchName,
+          bank_name_id: bankNameId,
+          holderName: req.body.Payment_Setup_HolderName,
+          upi: req.body.Payment_Setup_UPI || null,
+          ifsc: req.body.Payment_Setup_Ifsc || null,
+          accountNo: req.body.Payment_Setup_AccountNo,
+          address: req.body.Basic_information_BusinessAddress || '',
+          zipcode: req.body.Basic_information_ZipCode || '',
+          status: true,
+          created_by: userId,
+          updated_by: userId
+        };
+
+        const bankBranch = await BankBranchName.create(bankBranchData);
+        bankBranchNameId = bankBranch.bank_branch_name_id;
+      }
+
+      // Step 3: Create CategoriesFees from service_categories
+      const categoriesFeesIds = [];
+      if (req.body.service_categories && Array.isArray(req.body.service_categories) && req.body.service_categories.length > 0) {
+        for (const item of req.body.service_categories) {
+          try {
+            // Validate category_id exists
+            if (!item.category_id) {
+              continue;
+            }
+
+            const category = await Category.findOne({
+              category_id: Number(item.category_id),
+              status: true
+            });
+
+            if (!category) {
+              continue;
+            }
+
+            // Check if categories fees already exists for this category_id
+            const existingFees = await CategoriesFees.findOne({
+              category_id: Number(item.category_id),
+              status: true
+            });
+
+            if (existingFees) {
+              // Update existing fees
+              const updatedFees = await CategoriesFees.findOneAndUpdate(
+                { category_id: Number(item.category_id), status: true },
+                {
+                  pricing_currency: item.pricing_currency || 'USD',
+                  PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
+                  Price: item.Price !== undefined ? Number(item.Price) : existingFees.Price,
+                  MinFee: parseFloat(item.Price / 100) * parseFloat(item.MinFee),
+                  updated_by: userId,
+                  updated_at: new Date()
+                },
+                { new: true }
+              );
+              categoriesFeesIds.push(updatedFees.categories_fees_id);
+              continue;
+            }
+
+            // Validate required fields
+            if (!item.Price || item.MinFee === undefined) {
+              continue;
+            }
+
+            const categoriesFeesData = {
+              category_id: Number(item.category_id),
+              pricing_currency: item.pricing_currency || 'USD',
+              PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
+              Price: Number(item.Price),
+              MinFee: parseFloat(item.Price / 100) * parseFloat(item.MinFee),
+              status: true,
+              created_by: userId
+            };
+
+            const categoriesFees = await CategoriesFees.create(categoriesFeesData);
+            categoriesFeesIds.push(categoriesFees.categories_fees_id);
+          } catch (itemError) {
+            console.error('Error creating categories fees:', itemError);
+            // Continue with other items
           }
-
-          // Validate required fields
-          if (!item.Price || item.MinFee === undefined) {
-            continue;
-          }
-
-          const categoriesFeesData = {
-            category_id: Number(item.category_id),
-            pricing_currency: item.pricing_currency || 'USD',
-            PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
-            Price: Number(item.Price),
-            MinFee: parseFloat(item.Price / 100) * parseFloat(item.MinFee),
-            status: true,
-            created_by: userId
-          };
-
-          const categoriesFees = await CategoriesFees.create(categoriesFeesData);
-          categoriesFeesIds.push(categoriesFees.categories_fees_id);
-        } catch (itemError) {
-          console.error('Error creating categories fees:', itemError);
-          // Continue with other items
         }
       }
-    }
 
-    // Step 4: Calculate initial_payment_required
-    let initialPaymentRequired = false;
-    if (req.body.service_categories && Array.isArray(req.body.service_categories) && req.body.service_categories.length > 0) {
-      const firstCategory = req.body.service_categories[0];
-      if (firstCategory.MinFee && firstCategory.Price) {
-        initialPaymentRequired = true;
+      // Step 4: Calculate initial_payment_required
+      let initialPaymentRequired = false;
+      if (req.body.service_categories && Array.isArray(req.body.service_categories) && req.body.service_categories.length > 0) {
+        const firstCategory = req.body.service_categories[0];
+        if (firstCategory.MinFee && firstCategory.Price) {
+          initialPaymentRequired = true;
+        }
       }
+
+      // Step 5: Create VendorOnboardingPortal
+      const portalData = {
+        Vendor_id: userId,
+        business_information_id: businessInfo.business_information_id,
+        bank_branch_name_id: bankBranchNameId,
+        categories_fees_id: categoriesFeesIds,
+        initial_payment_required: initialPaymentRequired,
+        ifConfirm: req.body.ifConfirm !== undefined ? req.body.ifConfirm : false,
+        Status: req.body.Status !== undefined ? req.body.Status : true,
+        CreateBy: userId,
+        CreateAt: new Date()
+      };
+
+      const portal = await VendorOnboardingPortal.create(portalData);
+
+      // Step 6: Populate and return
+      const populatedPortal = await populateVendorOnboardingPortal(portal);
+      sendSuccess(res, populatedPortal, 'Vendor portal created successfully', 201);
     }
-
-    // Step 5: Create VendorOnboardingPortal
-    const portalData = {
-      Vendor_id: userId,
-      business_information_id: businessInfo.business_information_id,
-      bank_branch_name_id: bankBranchNameId,
-      categories_fees_id: categoriesFeesIds,
-      initial_payment_required: initialPaymentRequired,
-      ifConfirm: req.body.ifConfirm !== undefined ? req.body.ifConfirm : false,
-      Status: req.body.Status !== undefined ? req.body.Status : true,
-      CreateBy: userId,
-      CreateAt: new Date()
-    };
-
-    const portal = await VendorOnboardingPortal.create(portalData);
-
-    // Step 6: Populate and return
-    const populatedPortal = await populateVendorOnboardingPortal(portal);
-    sendSuccess(res, populatedPortal, 'Vendor portal created successfully', 201);
   } catch (error) {
     console.error('Error creating vendor portal:', error);
     throw error;
   }
+
 });
 
 module.exports = {

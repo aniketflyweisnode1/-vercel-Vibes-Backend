@@ -44,10 +44,33 @@ const vendorBookingSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'User ID is required']
   },
+  vendor_id: {
+    type: Number,
+    ref: 'User',
+    default: null
+  },
   Vendor_Category_id: {
     type: [Number],
     ref: 'Category',
     default: []
+  },
+  amount: {
+    type: Number,
+    default: 0
+  },
+  amount_status: {
+    type: String,
+    enum: ['pending', 'confirmed', 'cancelled', 'rescheduled',"fullpayment"],
+    default: 'pending'
+  },
+  vendor_amount: {  
+    type: Number,
+    default: 0
+  },
+  vendor_amount_status: {
+    type: String,
+    enum: ['pending', 'confirmed', 'cancelled', 'rescheduled', 'fullpayment'],
+    default: 'pending'
   },
   Event_id: {
     type: Number,
