@@ -60,13 +60,11 @@ const populateVendorOnboardingPortal = async (portal) => {
   // Populate categories_fees_id
   if (portal.categories_fees_id && Array.isArray(portal.categories_fees_id) && portal.categories_fees_id.length > 0) {
     try {
-      // console.log("portal.categories_fees_id\n\n\n",portal.categories_fees_id);
+      
       const categoriesFees = await CategoriesFees.find({
         categories_fees_id: { $in: portal.categories_fees_id },
         status: true
       });
-      // console.log("categoriesFees\n\n\n",categoriesFees);
-      
 
       // Populate category details for each categories fees
       const populatedCategoriesFees = await Promise.all(
@@ -88,8 +86,6 @@ const populateVendorOnboardingPortal = async (portal) => {
           return feeObj;
         })
       );
-
-      // console.log("populatedCategoriesFees\n\n\n",populatedCategoriesFees);
 
       populatedData.categories_fees_details = populatedCategoriesFees;
     } catch (error) {
@@ -694,13 +690,10 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     if (!vendorId) {
       return sendError(res, 'Vendor ID is missing from booking', 400);
     }
-// console.log("vendorId\n\n\n",vendorId);
     const vendorPortal = await VendorOnboardingPortal.findOne({
       Vendor_id: Number(vendorId),
       Status: true
     });
-
-    // console.log(vendorPortal);
 
     if (!vendorPortal) {
       return sendError(res, `Vendor onboarding portal not found for vendor ID: ${vendorId}`, 404);
@@ -722,14 +715,13 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     const matchedCategories = [];
     const missingCategories = [];
 
-    // console.log("populatedPortal.categories_fees_details\n\n\n",bookingCategoryIds);
     bookingCategoryIds.forEach(categoryId => {
       // Find matching categories fees
-      // console.log("categoryId\n\n\n",categoryId, populatedPortal.categories_fees_details);
+
       const matchingFee = populatedPortal.categories_fees_details.find(
         fee => Number(fee.category_id) === Number(categoryId) && fee.status === true
       );
-      // console.log("matchingFee\n\n\n",matchingFee);
+
 
       if (matchingFee) {
         const MinFee = Number(matchingFee.MinFee) || 0;

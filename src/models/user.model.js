@@ -184,6 +184,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     ref: 'BankBranchName'
   },
+  isProfileComplete: {
+    type: Boolean,
+    default: false
+  },
   status: {
     type: Boolean,
     default: true

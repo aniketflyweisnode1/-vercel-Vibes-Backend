@@ -21,6 +21,112 @@ const { generateOTP } = require('../../utils/helpers');
 const emailService = require('../../utils/emailService');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 
+const PROFILE_COMPLETION_REQUIREMENTS = [
+  'name',
+  'email',
+  'mobile',
+  'address',
+  'country_id',
+  'state_id',
+  'city_id',
+  'zip_code',
+  'Govt_id_type',
+  'ID_Number',
+  'bank_account_holder_name',
+  'bank_name_id',
+  'bank_account_no',
+  'bank_branch_id'
+];
+
+/**
+ * Determine if a profile field has a non-empty value
+ * @param {any} value
+ * @returns {boolean}
+ */
+const isProfileFieldFilled = (value) => {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+
+  if (typeof value === 'number') {
+    return !Number.isNaN(value) && value > 0;
+  }
+
+  if (value instanceof Date) {
+    return !Number.isNaN(value.getTime());
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  return true;
+};
+
+/**
+ * Check whether a user's profile meets completion requirements
+ * @param {Object} userLike - User document or plain object
+ * @returns {boolean}
+ */
+const evaluateProfileCompletion = (userLike = {}) => {
+  return PROFILE_COMPLETION_REQUIREMENTS.every((field) => {
+    const value = userLike[field];
+    return isProfileFieldFilled(value);
+  });
+};
+
+/**
+ * Ensure the isProfileComplete flag reflects current data
+ * @param {import('mongoose').Document|Object} userDoc
+ * @param {number|null} actorId
+ * @returns {Promise<import('mongoose').Document|null>}
+ */
+const syncProfileCompletionStatus = async (userDoc, actorId = null) => {
+  if (!userDoc) {
+    return null;
+  }
+
+  const userObj = userDoc.toObject ? userDoc.toObject() : userDoc;
+  const userId = userObj.user_id;
+
+  if (!userId) {
+    return userDoc;
+  }
+
+  const isComplete = evaluateProfileCompletion(userObj);
+
+  if (userObj.isProfileComplete === isComplete) {
+    if (userDoc.isProfileComplete !== undefined) {
+      userDoc.isProfileComplete = isComplete;
+    }
+    return userDoc;
+  }
+
+  const updatedUser = await User.findOneAndUpdate(
+    { user_id: userId },
+    {
+      isProfileComplete: isComplete,
+      updated_by: actorId || userObj.updated_by || null,
+      updated_on: new Date()
+    },
+    {
+      new: true,
+      runValidators: false,
+      select: '-password'
+    }
+  );
+
+  return updatedUser || userDoc;
+};
+
 /**
  * Helper function to populate all referenced IDs with complete data
  * @param {Object} user - User object
@@ -90,6 +196,8 @@ const createUser = asyncHandler(async (req, res) => {
       created_by: req.userId || null
     };
 
+    userData.isProfileComplete = evaluateProfileCompletion(userData);
+
     // Set Fixed_role_id to the same value as role_id during creation
     if (userData.role_id) {
       userData.Fixed_role_id = userData.role_id;
@@ -120,7 +228,8 @@ const createUser = asyncHandler(async (req, res) => {
       console.error('Failed to create user registration notification:', notificationError);
     }
 
-    sendSuccess(res, user, 'User created successfully', 201);
+    const syncedUser = await syncProfileCompletionStatus(user, req.userId || null);
+    sendSuccess(res, syncedUser || user, 'User created successfully', 201);
   } catch (error) {
     throw error;
   }
@@ -283,7 +392,9 @@ const updateUser = asyncHandler(async (req, res) => {
       console.error('Failed to create user update notification:', notificationError);
     }
 
-    sendSuccess(res, user, 'User updated successfully');
+    const syncedUser = await syncProfileCompletionStatus(user, req.userId || null);
+
+    sendSuccess(res, syncedUser || user, 'User updated successfully');
   } catch (error) {
 
     throw error;
@@ -415,11 +526,24 @@ const getProfile = asyncHandler(async (req, res) => {
 const updateProfile = asyncHandler(async (req, res) => {
   try {
     const { id } = req.body;
+    const targetId = id !== undefined && id !== null ? id : req.userId;
+
+    if (!targetId) {
+      return sendError(res, 'User ID is required to update profile', 400);
+    }
+
+    const normalizedId = parseInt(targetId, 10);
+    if (Number.isNaN(normalizedId)) {
+      return sendError(res, 'Invalid user ID', 400);
+    }
+
     const updateData = {
       ...req.body,
       updated_by: req.userId,
       updated_on: new Date()
     };
+
+    delete updateData.id;
 
     // Remove password from update data if present (use separate endpoint for password change)
     delete updateData.password;
@@ -427,8 +551,13 @@ const updateProfile = asyncHandler(async (req, res) => {
     delete updateData.Fixed_role_id;
 
     const user = await User.findOneAndUpdate(
-      { user_id: id },
-      updateData
+      { user_id: normalizedId },
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+        select: '-password'
+      }
     );
 
     if (!user) {
@@ -449,7 +578,9 @@ const updateProfile = asyncHandler(async (req, res) => {
       console.error('Failed to create profile update notification:', notificationError);
     }
 
-    sendSuccess(res, user, 'Profile updated successfully');
+    const syncedUser = await syncProfileCompletionStatus(user, req.userId || normalizedId);
+
+    sendSuccess(res, syncedUser || user, 'Profile updated successfully');
   } catch (error) {
 
     throw error;
@@ -489,7 +620,9 @@ const updateUserByIdBody = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'User not found');
     }
 
-    sendSuccess(res, user, 'User updated successfully');
+    const syncedUser = await syncProfileCompletionStatus(user, req.userId || parseInt(id));
+
+    sendSuccess(res, syncedUser || user, 'User updated successfully');
   } catch (error) {
 
     throw error;
@@ -1074,6 +1207,9 @@ const PlatFormFeePayment = asyncHandler(async (req, res) => {
       { new: true }
     );
 
+    const syncedUser = await syncProfileCompletionStatus(updatedUser, req.userId || null);
+    const userForResponse = syncedUser || updatedUser;
+
     sendSuccess(res, {
       transaction_id: transaction.transaction_id,
       payment_intent_id: paymentIntent.paymentIntentId,
@@ -1083,12 +1219,13 @@ const PlatFormFeePayment = asyncHandler(async (req, res) => {
       status: paymentIntent.status,
       customer_id: customerId,
       user: {
-        user_id: updatedUser.user_id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        PlatFormFee_status: updatedUser.PlatFormFee_status,
-        PlatFormFee: updatedUser.PlatFormFee,
-        trangaction_id: updatedUser.trangaction_id
+        user_id: userForResponse.user_id,
+        name: userForResponse.name,
+        email: userForResponse.email,
+        PlatFormFee_status: userForResponse.PlatFormFee_status,
+        PlatFormFee: userForResponse.PlatFormFee,
+        trangaction_id: userForResponse.trangaction_id,
+        isProfileComplete: userForResponse.isProfileComplete
       },
       message: 'Platform fee payment intent created successfully and user updated'
     }, 'Platform fee payment intent created successfully and user updated');
@@ -1322,7 +1459,9 @@ const updateStaffProfile = asyncHandler(async (req, res) => {
       console.error('Failed to create profile update notification:', notificationError);
     }
 
-    sendSuccess(res, user, 'Staff profile updated successfully');
+    const syncedUser = await syncProfileCompletionStatus(user, req.userId || normalizedUserId);
+
+    sendSuccess(res, syncedUser || user, 'Staff profile updated successfully');
   } catch (error) {
     throw error;
   }
