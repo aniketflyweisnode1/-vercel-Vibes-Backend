@@ -3,12 +3,12 @@ const router = express.Router();
 
 // Import controllers
 const {
-  createVendorOnboardingPortal,
   getAllVendorOnboardingPortals,
   getVendorOnboardingPortalById,
   updateVendorOnboardingPortal,
   deleteVendorOnboardingPortal,
-  getVendorFullDetailsPublic
+  getVendorFullDetailsPublic,
+  createVendorPortal
 } = require('../../controllers/vendor_onboarding_portal.controller');
 
 // Import middleware
@@ -17,15 +17,14 @@ const { validateBody, validateQuery, validateParams } = require('../../../middle
 
 // Import validators
 const {
-  createVendorOnboardingPortalSchema,
   updateVendorOnboardingPortalSchema,
   getVendorOnboardingPortalByIdSchema,
   querySchema,
-  deleteVendorOnboardingPortalSchema
+  deleteVendorOnboardingPortalSchema,
+  createVendorPortalSchema
 } = require('../../../validators/vendor_onboarding_portal.validator');
-
-// Create vendor onboarding portal (with auth)
-router.post('/create', auth, validateBody(createVendorOnboardingPortalSchema), createVendorOnboardingPortal);
+// Create vendor portal (with auth)
+router.post('/create', auth, validateBody(createVendorPortalSchema), createVendorPortal);
 
 // Public vendor details (no auth)
 router.get('/public/vendors', getVendorFullDetailsPublic);

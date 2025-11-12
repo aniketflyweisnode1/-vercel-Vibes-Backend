@@ -6,21 +6,27 @@ const categoriesFeesSchema = new mongoose.Schema({
     type: Number,
     unique: true
   },
-  categoryName: {
+  category_id: {
+    type: Number,
+    ref: 'Category',
+    required: [true, 'Category ID is required']
+  },
+  pricing_currency: {
     type: String,
-    required: [true, 'Category name is required'],
     trim: true,
-    maxlength: [200, 'Category name cannot exceed 200 characters']
+    maxlength: [10, 'Currency code cannot exceed 10 characters'],
+    default: 'USD'
   },
   PlatformFee: {
     type: Number,
-    required: [true, 'Platform fee is required'],
+    default: 10,
+    //required: [true, 'Platform fee is required'],
     min: [0, 'Platform fee must be a positive number']
   },
-  ProcessingFee: {
+  Price: {
     type: Number,
-    required: [true, 'Processing fee is required'],
-    min: [0, 'Processing fee must be a positive number']
+    required: [true, 'Price is required'],
+    min: [0, 'Price must be a positive number']
   },
   MinFee: {
     type: Number,

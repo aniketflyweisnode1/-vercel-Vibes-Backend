@@ -4,6 +4,10 @@ const City = require('../models/city.model');
 const State = require('../models/state.model');
 const Country = require('../models/country.model');
 const BankBranchName = require('../models/bank_branch_name.model');
+const BankName = require('../models/bank_name.model');
+const CategoriesFees = require('../models/categories_fees.model');
+const Category = require('../models/category.model');
+const VendorBusinessInformation = require('../models/vendor_business_information.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -12,7 +16,7 @@ const { asyncHandler } = require('../../middleware/errorHandler');
  */
 const populateVendorOnboardingPortal = async (portal) => {
   const populatedData = { ...portal.toObject() };
-  
+
   // Populate Vendor_id (User)
   if (portal.Vendor_id) {
     const vendor = await User.findOne({ user_id: portal.Vendor_id });
@@ -80,16 +84,65 @@ const populateVendorOnboardingPortal = async (portal) => {
     }
   }
 
+  // Populate business_information_id
+  if (portal.business_information_id) {
+    try {
+      const businessInfo = await VendorBusinessInformation.findOne({
+        business_information_id: portal.business_information_id
+      });
+      populatedData.business_information_details = businessInfo || null;
+    } catch (error) {
+      populatedData.business_information_details = null;
+    }
+  }
+
+  // Populate categories_fees_id
+  if (portal.categories_fees_id && Array.isArray(portal.categories_fees_id) && portal.categories_fees_id.length > 0) {
+    try {
+      const categoriesFees = await CategoriesFees.find({
+        categories_fees_id: { $in: portal.categories_fees_id },
+        status: true
+      });
+
+      // Populate category details for each categories fees
+      const populatedCategoriesFees = await Promise.all(
+        categoriesFees.map(async (fee) => {
+          const feeObj = fee.toObject();
+          if (fee.category_id) {
+            try {
+              const category = await Category.findOne({ category_id: fee.category_id });
+              feeObj.category_details = category ? {
+                category_id: category.category_id,
+                category_name: category.category_name,
+                emozi: category.emozi,
+                status: category.status
+              } : null;
+            } catch (error) {
+              feeObj.category_details = null;
+            }
+          }
+          return feeObj;
+        })
+      );
+
+      populatedData.categories_fees_details = populatedCategoriesFees;
+    } catch (error) {
+      populatedData.categories_fees_details = [];
+    }
+  } else {
+    populatedData.categories_fees_details = [];
+  }
+
   return populatedData;
 };
 
 /**
- * Normalize service category input into a consistent array structure
- * @param {any} input - Raw categories input
+ * Normalize categories fees input into a consistent structure
+ * @param {any} input - Raw categories fees input
  * @param {string} fieldName - Field name for error messaging
  * @returns {{ provided: boolean, value?: Array }} Normalized result
  */
-const parseServiceCategoriesInput = (input, fieldName = 'service_categories') => {
+const parseCategoriesFeesInput = (input, fieldName = 'categories_fees') => {
   if (input === undefined) {
     return { provided: false };
   }
@@ -107,8 +160,9 @@ const parseServiceCategoriesInput = (input, fieldName = 'service_categories') =>
     }
   }
 
+  // If single object is provided, wrap it in an array for processing
   if (!Array.isArray(rawValue)) {
-    throw new Error(`${fieldName} must be an array of category objects`);
+    rawValue = [rawValue];
   }
 
   const normalized = [];
@@ -128,23 +182,37 @@ const parseServiceCategoriesInput = (input, fieldName = 'service_categories') =>
       normalizedItem.category_id = categoryId;
     }
 
-    if (item.category_name !== undefined && item.category_name !== null) {
-      normalizedItem.category_name = String(item.category_name).trim();
+    const rawPrice = item.Price ?? item.price ?? item.pricing ?? item.amount;
+    if (rawPrice !== undefined && rawPrice !== null && rawPrice !== '') {
+      const priceValue = Number(rawPrice);
+      if (Number.isNaN(priceValue)) {
+        throw new Error(`Price at index ${index} must be a numeric value`);
+      }
+      normalizedItem.Price = priceValue;
     }
 
-    const rawPricing = item.pricing ?? item.price ?? item.amount;
-    if (rawPricing !== undefined && rawPricing !== null && rawPricing !== '') {
-      const pricingValue = Number(rawPricing);
-      if (Number.isNaN(pricingValue)) {
-        throw new Error(`pricing at index ${index} must be a numeric value`);
+    const rawPlatformFee = item.PlatformFee ?? item.platform_fee ?? item.platformFee;
+    if (rawPlatformFee !== undefined && rawPlatformFee !== null && rawPlatformFee !== '') {
+      const platformFeeValue = Number(rawPlatformFee);
+      if (Number.isNaN(platformFeeValue)) {
+        throw new Error(`PlatformFee at index ${index} must be a numeric value`);
       }
-      normalizedItem.pricing = pricingValue;
+      normalizedItem.PlatformFee = platformFeeValue;
+    }
+
+    const rawMinFee = item.MinFee ?? item.min_fee ?? item.minFee;
+    if (rawMinFee !== undefined && rawMinFee !== null && rawMinFee !== '') {
+      const minFeeValue = Number(rawMinFee);
+      if (Number.isNaN(minFeeValue)) {
+        throw new Error(`MinFee at index ${index} must be a numeric value`);
+      }
+      normalizedItem.MinFee = minFeeValue;
     }
 
     const rawCurrency = item.pricing_currency ?? item.currency ?? item.currency_code;
     if (rawCurrency !== undefined && rawCurrency !== null) {
       normalizedItem.pricing_currency = String(rawCurrency).trim();
-    } else if (normalizedItem.pricing !== undefined) {
+    } else if (normalizedItem.Price !== undefined) {
       normalizedItem.pricing_currency = 'USD';
     }
 
@@ -163,17 +231,16 @@ const parseServiceCategoriesInput = (input, fieldName = 'service_categories') =>
  */
 const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
   try {
-    const initialPaymentInput = req.body.initial_payment_required;
-    const normalizedInitialPayment = initialPaymentInput === undefined
-      ? false
-      : (typeof initialPaymentInput === 'string'
-        ? initialPaymentInput === 'true'
-        : Boolean(initialPaymentInput));
+    // Calculate initial_payment_required from MinFee and Price if provided
+    let normalizedInitialPayment = false;
+    if (req.body.MinFee && req.body.Price) {
+      normalizedInitialPayment = (parseFloat(req.body.MinFee) / 100) * parseFloat(req.body.Price);
+    }
 
-    let serviceCategoriesResult;
+    let categoriesFeesResult;
     try {
-      serviceCategoriesResult = parseServiceCategoriesInput(
-        req.body.service_categories 
+      categoriesFeesResult = parseCategoriesFeesInput(
+        req.body.categories_fees
       );
     } catch (parseError) {
       return sendError(res, parseError.message, 400);
@@ -188,12 +255,10 @@ const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
     };
 
     delete portalData.categories;
-
-    if (serviceCategoriesResult?.provided) {
-      portalData.service_categories = serviceCategoriesResult.value;
-    } else {
-      delete portalData.service_categories;
-    }
+    delete portalData.categories_fees;
+    delete portalData.MinFee;
+    delete portalData.Price;
+    delete portalData.service_categories;
 
     if (Object.prototype.hasOwnProperty.call(portalData, 'bank_branch_name_id')) {
       if (portalData.bank_branch_name_id === null || portalData.bank_branch_name_id === '' || portalData.bank_branch_name_id === undefined) {
@@ -242,9 +307,115 @@ const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
     }
 
     const portal = await VendorOnboardingPortal.create(portalData);
+
+    // Create categories fees records if provided
+    const createdCategoriesFees = [];
+    if (categoriesFeesResult?.provided && categoriesFeesResult.value && categoriesFeesResult.value.length > 0) {
+      const errors = [];
+
+      for (let i = 0; i < categoriesFeesResult.value.length; i++) {
+        const item = categoriesFeesResult.value[i];
+
+        try {
+          // Validate category_id exists
+          if (!item.category_id) {
+            errors.push(`Item ${i + 1}: category_id is required`);
+            continue;
+          }
+
+          const category = await Category.findOne({
+            category_id: Number(item.category_id),
+            status: true
+          });
+
+          if (!category) {
+            errors.push(`Item ${i + 1}: Category not found or inactive for category_id ${item.category_id}`);
+            continue;
+          }
+
+          // Check if categories fees already exists for this category_id
+          const existingFees = await CategoriesFees.findOne({
+            category_id: Number(item.category_id),
+            status: true
+          });
+
+          if (existingFees) {
+            // Update existing fees instead of creating new one
+            const updatedFees = await CategoriesFees.findOneAndUpdate(
+              { category_id: Number(item.category_id), status: true },
+              {
+                pricing_currency: item.pricing_currency || 'USD',
+                PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
+                Price: item.Price !== undefined ? Number(item.Price) : existingFees.Price,
+                MinFee: item.MinFee !== undefined ? Number(item.MinFee) : existingFees.MinFee,
+                updated_by: req.userId,
+                updated_at: new Date()
+              },
+              { new: true }
+            );
+            createdCategoriesFees.push(updatedFees);
+            continue;
+          }
+
+          const categoriesFeesData = {
+            category_id: Number(item.category_id),
+            pricing_currency: item.pricing_currency || 'USD',
+            PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
+            Price: item.Price !== undefined ? Number(item.Price) : undefined,
+            MinFee: item.MinFee !== undefined ? Number(item.MinFee) : undefined,
+            status: true,
+            created_by: req.userId || 1
+          };
+
+          // Validate required fields
+          if (!categoriesFeesData.Price) {
+            errors.push(`Item ${i + 1}: Price is required`);
+            continue;
+          }
+
+          if (categoriesFeesData.MinFee === undefined) {
+            errors.push(`Item ${i + 1}: MinFee is required`);
+            continue;
+          }
+
+          const categoriesFees = await CategoriesFees.create(categoriesFeesData);
+          createdCategoriesFees.push(categoriesFees);
+        } catch (itemError) {
+          errors.push(`Item ${i + 1}: ${itemError.message}`);
+        }
+      }
+
+      if (errors.length > 0 && createdCategoriesFees.length === 0) {
+        // If all failed, return error
+        return sendError(res, `Failed to create categories fees. Errors: ${errors.join('; ')}`, 400);
+      }
+
+      // Log warnings if some failed
+      if (errors.length > 0) {
+        console.warn('Some categories fees creation failed:', errors);
+      }
+
+      // Update portal with created categories_fees_id
+      if (createdCategoriesFees.length > 0) {
+        const categoriesFeesIds = createdCategoriesFees.map(fee => fee.categories_fees_id);
+        await VendorOnboardingPortal.findOneAndUpdate(
+          { Vendor_Onboarding_Portal_id: portal.Vendor_Onboarding_Portal_id },
+          { categories_fees_id: categoriesFeesIds },
+          { new: true }
+        );
+        portal.categories_fees_id = categoriesFeesIds;
+      }
+    }
+
     const populatedPortal = await populateVendorOnboardingPortal(portal);
 
-    sendSuccess(res, populatedPortal, 'Vendor onboarding portal created successfully', 201);
+    // Add created categories fees to response
+    const response = {
+      ...populatedPortal,
+      categories_fees: createdCategoriesFees.length > 0 ? createdCategoriesFees : undefined
+    };
+
+    sendSuccess(res, response, 'Vendor onboarding portal created successfully', 201);
   } catch (error) {
     throw error;
   }
@@ -368,20 +539,6 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Vendor onboarding portal not found');
     }
 
-    let serviceCategoriesResult;
-    const categoriesProvided = Object.prototype.hasOwnProperty.call(req.body, 'service_categories')
-      || Object.prototype.hasOwnProperty.call(req.body, 'categories');
-
-    if (categoriesProvided) {
-      try {
-        serviceCategoriesResult = parseServiceCategoriesInput(
-          req.body.service_categories ?? req.body.categories
-        );
-      } catch (parseError) {
-        return sendError(res, parseError.message, 400);
-      }
-    }
-
     // Prepare update data
     const updateData = {
       ...req.body,
@@ -392,11 +549,21 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
     // Remove ID from update data to avoid updating it
     delete updateData.Vendor_Onboarding_Portal_id;
     delete updateData.categories;
+    delete updateData.service_categories;
+    delete updateData.categories_fees;
+    delete updateData.MinFee;
+    delete updateData.Price;
 
-    if (categoriesProvided) {
-      updateData.service_categories = serviceCategoriesResult?.value ?? [];
-    } else {
-      delete updateData.service_categories;
+    // Handle categories_fees if provided
+    let categoriesFeesResult;
+    if (req.body.categories_fees) {
+      try {
+        categoriesFeesResult = parseCategoriesFeesInput(
+          req.body.categories_fees
+        );
+      } catch (parseError) {
+        return sendError(res, parseError.message, 400);
+      }
     }
 
     if (Object.prototype.hasOwnProperty.call(updateData, 'bank_branch_name_id')) {
@@ -455,6 +622,103 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // Handle categories_fees if provided
+    if (categoriesFeesResult?.provided && categoriesFeesResult.value && categoriesFeesResult.value.length > 0) {
+      const createdCategoriesFees = [];
+      const errors = [];
+
+      for (let i = 0; i < categoriesFeesResult.value.length; i++) {
+        const item = categoriesFeesResult.value[i];
+
+        try {
+          // Validate category_id exists
+          if (!item.category_id) {
+            errors.push(`Item ${i + 1}: category_id is required`);
+            continue;
+          }
+
+          const category = await Category.findOne({
+            category_id: Number(item.category_id),
+            status: true
+          });
+
+          if (!category) {
+            errors.push(`Item ${i + 1}: Category not found or inactive for category_id ${item.category_id}`);
+            continue;
+          }
+
+          // Check if categories fees already exists for this category_id
+          const existingFees = await CategoriesFees.findOne({
+            category_id: Number(item.category_id),
+            status: true
+          });
+
+          if (existingFees) {
+            // Update existing fees instead of creating new one
+            const updatedFees = await CategoriesFees.findOneAndUpdate(
+              { category_id: Number(item.category_id), status: true },
+              {
+                pricing_currency: item.pricing_currency || 'USD',
+                PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
+                Price: item.Price !== undefined ? Number(item.Price) : existingFees.Price,
+                MinFee: item.MinFee !== undefined ? Number(item.MinFee) : existingFees.MinFee,
+                updated_by: req.userId,
+                updated_at: new Date()
+              },
+              { new: true }
+            );
+            createdCategoriesFees.push(updatedFees);
+            continue;
+          }
+
+          const categoriesFeesData = {
+            category_id: Number(item.category_id),
+            pricing_currency: item.pricing_currency || 'USD',
+            PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
+            Price: item.Price !== undefined ? Number(item.Price) : undefined,
+            MinFee: item.MinFee !== undefined ? Number(item.MinFee) : undefined,
+            status: true,
+            created_by: req.userId || 1
+          };
+
+          // Validate required fields
+          if (!categoriesFeesData.Price) {
+            errors.push(`Item ${i + 1}: Price is required`);
+            continue;
+          }
+
+          if (categoriesFeesData.MinFee === undefined) {
+            errors.push(`Item ${i + 1}: MinFee is required`);
+            continue;
+          }
+
+          const categoriesFees = await CategoriesFees.create(categoriesFeesData);
+          createdCategoriesFees.push(categoriesFees);
+        } catch (itemError) {
+          errors.push(`Item ${i + 1}: ${itemError.message}`);
+        }
+      }
+
+      // Update portal with categories_fees_id
+      if (createdCategoriesFees.length > 0) {
+        const categoriesFeesIds = createdCategoriesFees.map(fee => fee.categories_fees_id);
+        // Merge with existing categories_fees_id if any
+        const existingIds = updatedPortal.categories_fees_id || [];
+        const mergedIds = [...new Set([...existingIds, ...categoriesFeesIds])];
+
+        await VendorOnboardingPortal.findOneAndUpdate(
+          { Vendor_Onboarding_Portal_id: parseInt(Vendor_Onboarding_Portal_id) },
+          { categories_fees_id: mergedIds },
+          { new: true }
+        );
+        updatedPortal.categories_fees_id = mergedIds;
+      }
+
+      if (errors.length > 0) {
+        console.warn('Some categories fees update failed:', errors);
+      }
+    }
+
     const populatedPortal = await populateVendorOnboardingPortal(updatedPortal);
     sendSuccess(res, populatedPortal, 'Vendor onboarding portal updated successfully');
   } catch (error) {
@@ -510,14 +774,206 @@ const getVendorFullDetailsPublic = asyncHandler(async (req, res) => {
 
     const vendorsWithRole = populatedPortals.filter(portal => {
       const roleId = portal.vendor_details?.role_id;
-      const hasServiceCategories = portal.service_categories && 
-        Array.isArray(portal.service_categories) && 
-        portal.service_categories.length > 0;
-      return (roleId !== undefined && roleId !== null ? Number(roleId) === 3 : false) && hasServiceCategories;
+      return roleId !== undefined && roleId !== null ? Number(roleId) === 3 : false;
     });
 
     sendSuccess(res, vendorsWithRole, 'Vendor details retrieved successfully');
   } catch (error) {
+    throw error;
+  }
+});
+
+/**
+ * Create vendor portal with business information, bank details, and categories fees
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const createVendorPortal = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    // Step 1: Create VendorBusinessInformation
+    const businessInfoData = {
+      business_name: req.body.Basic_information_business_name,
+      Basic_information_LegalName: req.body.Basic_information_LegalName,
+      business_email: req.body.Basic_information_Email,
+      business_phone: req.body.Basic_information_phone,
+      description: req.body.Basic_information_Business_Description,
+      Basic_information_Business_Description: req.body.Basic_information_Business_Description,
+      Basic_information_BusinessAddress: req.body.Basic_information_BusinessAddress,
+      Basic_information_City_id: req.body.Basic_information_City_id,
+      Basic_information_State_id: req.body.Basic_information_State_id,
+      Basic_information_ZipCode: req.body.Basic_information_ZipCode,
+      Basic_information_Country_id: req.body.Basic_information_Country_id,
+      Document_Business_Regis_Certificate: req.body.Document_Business_Regis_Certificate,
+      Document_GSTTaxCertificate: req.body.Document_GSTTaxCertificate,
+      Document_Pan: req.body.Document_Pan,
+      Document_bankbook: req.body.Document_bankbook,
+      Document_IDproofOwner: req.body.Document_IDproofOwner,
+      Document_TradeLicense: req.body.Document_TradeLicense,
+      KYC_fullname: req.body.KYC_fullname,
+      KYC_DoB: req.body.KYC_DoB ? new Date(req.body.KYC_DoB) : undefined,
+      KYC_GovtIdtype: req.body.KYC_GovtIdtype,
+      KYC_Idno: req.body.KYC_Idno,
+      KYC_Business_PanCard: req.body.KYC_Business_PanCard,
+      KYC_GSTNo: req.body.KYC_GSTNo,
+      KYC_UploadIdDocument: req.body.KYC_UploadIdDocument,
+      KYC_photo: req.body.KYC_photo,
+      service_areas_locaiton: req.body.service_areas_locaiton,
+      service_areas_Regions: req.body.service_areas_Regions,
+      service_areas_pincode: req.body.service_areas_pincode,
+      service_areas_workingHoures: req.body.service_areas_workingHoures,
+      vendor_id: userId,
+      created_by: userId,
+      status: req.body.Status !== undefined ? req.body.Status : true
+    };
+
+    const businessInfo = await VendorBusinessInformation.create(businessInfoData);
+
+    // Step 2: Create BankBranchName from Payment_Setup fields
+    let bankBranchNameId = null;
+    if (req.body.Payment_Setup_HolderName && req.body.Payment_Setup_AccountNo && req.body.Payment_Setup_BranchName) {
+      // Find or create BankName
+      let bankNameId = req.body.bank_name_id;
+      
+      if (!bankNameId) {
+        // Try to find bank by name
+        const existingBank = await BankName.findOne({
+          bank_name: "ICI_Bank",
+          status: true
+        });
+        
+        if (existingBank) {
+          bankNameId = existingBank.bank_name_id;
+        } else {
+          // Create new bank if not found
+          const newBank = await BankName.create({
+            bank_name: "ICI_Bank",
+            status: true,
+            created_by: userId
+          });
+          bankNameId = newBank.bank_name_id;
+        }
+      }
+      
+      if (!bankNameId) {
+        return sendError(res, 'bank_name_id is required. Please provide either bank_name_id or ICI_Bank', 400);
+      }
+
+      const bankBranchData = {
+        bank_branch_name: req.body.Payment_Setup_BranchName,
+        bank_name_id: bankNameId,
+        holderName: req.body.Payment_Setup_HolderName,
+        upi: req.body.Payment_Setup_UPI || null,
+        ifsc: req.body.Payment_Setup_Ifsc || null,
+        accountNo: req.body.Payment_Setup_AccountNo,
+        address: req.body.Basic_information_BusinessAddress || '',
+        zipcode: req.body.Basic_information_ZipCode || '',
+        status: true,
+        created_by: userId,
+        updated_by: userId
+      };
+
+      const bankBranch = await BankBranchName.create(bankBranchData);
+      bankBranchNameId = bankBranch.bank_branch_name_id;
+    }
+
+    // Step 3: Create CategoriesFees from service_categories
+    const categoriesFeesIds = [];
+    if (req.body.service_categories && Array.isArray(req.body.service_categories) && req.body.service_categories.length > 0) {
+      for (const item of req.body.service_categories) {
+        try {
+          // Validate category_id exists
+          if (!item.category_id) {
+            continue;
+          }
+
+          const category = await Category.findOne({
+            category_id: Number(item.category_id),
+            status: true
+          });
+
+          if (!category) {
+            continue;
+          }
+
+          // Check if categories fees already exists for this category_id
+          const existingFees = await CategoriesFees.findOne({
+            category_id: Number(item.category_id),
+            status: true
+          });
+
+          if (existingFees) {
+            // Update existing fees
+            const updatedFees = await CategoriesFees.findOneAndUpdate(
+              { category_id: Number(item.category_id), status: true },
+              {
+                pricing_currency: item.pricing_currency || 'USD',
+                PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
+                Price: item.Price !== undefined ? Number(item.Price) : existingFees.Price,
+                MinFee: parseFloat(item.Price / 100) * parseFloat(item.MinFee),
+                updated_by: userId,
+                updated_at: new Date()
+              },
+              { new: true }
+            );
+            categoriesFeesIds.push(updatedFees.categories_fees_id);
+            continue;
+          }
+
+          // Validate required fields
+          if (!item.Price || item.MinFee === undefined) {
+            continue;
+          }
+
+          const categoriesFeesData = {
+            category_id: Number(item.category_id),
+            pricing_currency: item.pricing_currency || 'USD',
+            PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
+            Price: Number(item.Price),
+            MinFee: parseFloat(item.Price / 100) * parseFloat(item.MinFee),
+            status: true,
+            created_by: userId
+          };
+
+          const categoriesFees = await CategoriesFees.create(categoriesFeesData);
+          categoriesFeesIds.push(categoriesFees.categories_fees_id);
+        } catch (itemError) {
+          console.error('Error creating categories fees:', itemError);
+          // Continue with other items
+        }
+      }
+    }
+
+    // Step 4: Calculate initial_payment_required
+    let initialPaymentRequired = false;
+    if (req.body.service_categories && Array.isArray(req.body.service_categories) && req.body.service_categories.length > 0) {
+      const firstCategory = req.body.service_categories[0];
+      if (firstCategory.MinFee && firstCategory.Price) {
+        initialPaymentRequired = true;
+      }
+    }
+
+    // Step 5: Create VendorOnboardingPortal
+    const portalData = {
+      Vendor_id: userId,
+      business_information_id: businessInfo.business_information_id,
+      bank_branch_name_id: bankBranchNameId,
+      categories_fees_id: categoriesFeesIds,
+      initial_payment_required: initialPaymentRequired,
+      ifConfirm: req.body.ifConfirm !== undefined ? req.body.ifConfirm : false,
+      Status: req.body.Status !== undefined ? req.body.Status : true,
+      CreateBy: userId,
+      CreateAt: new Date()
+    };
+
+    const portal = await VendorOnboardingPortal.create(portalData);
+
+    // Step 6: Populate and return
+    const populatedPortal = await populateVendorOnboardingPortal(portal);
+    sendSuccess(res, populatedPortal, 'Vendor portal created successfully', 201);
+  } catch (error) {
+    console.error('Error creating vendor portal:', error);
     throw error;
   }
 });
@@ -528,6 +984,7 @@ module.exports = {
   getVendorOnboardingPortalById,
   updateVendorOnboardingPortal,
   deleteVendorOnboardingPortal,
-  getVendorFullDetailsPublic
+  getVendorFullDetailsPublic,
+  createVendorPortal
 };
 

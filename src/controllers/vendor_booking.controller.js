@@ -560,41 +560,123 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
           return sendError(res, 'One or more selected categories are invalid or inactive', 400);
         }
 
+        // Verify booking.user_id exists and is a vendor
+        if (!booking.user_id) {
+          return sendError(res, 'Vendor booking is missing user_id (vendor ID)', 400);
+        }
+
         // Get vendor onboarding portal for the vendor (booking.user_id is the vendor)
-        const vendorPortal = await VendorOnboardingPortal.findOne({
-          Vendor_id: booking.user_id,
+        // Match: vendor_booking.user_id === vendor_onboarding_portal.Vendor_id
+        const vendorPortal = await VendorBooking.findOne({
+          Vendor_id: Number(booking.user_id),
           Status: true
         });
 
+        console.log(vendorPortal);
         if (!vendorPortal) {
-          return sendError(res, 'Vendor onboarding portal not found for this vendor', 404);
+          console.log(vendorPortal);
+          return sendError(res, `Vendor onboarding portal not found for vendor ID: ${vendorPortal.user_id}. Please ensure the vendor has completed their onboarding process.`, 404);
         }
 
-        if (vendorPortal && vendorPortal.service_categories && Array.isArray(vendorPortal.service_categories)) {
+        if (vendorPortal && vendorPortal.Vendor_Category_id && Array.isArray(vendorPortal.Vendor_Category_id)) {
+          // Check if service_categories array is empty
+          if (vendorPortal.Vendor_Category_id.length === 0) {
+            return sendError(res, 'Vendor has not configured any service categories. Please ensure the vendor has set up service categories with pricing in their onboarding portal.', 400);
+          }
+
           // Match booking categories with vendor service categories and sum pricing
           const missingCategories = [];
-          booking.Vendor_Category_id.forEach(categoryId => {
+          const categoriesWithoutPricing = [];
+          const availableCategoryIds = vendorPortal.Vendor_Category_id.map(sc => Number(sc.category_id));
+
+          // Convert booking category IDs to numbers for comparison
+          const bookingCategoryIds = booking.Vendor_Category_id.map(id => Number(id));
+
+          bookingCategoryIds.forEach(categoryId => {
+            // Find service category with proper type coercion
             const serviceCategory = vendorPortal.service_categories.find(
-              sc => sc.category_id === categoryId
+              sc => Number(sc.category_id) === Number(categoryId)
             );
-            if (serviceCategory && serviceCategory.pricing !== undefined && serviceCategory.pricing !== null && Number(serviceCategory.pricing) > 0) {
-              amount += Number(serviceCategory.pricing);
+
+            if (!serviceCategory) {
+              // Category not found in vendor's service categories
+              missingCategories.push({
+                category_id: categoryId,
+                reason: 'Category not configured in vendor service categories'
+              });
+            } else if (serviceCategory.pricing === undefined || serviceCategory.pricing === null || serviceCategory.pricing === '') {
+              // Category found but pricing is not set
+              categoriesWithoutPricing.push({
+                category_id: categoryId,
+                category_name: serviceCategory.category_name || 'Unknown',
+                reason: 'Pricing not set for this category'
+              });
             } else {
-              missingCategories.push(categoryId);
+              const pricingValue = Number(serviceCategory.pricing);
+              if (isNaN(pricingValue) || pricingValue <= 0) {
+                // Category found but pricing is invalid or zero
+                categoriesWithoutPricing.push({
+                  category_id: categoryId,
+                  category_name: serviceCategory.category_name || 'Unknown',
+                  reason: `Invalid pricing value: ${serviceCategory.pricing}`
+                });
+              } else {
+                // Valid pricing found
+                amount += pricingValue;
+              }
             }
           });
 
-          // Only error if all categories are missing pricing
+          // Build detailed error message
           if (amount === 0) {
-            return sendError(res, `Pricing not found for categories: ${missingCategories.join(', ')}. Please ensure the vendor has set pricing for at least one selected category.`, 400);
+            const errorDetails = [];
+            
+            if (missingCategories.length > 0) {
+              errorDetails.push(`Categories not configured in vendor service: ${missingCategories.map(c => c.category_id).join(', ')}`);
+            }
+            
+            if (categoriesWithoutPricing.length > 0) {
+              const categoryDetails = categoriesWithoutPricing.map(c => {
+                const name = c.category_name !== 'Unknown' ? c.category_name : '';
+                return name ? `${name} (ID: ${c.category_id})` : `ID: ${c.category_id}`;
+              }).join(', ');
+              errorDetails.push(`Categories without valid pricing: ${categoryDetails}`);
+            }
+
+            const errorMessage = `Pricing not found for the selected categories. ${errorDetails.join('. ')}. Please ensure the vendor has configured these categories with valid pricing (greater than 0) in their onboarding portal.`;
+            
+            // Log detailed info for debugging
+            console.error('Pricing lookup failed:', {
+              booking_id: booking.Vendor_Booking_id,
+              vendor_id: booking.user_id,
+              booking_categories: bookingCategoryIds,
+              available_categories: availableCategoryIds,
+              vendor_service_categories: vendorPortal.service_categories.map(sc => ({
+                category_id: sc.category_id,
+                category_name: sc.category_name,
+                pricing: sc.pricing,
+                pricing_type: typeof sc.pricing
+              })),
+              missing: missingCategories,
+              without_pricing: categoriesWithoutPricing
+            });
+
+            return sendError(res, errorMessage, 400);
           }
 
           // Warn if some categories are missing pricing (but don't block payment)
-          if (missingCategories.length > 0) {
-            console.warn(`Warning: Pricing not found for some categories (${missingCategories.join(', ')}). Proceeding with partial amount: ${amount}`);
+          if (missingCategories.length > 0 || categoriesWithoutPricing.length > 0) {
+            const warnings = [];
+            if (missingCategories.length > 0) {
+              warnings.push(`Categories not configured: ${missingCategories.map(c => c.category_id).join(', ')}`);
+            }
+            if (categoriesWithoutPricing.length > 0) {
+              warnings.push(`Categories without pricing: ${categoriesWithoutPricing.map(c => `${c.category_name} (ID: ${c.category_id})`).join(', ')}`);
+            }
+            console.warn(`Warning: ${warnings.join('; ')}. Proceeding with partial amount: ${amount}`);
           }
         } else {
-          return sendError(res, 'Vendor has not configured service categories with pricing', 400);
+          return sendError(res, 'Vendor has not configured service categories. Please ensure the vendor has set up service categories with pricing in their onboarding portal.', 400);
         }
       } catch (pricingError) {
         console.error('Error fetching pricing from vendor portal:', pricingError);

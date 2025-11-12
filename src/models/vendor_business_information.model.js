@@ -17,6 +17,10 @@ const vendorBusinessInformationSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Business name cannot exceed 200 characters']
   },
+  Basic_information_LegalName: {
+    type: String,
+    trim: true
+  },
   business_email: {
     type: String,
     required: [true, 'Business email is required'],
@@ -29,11 +33,35 @@ const vendorBusinessInformationSchema = new mongoose.Schema({
     trim: true,
     maxlength: [1000, 'Description cannot exceed 1000 characters']
   },
+  Basic_information_Business_Description: {
+    type: String,
+    trim: true
+  },
   business_phone: {
     type: String,
     required: [true, 'Business phone is required'],
     trim: true,
     match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
+  },
+  Basic_information_BusinessAddress: {
+    type: String,
+    trim: true
+  },
+  Basic_information_City_id: {
+    type: Number,
+    ref: 'City'
+  },
+  Basic_information_State_id: {
+    type: Number,
+    ref: 'State'
+  },
+  Basic_information_ZipCode: {
+    type: String,
+    trim: true
+  },
+  Basic_information_Country_id: {
+    type: Number,
+    ref: 'Country'
   },
   business_website_url: {
     type: String,
@@ -50,6 +78,63 @@ const vendorBusinessInformationSchema = new mongoose.Schema({
     trim: true,
     match: [/^https?:\/\/.+/, 'Please enter a valid URL starting with http:// or https://']
   },
+  // Document Section
+  Document_Business_Regis_Certificate: {
+    type: String,
+    trim: true
+  },
+  Document_GSTTaxCertificate: {
+    type: String,
+    trim: true
+  },
+  Document_Pan: {
+    type: String,
+    trim: true
+  },
+  Document_bankbook: {
+    type: String,
+    trim: true
+  },
+  Document_IDproofOwner: {
+    type: String,
+    trim: true
+  },
+  Document_TradeLicense: {
+    type: String,
+    trim: true
+  },
+  // KYC Section
+  KYC_fullname: {
+    type: String,
+    trim: true
+  },
+  KYC_DoB: {
+    type: Date
+  },
+  KYC_GovtIdtype: {
+    type: String,
+    trim: true
+  },
+  KYC_Idno: {
+    type: String,
+    trim: true
+  },
+  KYC_Business_PanCard: {
+    type: String,
+    trim: true
+  },
+  KYC_GSTNo: {
+    type: String,
+    trim: true
+  },
+  KYC_UploadIdDocument: {
+    type: String,
+    trim: true
+  },
+  KYC_photo: {
+    type: String,
+    trim: true
+  },
   vendor_categories: [{
     type: Number,
     ref: 'VendorServiceType'
@@ -58,6 +143,23 @@ const vendorBusinessInformationSchema = new mongoose.Schema({
     type: String,
     trim: true,
     maxlength: [500, 'Service location cannot exceed 500 characters']
+  },
+  // Service Areas Section
+  service_areas_locaiton: {
+    type: String,
+    trim: true
+  },
+  service_areas_Regions: {
+    type: String,
+    trim: true
+  },
+  service_areas_pincode: {
+    type: String,
+    trim: true
+  },
+  service_areas_workingHoures: {
+    type: String,
+    trim: true
   },
   service_radius: {
     type: Number,

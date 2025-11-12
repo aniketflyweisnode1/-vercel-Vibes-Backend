@@ -11,147 +11,21 @@ const vendorOnboardingPortalSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Vendor ID is required']
   },
-  // Basic Information Section
-  Basic_information_business_name: {
-    type: String,
-    trim: true
-  },
-  Basic_information_LegalName: {
-    type: String,
-    trim: true
-  },
-  Basic_information_Email: {
-    type: String,
-    trim: true,
-    lowercase: true
-  },
-  Basic_information_phone: {
-    type: String,
-    trim: true
-  },
-  Basic_information_Business_Description: {
-    type: String,
-    trim: true
-  },
-  Basic_information_BusinessAddress: {
-    type: String,
-    trim: true
-  },
-  Basic_information_City_id: {
+  business_information_id: {
     type: Number,
-    ref: 'City'
+    ref: 'VendorBusinessInformation',
+    default: null
   },
-  Basic_information_State_id: {
-    type: Number,
-    ref: 'State'
-  },
-  Basic_information_ZipCode: {
-    type: String,
-    trim: true
-  },
-  Basic_information_Country_id: {
-    type: Number,
-    ref: 'Country'
-  },
-  // Document Section
-  Document_Business_Regis_Certificate: {
-    type: String,
-    trim: true
-  },
-  Document_GSTTaxCertificate: {
-    type: String,
-    trim: true
-  },
-  Document_Pan: {
-    type: String,
-    trim: true
-  },
-  Document_bankbook: {
-    type: String,
-    trim: true
-  },
-  Document_IDproofOwner: {
-    type: String,
-    trim: true
-  },
-  Document_TradeLicense: {
-    type: String,
-    trim: true
-  },
-  // KYC Section
-  KYC_fullname: {
-    type: String,
-    trim: true
-  },
-  KYC_DoB: {
-    type: Date
-  },
-  KYC_GovtIdtype: {
-    type: String,
-    trim: true
-  },
-  KYC_Idno: {
-    type: String,
-    trim: true
-  },
-  KYC_Business_PanCard: {
-    type: String,
-    trim: true
-  },
-  KYC_GSTNo: {
-    type: String,
-    trim: true
-  },
-  KYC_UploadIdDocument: {
-    type: String,
-    trim: true
-  },
-  KYC_photo: {
-    type: String,
-    trim: true
-  },
-  // Service Areas Section
-  service_areas_locaiton: {
-    type: String,
-    trim: true
-  },
-  service_areas_Regions: {
-    type: String,
-    trim: true
-  },
-  service_areas_pincode: {
-    type: String,
-    trim: true
-  },
-  service_areas_workingHoures: {
-    type: String,
-    trim: true
-  },
-  // Service Categories with Pricing
-  service_categories: [{
-      category_id: {
-        type: Number
-      },
-      category_name: {
-        type: String,
-        trim: true
-      },
-      pricing: {
-        type: Number,
-        min: [0, 'Pricing must be a non-negative number']
-      },
-      pricing_currency: {
-        type: String,
-        trim: true,
-        maxlength: [10, 'Currency code cannot exceed 10 characters'],
-        default: 'USD'
-      }
-    }],
   // Payment Setup Section
   bank_branch_name_id: {
     type: Number,
     ref: 'BankBranchName',
     default: null
+  },
+  categories_fees_id: {
+    type: [Number],
+    ref: 'CategoriesFees',
+    default: []
   },
   initial_payment_required: {
     type: Boolean,

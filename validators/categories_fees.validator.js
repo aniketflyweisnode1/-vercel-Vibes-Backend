@@ -6,17 +6,6 @@ const Joi = require('joi');
 
 // Common validation patterns
 const commonValidations = {
-  categoryName: Joi.string()
-    .trim()
-    .min(2)
-    .max(200)
-    .required()
-    .messages({
-      'string.empty': 'Category name is required',
-      'string.min': 'Category name must be at least 2 characters long',
-      'string.max': 'Category name cannot exceed 200 characters'
-    }),
-
   PlatformFee: Joi.number()
     .min(0)
     .required()
@@ -26,13 +15,13 @@ const commonValidations = {
       'any.required': 'Platform fee is required'
     }),
 
-  ProcessingFee: Joi.number()
+  Price: Joi.number()
     .min(0)
     .required()
     .messages({
-      'number.base': 'Processing fee must be a number',
-      'number.min': 'Processing fee must be a positive number',
-      'any.required': 'Processing fee is required'
+      'number.base': 'Price must be a number',
+      'number.min': 'Price must be a positive number',
+      'any.required': 'Price is required'
     }),
 
   MinFee: Joi.number()
@@ -53,9 +42,26 @@ const commonValidations = {
 
 // Create categories fees validation schema
 const createCategoriesFeesSchema = Joi.object({
-  categoryName: commonValidations.categoryName,
+  category_id: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Category ID must be a number',
+      'number.integer': 'Category ID must be an integer',
+      'number.positive': 'Category ID must be a positive number',
+      'any.required': 'Category ID is required'
+    }),
+  pricing_currency: Joi.string()
+    .trim()
+    .max(10)
+    .default('USD')
+    .optional()
+    .messages({
+      'string.max': 'Currency code cannot exceed 10 characters'
+    }),
   PlatformFee: commonValidations.PlatformFee,
-  ProcessingFee: commonValidations.ProcessingFee,
+  Price: commonValidations.Price,
   MinFee: commonValidations.MinFee,
   status: commonValidations.status
 });
@@ -72,9 +78,24 @@ const updateCategoriesFeesSchema = Joi.object({
       'number.positive': 'Categories Fees ID must be a positive number',
       'any.required': 'Categories Fees ID is required'
     }),
-  categoryName: commonValidations.categoryName.optional(),
+  category_id: Joi.number()
+    .integer()
+    .positive()
+    .optional()
+    .messages({
+      'number.base': 'Category ID must be a number',
+      'number.integer': 'Category ID must be an integer',
+      'number.positive': 'Category ID must be a positive number'
+    }),
+  pricing_currency: Joi.string()
+    .trim()
+    .max(10)
+    .optional()
+    .messages({
+      'string.max': 'Currency code cannot exceed 10 characters'
+    }),
   PlatformFee: commonValidations.PlatformFee.optional(),
-  ProcessingFee: commonValidations.ProcessingFee.optional(),
+  Price: commonValidations.Price.optional(),
   MinFee: commonValidations.MinFee.optional(),
   status: commonValidations.status.optional()
 }).min(2).messages({
@@ -129,11 +150,27 @@ const getAllCategoriesFeesSchema = Joi.object({
     .messages({
       'boolean.base': 'Status must be a boolean value'
     }),
+  category_id: Joi.number()
+    .integer()
+    .positive()
+    .optional()
+    .messages({
+      'number.base': 'Category ID must be a number',
+      'number.integer': 'Category ID must be an integer',
+      'number.positive': 'Category ID must be a positive number'
+    }),
+  pricing_currency: Joi.string()
+    .trim()
+    .max(10)
+    .optional()
+    .messages({
+      'string.max': 'Currency code cannot exceed 10 characters'
+    }),
   sortBy: Joi.string()
-    .valid('categoryName', 'created_at', 'updated_at')
+    .valid('created_at', 'updated_at', 'category_id', 'Price', 'PlatformFee', 'MinFee')
     .default('created_at')
     .messages({
-      'any.only': 'Sort by must be one of: categoryName, created_at, updated_at'
+      'any.only': 'Sort by must be one of: created_at, updated_at, category_id, Price, PlatformFee, MinFee'
     }),
   sortOrder: Joi.string()
     .valid('asc', 'desc')
