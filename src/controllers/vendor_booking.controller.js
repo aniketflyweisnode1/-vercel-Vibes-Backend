@@ -722,7 +722,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     const matchedCategories = [];
     const missingCategories = [];
 
-    console.log("populatedPortal.categories_fees_details\n\n\n",bookingCategoryIds);
+    // console.log("populatedPortal.categories_fees_details\n\n\n",bookingCategoryIds);
     bookingCategoryIds.forEach(categoryId => {
       // Find matching categories fees
       // console.log("categoryId\n\n\n",categoryId, populatedPortal.categories_fees_details);
