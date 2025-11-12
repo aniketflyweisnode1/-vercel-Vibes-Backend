@@ -3,6 +3,7 @@ const Event = require('../models/event.model');
 const Category = require('../models/category.model');
 const User = require('../models/user.model');
 const Transaction = require('../models/transaction.model');
+const VendorOnboardingPortal = require('../models/vendor_onboarding_portal.model');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
@@ -518,7 +519,7 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
 /**
  * Staff booking payment logged as transaction
  */
-const StaffBookingPayment = asyncHandler(async (req, res) => {
+const VendorBookingPayment = asyncHandler(async (req, res) => {
   try {
     const {
       vendor_booking_id,
@@ -545,9 +546,69 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
       return sendError(res, 'User not found', 404);
     }
 
-    const amount = Number(booking.amount || booking.pricing || booking.total_price || 0);
+    // Get pricing from vendor onboarding portal based on Vendor_Category_id
+    let amount = 0;
+    if (booking.Vendor_Category_id && booking.Vendor_Category_id.length > 0) {
+      try {
+        // Verify categories exist in Category model
+        const categories = await Category.find({
+          category_id: { $in: booking.Vendor_Category_id },
+          status: true
+        });
+
+        if (!categories || categories.length === 0) {
+          return sendError(res, 'One or more selected categories are invalid or inactive', 400);
+        }
+
+        // Get vendor onboarding portal for the vendor (booking.user_id is the vendor)
+        const vendorPortal = await VendorOnboardingPortal.findOne({
+          Vendor_id: booking.user_id,
+          Status: true
+        });
+
+        if (!vendorPortal) {
+          return sendError(res, 'Vendor onboarding portal not found for this vendor', 404);
+        }
+
+        if (vendorPortal && vendorPortal.service_categories && Array.isArray(vendorPortal.service_categories)) {
+          // Match booking categories with vendor service categories and sum pricing
+          const missingCategories = [];
+          booking.Vendor_Category_id.forEach(categoryId => {
+            const serviceCategory = vendorPortal.service_categories.find(
+              sc => sc.category_id === categoryId
+            );
+            if (serviceCategory && serviceCategory.pricing !== undefined && serviceCategory.pricing !== null && Number(serviceCategory.pricing) > 0) {
+              amount += Number(serviceCategory.pricing);
+            } else {
+              missingCategories.push(categoryId);
+            }
+          });
+
+          // Only error if all categories are missing pricing
+          if (amount === 0) {
+            return sendError(res, `Pricing not found for categories: ${missingCategories.join(', ')}. Please ensure the vendor has set pricing for at least one selected category.`, 400);
+          }
+
+          // Warn if some categories are missing pricing (but don't block payment)
+          if (missingCategories.length > 0) {
+            console.warn(`Warning: Pricing not found for some categories (${missingCategories.join(', ')}). Proceeding with partial amount: ${amount}`);
+          }
+        } else {
+          return sendError(res, 'Vendor has not configured service categories with pricing', 400);
+        }
+      } catch (pricingError) {
+        console.error('Error fetching pricing from vendor portal:', pricingError);
+        return sendError(res, `Failed to fetch pricing information for the booking: ${pricingError.message}`, 400);
+      }
+    }
+
+    // Fallback: if no pricing found from categories, try to get from booking fields
+    if (amount <= 0) {
+      amount = Number(booking.amount || booking.pricing || booking.total_price || 0);
+    }
+
     if (!amount || amount <= 0) {
-      return sendError(res, 'Booking amount must be greater than 0', 400);
+      return sendError(res, 'Booking amount must be greater than 0. Please ensure the vendor has set pricing for the selected categories.', 400);
     }
 
     let customerId = null;
@@ -655,6 +716,6 @@ module.exports = {
   updateVendorBooking,
   deleteVendorBooking,
   getVendorBookingsByAuth,
-  StaffBookingPayment
+  VendorBookingPayment
 };
 

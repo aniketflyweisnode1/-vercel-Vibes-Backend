@@ -510,7 +510,10 @@ const getVendorFullDetailsPublic = asyncHandler(async (req, res) => {
 
     const vendorsWithRole = populatedPortals.filter(portal => {
       const roleId = portal.vendor_details?.role_id;
-      return roleId !== undefined && roleId !== null ? Number(roleId) === 3 : false;
+      const hasServiceCategories = portal.service_categories && 
+        Array.isArray(portal.service_categories) && 
+        portal.service_categories.length > 0;
+      return (roleId !== undefined && roleId !== null ? Number(roleId) === 3 : false) && hasServiceCategories;
     });
 
     sendSuccess(res, vendorsWithRole, 'Vendor details retrieved successfully');
