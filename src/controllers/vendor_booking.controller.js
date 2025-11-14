@@ -755,7 +755,57 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       return sendError(res, 'Invalid pricing calculation. Amount must be greater than 0.', 400);
     }
 
-    // Step 6: Update VendorBooking with amount, vendor_amount, and status
+    // Step 6: Get user information for Stripe customer creation
+    const user = await User.findOne({ user_id: req.userId });
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+
+    // Step 7: Create or get Stripe customer
+    let customerId = null;
+    try {
+      const customerData = {
+        email: user.email,
+        name: user.name,
+        phone: user.mobile,
+        metadata: {
+          user_id: req.userId,
+          payment_type: 'vendor_booking'
+        }
+      };
+
+      const customer = await createCustomer(customerData);
+      customerId = customer.customerId;
+    } catch (customerError) {
+      console.error('Customer creation error:', customerError);
+      // Continue without customer if creation fails
+    }
+
+    // Step 8: Create Stripe payment intent
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        amount: Math.round(totalAmount),
+        billingDetails: billingDetails,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: req.userId,
+          customer_id: customerId,
+          payment_type: 'vendor_booking',
+          vendor_booking_id: parseInt(vendor_booking_id, 10),
+          vendor_id: vendorId,
+          description: 'Vendor booking payment'
+        }
+      };
+
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      console.error('Payment intent creation error:', paymentError);
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
+
+    // Step 9: Update VendorBooking with amount, vendor_amount, and status
     const updatedBooking = await VendorBooking.findOneAndUpdate(
       { Vendor_Booking_id: parseInt(vendor_booking_id, 10) },
       {
@@ -770,15 +820,19 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    // Step 7: Create transaction
+    // Step 10: Create transaction
     const transactionData = {
       user_id: req.userId,
       amount: totalAmount,
-      status: 'pending',
+      status: paymentIntent.status,
       payment_method_id: parseInt(payment_method_id, 10),
       transactionType: 'VendorBooking',
       transaction_date: new Date(),
+      reference_number: paymentIntent.paymentIntentId,
       metadata: JSON.stringify({
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        customer_id: customerId,
         vendor_booking_id: parseInt(vendor_booking_id, 10),
         vendor_id: vendorId,
         vendor_amount: totalVendorAmount,
@@ -794,8 +848,8 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     // Populate booking details for response
     const bookingObj = updatedBooking.toObject();
     if (updatedBooking.user_id) {
-      const user = await User.findOne({ user_id: updatedBooking.user_id }).select('user_id name email mobile');
-      bookingObj.user_details = user || null;
+      const bookingUser = await User.findOne({ user_id: updatedBooking.user_id }).select('user_id name email mobile');
+      bookingObj.user_details = bookingUser || null;
     }
     if (updatedBooking.vendor_id) {
       const vendor = await User.findOne({ user_id: updatedBooking.vendor_id }).select('user_id name email mobile role_id');
@@ -812,6 +866,13 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
         Vendor_Onboarding_Portal_id: populatedPortal.Vendor_Onboarding_Portal_id,
         Vendor_id: populatedPortal.Vendor_id,
         categories_fees_count: populatedPortal.categories_fees_details.length
+      },
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
       }
     }, 'Vendor booking payment processed successfully');
   } catch (error) {
