@@ -90,6 +90,7 @@ const contactVendorRoutes = require('./routes/Master/contact_vendor.routes.js');
 const availabilityCalenderRoutes = require('./routes/Master/availability_calender.routes.js');
 const globalSearchRoutes = require('./routes/Master/global_search.routes.js');
 const emailTemplateRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/email_template.routes.js');
+const escrowRoutes = require('./routes/Integration/escrow.routes.js');
 
 // Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/vendor_business_information.routes.js');
@@ -226,6 +227,7 @@ router.use('/master/contact-vendor', contactVendorRoutes);
 router.use('/master/availability-calender', availabilityCalenderRoutes);
 router.use('/master/global-search', globalSearchRoutes);
 router.use('/vendor/email-template', emailTemplateRoutes);
+router.use('/integrations/escrow', escrowRoutes);
 
 // Mount Vendor route modules
 router.use('/vendor/business-information', vendorBusinessInformationRoutes);

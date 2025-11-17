@@ -1,0 +1,209 @@
+{
+  "info": {
+    "_postman_id": "1f7ac98d-e37a-4ec4-91f8-escrowproxy",
+    "name": "Escrow Integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Proxy endpoints for Escrow.com APIs. Base URL {{vibes}} defaults to http://localhost:3009/api/integrations/escrow."
+  },
+  "item": [
+    {
+      "name": "Create Escrow Customer",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"buyer@test.escrow.com\",\n  \"role\": \"buyer\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Wick\",\n  \"phone\": \"+1-555-0100\",\n  \"address\": {\n    \"line1\": \"1 Continental Way\",\n    \"city\": \"Los Angeles\",\n    \"state\": \"CA\",\n    \"country\": \"US\",\n    \"postal_code\": \"90001\"\n  },\n  \"asCustomer\": \"broker@test.escrow.com\"\n}"
+        },
+        "url": {
+          "raw": "{{vibes}}/customers",
+          "host": [
+            "{{vibes}}"
+          ],
+          "path": [
+            "customers"
+          ]
+        },
+        "description": "Creates a customer via Escrow.com using the broker account when `asCustomer` is provided."
+      }
+    },
+    {
+      "name": "Update Escrow Customer",
+      "request": {
+        "method": "PATCH",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"first_name\": \"Jonathan\",\n  \"last_name\": \"Wick\",\n  \"asCustomer\": \"broker@test.escrow.com\"\n}"
+        },
+        "url": {
+          "raw": "{{vibes}}/customers/:customerId",
+          "host": [
+            "{{vibes}}"
+          ],
+          "path": [
+            "customers",
+            ":customerId"
+          ],
+          "variable": [
+            {
+              "key": "customerId",
+              "value": "123456"
+            }
+          ]
+        },
+        "description": "PATCH any customer fields supported by Escrow.com."
+      }
+    },
+    {
+      "name": "Get Escrow Customer Profile",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{vibes}}/customers/me?asCustomer=broker@test.escrow.com",
+          "host": [
+            "{{vibes}}"
+          ],
+          "path": [
+            "customers",
+            "me"
+          ],
+          "query": [
+            {
+              "key": "asCustomer",
+              "value": "broker@test.escrow.com"
+            }
+          ]
+        },
+        "description": "Fetch `customer/me` for the requested Escrow identity."
+      }
+    },
+    {
+      "name": "Create Escrow Transaction",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"currency\": \"usd\",\n  \"description\": \"Sample vehicle sale\",\n  \"items\": [\n    {\n      \"title\": \"Vintage car\",\n      \"description\": \"1969 Ford Mustang\",\n      \"quantity\": 1,\n      \"inspection_period\": 5,\n      \"type\": \"vehicle\",\n      \"price\": 50000\n    }\n  ],\n  \"parties\": [\n    {\n      \"role\": \"buyer\",\n      \"customer\": {\n        \"email\": \"buyer@test.escrow.com\"\n      }\n    },\n    {\n      \"role\": \"seller\",\n      \"customer\": {\n        \"email\": \"seller@test.escrow.com\"\n      }\n    }\n  ],\n  \"asCustomer\": \"broker@test.escrow.com\"\n}"
+        },
+        "url": {
+          "raw": "{{vibes}}/transactions",
+          "host": [
+            "{{vibes}}"
+          ],
+          "path": [
+            "transactions"
+          ]
+        },
+        "description": "Creates a transaction with standard item + parties payload supported by Escrow.com."
+      }
+    },
+    {
+      "name": "List Escrow Transactions",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{vibes}}/transactions?limit=20&status=all&asCustomer=broker@test.escrow.com",
+          "host": [
+            "{{vibes}}"
+          ],
+          "path": [
+            "transactions"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            },
+            {
+              "key": "status",
+              "value": "all"
+            },
+            {
+              "key": "asCustomer",
+              "value": "broker@test.escrow.com"
+            }
+          ]
+        },
+        "description": "Lists transactions, passing through any Escrow.com query params."
+      }
+    },
+    {
+      "name": "Get Escrow Transaction Detail",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{vibes}}/transactions/:transactionId?asCustomer=broker@test.escrow.com",
+          "host": [
+            "{{vibes}}"
+          ],
+          "path": [
+            "transactions",
+            ":transactionId"
+          ],
+          "query": [
+            {
+              "key": "asCustomer",
+              "value": "broker@test.escrow.com"
+            }
+          ],
+          "variable": [
+            {
+              "key": "transactionId",
+              "value": "1000000"
+            }
+          ]
+        },
+        "description": "Fetches a single transaction via `/transaction/{id}`."
+      }
+    },
+    {
+      "name": "Update Escrow Transaction",
+      "request": {
+        "method": "PATCH",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"agree\",\n  \"asCustomer\": \"buyer@test.escrow.com\"\n}"
+        },
+        "url": {
+          "raw": "{{vibes}}/transactions/:transactionId",
+          "host": [
+            "{{vibes}}"
+          ],
+          "path": [
+            "transactions",
+            ":transactionId"
+          ],
+          "variable": [
+            {
+              "key": "transactionId",
+              "value": "1000000"
+            }
+          ]
+        },
+        "description": "Performs actions (agree, ship, receive, etc.) on behalf of a party by setting `asCustomer`."
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "vibes",
+      "value": "http://localhost:3009/api/integrations/escrow"
+    },
+    {
+      "key": "auth",
+      "value": ""
+    }
+  ]
+}
+
+
