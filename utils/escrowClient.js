@@ -2,9 +2,12 @@ const axios = require('axios');
 const logger = require('./logger');
 
 const DEFAULT_BASE_URL = 'https://api.escrow-sandbox.com/2017-09-01';
-const baseURL = (process.env.ESCROW_API_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, '');
-const username = process.env.ESCROW_API_EMAIL;
-const password = process.env.ESCROW_API_KEY;
+const baseURL = (DEFAULT_BASE_URL).replace(/\/+$/, '');
+const username = "bezeju@yahoo.com";
+const password = "c4d44b1c0c964f27a98fee7372bddc81";
+// c4d44b1c0c964f27a98fee7372bddc81
+// VVJyo2dcWAaXy6hRlyI9T7QPd54FkaSmCFdFZR4y1pekGtw6OvH11Q
+
 const timeout = parseInt(process.env.ESCROW_API_TIMEOUT || '10000', 10);
 
 const ensureCredentials = () => {
