@@ -3,8 +3,12 @@ const logger = require('./logger');
 
 // Get credentials from environment variables or use defaults for development
 const ESCROW_API_EMAIL = 'bezeju@yahoo.com';
-const ESCROW_API_KEY = 'VVJyo2dcWAaXy6hRlyI9T7QPd54FkaSmCFdFZR4y1pekGtw6OvH11Q';
+const ESCROW_API_KEY = 'c4d44b1c0c964f27a98fee7372bddc81';
 const ESCROW_API_BASE_URL = 'https://api.escrow-sandbox.com/2017-09-01';
+
+// c4d44b1c0c964f27a98fee7372bddc81
+// VVJyo2dcWAaXy6hRlyI9T7QPd54FkaSmCFdFZR4y1pekGtw6OvH11Q
+
 
 const baseURL = ESCROW_API_BASE_URL.replace(/\/+$/, '');
 const username = ESCROW_API_EMAIL;
