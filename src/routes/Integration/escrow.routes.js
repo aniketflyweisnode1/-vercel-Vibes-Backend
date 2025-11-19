@@ -10,7 +10,8 @@ const {
   listEscrowTransactions,
   getEscrowTransactionById,
   updateEscrowTransaction,
-  getEscrowCustomerProfile
+  getEscrowCustomerProfile,
+  testEscrowConnection
 } = require('../../controllers/escrow.controller');
 const {
   createCustomerSchema,
@@ -31,6 +32,13 @@ router.post('/transactions', auth, validateBody(createTransactionSchema), create
 router.get('/transactions', auth, validateQuery(listTransactionQuerySchema), listEscrowTransactions);
 router.get('/transactions/:transactionId', auth, validateParams(transactionIdParamsSchema), validateQuery(asCustomerQuerySchema), getEscrowTransactionById);
 router.patch('/transactions/:transactionId', auth, validateParams(transactionIdParamsSchema), validateBody(updateTransactionSchema), updateEscrowTransaction);
+
+/**
+ * @route   GET /api/integrations/escrow/test-connection
+ * @desc    Test Escrow API connection and authentication
+ * @access  Private
+ */
+router.get('/test-connection', auth, testEscrowConnection);
 
 module.exports = router;
 

@@ -218,6 +218,38 @@ const getEscrowCustomerProfile = asyncHandler(async (req, res) => {
   sendSuccess(res, response, 'Escrow customer profile retrieved successfully');
 });
 
+/**
+ * Test Escrow API connection and authentication
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const testEscrowConnection = asyncHandler(async (req, res) => {
+  try {
+    // Try to get customer profile as a test
+    const response = await callEscrow({
+      method: 'get',
+      url: '/customer/me'
+    });
+
+    sendSuccess(res, {
+      connected: true,
+      customer: response,
+      message: 'Escrow API connection successful'
+    }, 'Escrow API connection test successful');
+  } catch (error) {
+    logger.error('Escrow API connection test failed', {
+      statusCode: error.statusCode,
+      message: error.message,
+      details: error.details
+    });
+
+    sendError(res, `Escrow API connection failed: ${error.message}`, error.statusCode || 500, {
+      statusCode: error.statusCode,
+      details: error.details
+    });
+  }
+});
+
 module.exports = {
   createEscrowCustomer,
   updateEscrowCustomer,
@@ -225,7 +257,8 @@ module.exports = {
   listEscrowTransactions,
   getEscrowTransactionById,
   updateEscrowTransaction,
-  getEscrowCustomerProfile
+  getEscrowCustomerProfile,
+  testEscrowConnection
 };
 
 
