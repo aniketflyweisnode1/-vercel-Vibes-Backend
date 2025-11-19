@@ -876,9 +876,11 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       status: paymentIntent.status,
       payment_method_id: parseInt(payment_method_id, 10),
       transactionType: 'VendorBooking',
+      vendor_booking_id: parseInt(vendor_booking_id, 10),
       transaction_date: new Date(),
       reference_number: paymentIntent.paymentIntentId,
       metadata: JSON.stringify({
+        payment_intent_id: paymentIntent.paymentIntentId, // For Stripe refunds
         stripe_payment_intent_id: paymentIntent.paymentIntentId,
         stripe_client_secret: paymentIntent.clientSecret,
         customer_id: customerId,
@@ -894,8 +896,19 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
 
     const transaction = await Transaction.create(transactionData);
 
+    // Step 11: Update booking with transaction_id
+    const finalBooking = await VendorBooking.findOneAndUpdate(
+      { Vendor_Booking_id: parseInt(vendor_booking_id, 10) },
+      {
+        transaction_id: transaction.transaction_id,
+        UpdatedBy: req.userId,
+        UpdatedAt: new Date()
+      },
+      { new: true }
+    );
+
     // Populate booking details for response
-    const bookingObj = updatedBooking.toObject();
+    const bookingObj = finalBooking.toObject();
     if (updatedBooking.user_id) {
       const bookingUser = await User.findOne({ user_id: updatedBooking.user_id }).select('user_id name email mobile');
       bookingObj.user_details = bookingUser || null;

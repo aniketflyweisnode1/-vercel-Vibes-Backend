@@ -106,6 +106,7 @@ const corporateDashboardPricingPlansRoutes = require('./routes/Vendor/corporate_
 const corporateDashboardRoutes = require('./routes/Vendor/corporate_Dashboard.routes.js');
 const premiumDashboardRoutes = require('./routes/Vendor/premium_Dashboard.routes.js');
 const vendorBookingRoutes = require('./routes/Vendor/vendor_booking.routes.js');
+const vendorBookingCancellationRoutes = require('./routes/Vendor/vendor_booking_cancellation.routes.js');
 
 // Import middleware
 const { sendSuccess } = require('../utils/response.js');
@@ -243,5 +244,6 @@ router.use('/vendor/corporate-dashboard-pricing-plans', corporateDashboardPricin
 router.use('/vendor/corporate-dashboard', corporateDashboardRoutes);
 router.use('/vendor/premium-dashboard', premiumDashboardRoutes);
 router.use('/vendor/bookings', vendorBookingRoutes);
+router.use('/vendor/bookingsCancellation', vendorBookingCancellationRoutes);
 
 module.exports = router;

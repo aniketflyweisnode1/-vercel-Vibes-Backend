@@ -31,6 +31,27 @@ const vendorOnboardingPortalSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  CancellationCharges: {
+    type: Number,
+    default: 0,
+    min: [0, 'Cancellation charges cannot be negative'],
+    max: [100, 'Cancellation charges cannot exceed 100%']
+  },
+  cancellation_policy: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  refund_percentage: {
+    type: Number,
+    default: 0,
+    min: [0, 'Refund percentage cannot be negative'],
+    max: [100, 'Refund percentage cannot exceed 100%']
+  },
+  EscrowPayment: {
+    type: Boolean,
+    default: false
+  },
   // Status Fields
   ifConfirm: {
     type: Boolean,

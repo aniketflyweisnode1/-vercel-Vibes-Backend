@@ -77,6 +77,40 @@ const vendorBookingSchema = new mongoose.Schema({
     ref: 'Event',
     default: null
   },
+  transaction_id: {
+    type: Number,
+    ref: 'Transaction',
+    default: null
+  },
+  cancellation_reason: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  cancelled_at: {
+    type: Date,
+    default: null
+  },
+  cancelled_by: {
+    type: Number,
+    ref: 'User',
+    default: null
+  },
+  refund_amount: {
+    type: Number,
+    default: 0,
+    min: [0, 'Refund amount cannot be negative']
+  },
+  refund_status: {
+    type: String,
+    enum: ['pending', 'processed', 'failed', 'none'],
+    default: 'none'
+  },
+  refund_transaction_id: {
+    type: Number,
+    ref: 'Transaction',
+    default: null
+  },
   vender_booking_status: {
     type: String,
     enum: ['pending', 'confirmed', 'cancelled', 'rescheduled'],

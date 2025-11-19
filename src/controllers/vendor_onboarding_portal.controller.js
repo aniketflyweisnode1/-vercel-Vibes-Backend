@@ -964,6 +964,8 @@ const createVendorPortal = asyncHandler(async (req, res) => {
         bank_branch_name_id: bankBranchNameId,
         categories_fees_id: categoriesFeesIds,
         initial_payment_required: initialPaymentRequired,
+        CancellationCharges: req.body.CancellationCharges !== undefined ? Number(req.body.CancellationCharges) : 0,
+        EscrowPayment: req.body.EscrowPayment !== undefined ? Boolean(req.body.EscrowPayment) : false,
         ifConfirm: req.body.ifConfirm !== undefined ? req.body.ifConfirm : false,
         Status: req.body.Status !== undefined ? req.body.Status : true,
         CreateBy: userId,

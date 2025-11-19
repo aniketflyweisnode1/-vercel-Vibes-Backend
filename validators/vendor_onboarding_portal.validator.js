@@ -55,6 +55,10 @@ const createVendorOnboardingPortalSchema = Joi.object({
     Joi.boolean(),
     Joi.number()
   ).optional(),
+  CancellationCharges: Joi.number().min(0).max(100).optional().allow(null),
+  cancellation_policy: Joi.string().optional().allow('', null),
+  refund_percentage: Joi.number().min(0).max(100).optional().allow(null),
+  EscrowPayment: Joi.boolean().optional(),
   ifConfirm: Joi.boolean().optional(),
   Status: Joi.boolean().optional()
 });
@@ -114,6 +118,10 @@ const updateVendorOnboardingPortalSchema = Joi.object({
     Joi.boolean(),
     Joi.number()
   ).optional(),
+  CancellationCharges: Joi.number().min(0).max(100).optional().allow(null),
+  cancellation_policy: Joi.string().optional().allow('', null),
+  refund_percentage: Joi.number().min(0).max(100).optional().allow(null),
+  EscrowPayment: Joi.boolean().optional(),
   ifConfirm: Joi.boolean().optional(),
   Status: Joi.boolean().optional()
 });
@@ -205,6 +213,10 @@ const createVendorPortalSchema = Joi.object({
       PlatformFee: Joi.number().optional().allow(null)
     })
   ).optional(),
+  CancellationCharges: Joi.number().min(0).max(100).optional().allow(null),
+  cancellation_policy: Joi.string().optional().allow('', null),
+  refund_percentage: Joi.number().min(0).max(100).optional().allow(null),
+  EscrowPayment: Joi.boolean().optional(),
   ifConfirm: Joi.boolean().optional(),
   Status: Joi.boolean().optional()
 });

@@ -18,7 +18,7 @@ const transactionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed', 'requires_payment_method'],
+    enum: ['pending', 'completed', 'failed', 'requires_payment_method', 'refunded', 'partially_refunded', 'cancelled'],
     default: 'pending'
   },
   payment_method_id: {
@@ -28,13 +28,33 @@ const transactionSchema = new mongoose.Schema({
   },
   transactionType: {
     type: String,
-    enum: ['Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking', 'CateringBooking', 'VendorBooking'],
+    enum: ['Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking', 'CateringBooking', 'VendorBooking', 'Refund', 'Cancellation', 'EscrowPayment', 'EscrowCancellation'],
     required: [true, 'Transaction type is required']
+  },
+  escrow_transaction_id: {
+    type: String,
+    default: null,
+    trim: true
   },
   staff_event_book_id: {
     type: Number,
     ref: 'StaffEventBook',
     default: null
+  },
+  vendor_booking_id: {
+    type: Number,
+    ref: 'Vendor_Booking',
+    default: null
+  },
+  original_transaction_id: {
+    type: Number,
+    ref: 'Transaction',
+    default: null
+  },
+  refund_reason: {
+    type: String,
+    default: null,
+    trim: true
   },
   transaction_date: {
     type: Date,
