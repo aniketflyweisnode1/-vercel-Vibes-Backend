@@ -12,8 +12,16 @@ const createVendorBookingSchema = Joi.object({
   Start_time: Joi.string().trim().optional().allow('', null),
   End_time: Joi.string().trim().optional().allow('', null),
   user_id: Joi.number().integer().optional(),
-  vendor_id: Joi.number().integer().optional().allow(null),
-  Vendor_Category_id: Joi.array().items(Joi.number().integer()).optional(),
+  vendor_id: Joi.number().integer().required().messages({
+    'any.required': 'vendor_id is required',
+    'number.base': 'vendor_id must be a number'
+  }),
+  Vendor_Category_id: Joi.array().items(Joi.number().integer().required().messages({
+    'number.base': 'Vendor category id must be a number'
+  })).min(1).required().messages({
+    'any.required': 'Vendor_Category_id must include at least one category id',
+    'array.min': 'Vendor_Category_id must include at least one category id'
+  }),
   Event_id: Joi.number().integer().optional().allow(null),
   vender_booking_status: Joi.string().valid('pending', 'confirmed', 'cancelled', 'rescheduled').optional(),
   Status: Joi.boolean().optional()

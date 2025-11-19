@@ -152,53 +152,73 @@ const createVendorBooking = asyncHandler(async (req, res) => {
 
     const endDate = parseDateOrNull(req.body.End_date, 'End_date');
 
-    const vendorId = req.body.vendor_id || null;
+    const vendorId = req.body.vendor_id !== undefined && req.body.vendor_id !== null
+      ? Number(req.body.vendor_id)
+      : null;
+
+    if (!vendorId || Number.isNaN(vendorId)) {
+      return sendError(res, 'vendor_id is required and must be a valid number', 400);
+    }
+
     const bookingCategoryIds = Array.isArray(req.body.Vendor_Category_id)
-      ? req.body.Vendor_Category_id.map(id => Number(id))
+      ? req.body.Vendor_Category_id.map(id => Number(id)).filter(id => !Number.isNaN(id))
       : [];
+
+    if (bookingCategoryIds.length === 0) {
+      return sendError(res, 'Vendor_Category_id must include at least one category id', 400);
+    }
 
     // Calculate amount and vendor_amount from vendor categories if vendor_id and categories are provided
     let calculatedAmount = 0;
     let calculatedVendorAmount = 0;
 
-    if (vendorId && bookingCategoryIds.length > 0) {
-      try {
-        // Get vendor onboarding portal
-        const vendorPortal = await VendorOnboardingPortal.findOne({
-          Vendor_id: Number(vendorId),
-          Status: true
-        });
+    let vendorPortal = null;
+    try {
+      vendorPortal = await VendorOnboardingPortal.findOne({
+        Vendor_id: Number(vendorId),
+        Status: true
+      });
+    } catch (error) {
+      console.error('Error fetching vendor onboarding portal:', error);
+    }
 
-        if (vendorPortal) {
-          // Populate portal to get categories_fees_details
-          const populatedPortal = await populateVendorOnboardingPortal(vendorPortal);
+    if (!vendorPortal) {
+      return sendError(res, `Active vendor onboarding portal not found for vendor_id ${vendorId}`, 404);
+    }
 
-          if (populatedPortal.categories_fees_details && populatedPortal.categories_fees_details.length > 0) {
-            // Match booking categories with vendor categories fees
-            bookingCategoryIds.forEach(categoryId => {
-              const matchingFee = populatedPortal.categories_fees_details.find(
-                fee => Number(fee.category_id) === Number(categoryId) && fee.status === true
-              );
+    try {
+      const populatedPortal = await populateVendorOnboardingPortal(vendorPortal);
 
-              if (matchingFee) {
-                const MinFee = Number(matchingFee.MinFee) || 0;
-                const price = Number(matchingFee.Price) || 0;
-                const platformFee = Number(matchingFee.PlatformFee) || 0;
-
-                // Calculate amounts
-                const vendorAmount = MinFee; // vendor gets the MinFee
-                const customerAmount = price; // customer pays the Price
-
-                calculatedVendorAmount += vendorAmount;
-                calculatedAmount += customerAmount;
-              }
-            });
-          }
-        }
-      } catch (pricingError) {
-        console.error('Error calculating pricing from vendor portal:', pricingError);
-        // Continue with default values if pricing calculation fails
+      if (!populatedPortal.categories_fees_details || populatedPortal.categories_fees_details.length === 0) {
+        return sendError(res, 'Vendor has not configured any categories fees. Please ensure the vendor has set up pricing for selected categories.', 400);
       }
+
+      bookingCategoryIds.forEach(categoryId => {
+        const matchingFee = populatedPortal.categories_fees_details.find(
+          fee => Number(fee.category_id) === Number(categoryId) && fee.status === true
+        );
+
+        if (matchingFee) {
+          const MinFee = Number(matchingFee.MinFee) || 0;
+          const price = Number(matchingFee.Price) || 0;
+
+          const vendorAmount = MinFee;
+          const customerAmount = price;
+
+          calculatedVendorAmount += vendorAmount;
+          calculatedAmount += customerAmount;
+        }
+      });
+    } catch (pricingError) {
+      console.error('Error calculating pricing from vendor portal:', pricingError);
+      return sendError(res, 'Unable to calculate pricing from vendor portal. Please verify vendor pricing configuration.', 500);
+    }
+
+    const finalAmount = calculatedAmount > 0 ? calculatedAmount : Number(req.body.amount || 0);
+    const finalVendorAmount = calculatedVendorAmount > 0 ? calculatedVendorAmount : Number(req.body.vendor_amount || 0);
+
+    if (finalAmount <= 0 || finalVendorAmount <= 0) {
+      return sendError(res, 'Unable to determine booking pricing. Please ensure vendor categories have valid pricing.', 400);
     }
 
     const bookingData = {
@@ -210,8 +230,8 @@ const createVendorBooking = asyncHandler(async (req, res) => {
       Start_time: req.body.Start_time === '' ? null : req.body.Start_time || null,
       End_time: req.body.End_time === '' ? null : req.body.End_time || null,
       Vendor_Category_id: bookingCategoryIds,
-      amount: calculatedAmount > 0 ? calculatedAmount : (req.body.amount || 0),
-      vendor_amount: calculatedVendorAmount > 0 ? calculatedVendorAmount : (req.body.vendor_amount || 0),
+      amount: finalAmount,
+      vendor_amount: finalVendorAmount,
       Status: req.body.Status !== undefined ? req.body.Status : true,
       CreateBy: req.userId,
       CreateAt: new Date(),
@@ -582,7 +602,9 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
     } = req.query;
 
     const filter = {
-      user_id: req.userId
+      user_id: req.userId,
+      vendor_id: { $ne: null },
+      amount: { $gt: 0 }
     };
 
     if (Date_start) {
