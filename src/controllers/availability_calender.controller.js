@@ -1,4 +1,5 @@
 const AvailabilityCalender = require('../models/availability_calender.model');
+const VendorBooking = require('../models/vendor_booking.model');
 const Event = require('../models/event.model');
 const User = require('../models/user.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
@@ -112,13 +113,56 @@ const getAllAvailabilityCalenders = asyncHandler(async (req, res) => {
 
     const skip = (page - 1) * limit;
 
-    const [entries, total] = await Promise.all([
+    let [entries, total] = await Promise.all([
       AvailabilityCalender.find(filter)
         .sort({ CreateAt: -1 })
         .skip(skip)
         .limit(parseInt(limit, 10)),
       AvailabilityCalender.countDocuments(filter)
     ]);
+
+    // Fallback: If no availability entries found but user_id provided,
+    // derive availability from vendor bookings for that vendor
+    if ((!entries || entries.length === 0) && user_id) {
+      const vendorFilter = {
+        vendor_id: parseInt(user_id, 10),
+        Status: true,
+        amount: { $gt: 0 }
+      };
+
+      const [vendorBookings, vendorTotal] = await Promise.all([
+        VendorBooking.find(vendorFilter)
+          .sort({ Date_start: -1 })
+          .skip(skip)
+          .limit(parseInt(limit, 10)),
+        VendorBooking.countDocuments(vendorFilter)
+      ]);
+
+      if (vendorBookings.length > 0) {
+        entries = vendorBookings.map(booking => ({
+          Availability_Calender_id: null,
+          Year: booking.Year || (booking.Date_start ? new Date(booking.Date_start).getFullYear() : null),
+          Month: booking.Month || (booking.Date_start ? new Date(booking.Date_start).getMonth() + 1 : null),
+          Date_start: booking.Date_start,
+          End_date: booking.End_date || booking.Date_start,
+          Start_time: booking.Start_time,
+          End_time: booking.End_time,
+          Event_id: booking.Event_id || null,
+          User_availabil: 'Book',
+          user_id: booking.vendor_id,
+          Status: true,
+          CreateBy: booking.CreateBy,
+          CreateAt: booking.CreateAt,
+          UpdatedBy: booking.UpdatedBy,
+          UpdatedAt: booking.UpdatedAt,
+          source: 'vendor_booking',
+          Vendor_Booking_id: booking.Vendor_Booking_id,
+          booking_status: booking.vender_booking_status,
+          booking_amount: booking.amount
+        }));
+        total = vendorTotal;
+      }
+    }
 
     const pagination = {
       currentPage: parseInt(page, 10),
