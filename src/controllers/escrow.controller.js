@@ -1,10 +1,10 @@
-const { sendSuccess } = require('../../utils/response');
+const { sendSuccess, sendError } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-const { callEscrow } = require('../../utils/escrowClient');
+const { callMetamask } = require('../../utils/metamaskClient');
 const Transaction = require('../models/transaction.model');
 const logger = require('../../utils/logger');
 
-const buildEscrowPayload = (payload = {}) => {
+const buildMetamaskPayload = (payload = {}) => {
   const { asCustomer, ...rest } = payload;
   return {
     asCustomer,
@@ -12,54 +12,54 @@ const buildEscrowPayload = (payload = {}) => {
   };
 };
 
-const createEscrowCustomer = asyncHandler(async (req, res) => {
-  const { asCustomer, body } = buildEscrowPayload(req.body);
+const createMetamaskCustomer = asyncHandler(async (req, res) => {
+  const { asCustomer, body } = buildMetamaskPayload(req.body);
 
-  const response = await callEscrow({
+  const response = await callMetamask({
     method: 'post',
     url: '/customer',
     data: body,
     asCustomer
   });
 
-  sendSuccess(res, response, 'Escrow customer created successfully', 201);
+  sendSuccess(res, response, 'Metamask customer created successfully', 201);
 });
 
-const updateEscrowCustomer = asyncHandler(async (req, res) => {
+const updateMetamaskCustomer = asyncHandler(async (req, res) => {
   const { customerId } = req.params;
-  const { asCustomer, body } = buildEscrowPayload(req.body);
+  const { asCustomer, body } = buildMetamaskPayload(req.body);
 
-  const response = await callEscrow({
+  const response = await callMetamask({
     method: 'patch',
     url: `/customer/${encodeURIComponent(customerId)}`,
     data: body,
     asCustomer
   });
 
-  sendSuccess(res, response, 'Escrow customer updated successfully');
+  sendSuccess(res, response, 'Metamask customer updated successfully');
 });
 
-const createEscrowTransaction = asyncHandler(async (req, res) => {
-  const { asCustomer, body } = buildEscrowPayload(req.body);
+const createMetamaskTransaction = asyncHandler(async (req, res) => {
+  const { asCustomer, body } = buildMetamaskPayload(req.body);
   const userId = req.userId;
 
-  const response = await callEscrow({
+  const response = await callMetamask({
     method: 'post',
     url: '/transaction',
     data: body,
     asCustomer
   });
 
-  // Create transaction record if Escrow transaction is created successfully
+  // Create transaction record if Metamask transaction is created successfully
   if (response && response.id) {
     try {
-      // Extract amount from response (Escrow API returns amount in the response)
+      // Extract amount from response (Metamask/Infura returns amount in the response)
       const amount = response.amount || body.amount || 0;
       
       // Get payment method ID from request body or use default
       const paymentMethodId = body.payment_method_id || req.body.payment_method_id || 1; // Default to 1 if not provided
 
-      // Determine transaction status based on Escrow transaction status
+      // Determine transaction status based on Metamask transaction status
       let transactionStatus = 'pending';
       if (response.status) {
         const escrowStatus = response.status.toLowerCase();
@@ -78,7 +78,7 @@ const createEscrowTransaction = asyncHandler(async (req, res) => {
         amount: amount,
         status: transactionStatus,
         payment_method_id: paymentMethodId,
-        transactionType: 'EscrowPayment',
+        transactionType: 'MetamaskPayment',
         escrow_transaction_id: response.id.toString(),
         transaction_date: new Date(),
         reference_number: response.id.toString(),
@@ -101,60 +101,60 @@ const createEscrowTransaction = asyncHandler(async (req, res) => {
           status: transaction.status,
           amount: transaction.amount
         }
-      }, 'Escrow transaction created successfully', 201);
+      }, 'Metamask transaction created successfully', 201);
     } catch (transactionError) {
-      logger.error('Error creating transaction record for Escrow payment:', transactionError);
-      // Still return success for Escrow transaction even if our transaction record creation fails
+      logger.error('Error creating transaction record for Metamask payment:', transactionError);
+      // Still return success for Metamask transaction even if our transaction record creation fails
       sendSuccess(res, {
         escrow_transaction: response,
         transaction: null,
-        warning: 'Escrow transaction created but transaction record creation failed'
-      }, 'Escrow transaction created successfully', 201);
+        warning: 'Metamask transaction created but transaction record creation failed'
+      }, 'Metamask transaction created successfully', 201);
     }
   } else {
-    sendSuccess(res, response, 'Escrow transaction created successfully', 201);
+    sendSuccess(res, response, 'Metamask transaction created successfully', 201);
   }
 });
 
-const listEscrowTransactions = asyncHandler(async (req, res) => {
+const listMetamaskTransactions = asyncHandler(async (req, res) => {
   const { asCustomer, ...rest } = req.query;
 
-  const response = await callEscrow({
+  const response = await callMetamask({
     method: 'get',
     url: '/transaction',
     params: rest,
     asCustomer
   });
 
-  sendSuccess(res, response, 'Escrow transactions retrieved successfully');
+  sendSuccess(res, response, 'Metamask transactions retrieved successfully');
 });
 
-const getEscrowTransactionById = asyncHandler(async (req, res) => {
+const getMetamaskTransactionById = asyncHandler(async (req, res) => {
   const { transactionId } = req.params;
   const { asCustomer } = req.query;
 
-  const response = await callEscrow({
+  const response = await callMetamask({
     method: 'get',
     url: `/transaction/${encodeURIComponent(transactionId)}`,
     asCustomer
   });
 
-  sendSuccess(res, response, 'Escrow transaction retrieved successfully');
+  sendSuccess(res, response, 'Metamask transaction retrieved successfully');
 });
 
-const updateEscrowTransaction = asyncHandler(async (req, res) => {
+const updateMetamaskTransaction = asyncHandler(async (req, res) => {
   const { transactionId } = req.params;
-  const { asCustomer, body } = buildEscrowPayload(req.body);
+  const { asCustomer, body } = buildMetamaskPayload(req.body);
   const userId = req.userId;
 
-  const response = await callEscrow({
+  const response = await callMetamask({
     method: 'patch',
     url: `/transaction/${encodeURIComponent(transactionId)}`,
     data: body,
     asCustomer
   });
 
-  // Update transaction record if Escrow transaction status changed to completed/funded
+  // Update transaction record if Metamask transaction status changed to completed/funded
   if (response && response.status) {
     try {
       const escrowStatus = response.status.toLowerCase();
@@ -179,7 +179,7 @@ const updateEscrowTransaction = asyncHandler(async (req, res) => {
           transaction.updated_by = userId;
           transaction.updated_at = new Date();
           
-          // Update metadata with latest Escrow response
+          // Update metadata with latest Metamask response
           try {
             const metadata = JSON.parse(transaction.metadata || '{}');
             metadata.escrow_status = response.status;
@@ -198,35 +198,35 @@ const updateEscrowTransaction = asyncHandler(async (req, res) => {
         }
       }
     } catch (transactionError) {
-      logger.error('Error updating transaction record for Escrow payment:', transactionError);
+      logger.error('Error updating transaction record for Metamask payment:', transactionError);
       // Continue even if transaction update fails
     }
   }
 
-  sendSuccess(res, response, 'Escrow transaction updated successfully');
+  sendSuccess(res, response, 'Metamask transaction updated successfully');
 });
 
-const getEscrowCustomerProfile = asyncHandler(async (req, res) => {
+const getMetamaskCustomerProfile = asyncHandler(async (req, res) => {
   const { asCustomer } = req.query;
 
-  const response = await callEscrow({
+  const response = await callMetamask({
     method: 'get',
     url: '/customer/me',
     asCustomer
   });
 
-  sendSuccess(res, response, 'Escrow customer profile retrieved successfully');
+  sendSuccess(res, response, 'Metamask customer profile retrieved successfully');
 });
 
 /**
- * Test Escrow API connection and authentication
+ * Test Metamask API connection and authentication
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-const testEscrowConnection = asyncHandler(async (req, res) => {
+const testMetamaskConnection = asyncHandler(async (req, res) => {
   try {
     // Try to get customer profile as a test
-    const response = await callEscrow({
+    const response = await callMetamask({
       method: 'get',
       url: '/customer/me'
     });
@@ -234,16 +234,16 @@ const testEscrowConnection = asyncHandler(async (req, res) => {
     sendSuccess(res, {
       connected: true,
       customer: response,
-      message: 'Escrow API connection successful'
-    }, 'Escrow API connection test successful');
+      message: 'Metamask API connection successful'
+    }, 'Metamask API connection test successful');
   } catch (error) {
-    logger.error('Escrow API connection test failed', {
+    logger.error('Metamask API connection test failed', {
       statusCode: error.statusCode,
       message: error.message,
       details: error.details
     });
 
-    sendError(res, `Escrow API connection failed: ${error.message}`, error.statusCode || 500, {
+    sendError(res, `Metamask API connection failed: ${error.message}`, error.statusCode || 500, {
       statusCode: error.statusCode,
       details: error.details
     });
@@ -251,14 +251,14 @@ const testEscrowConnection = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  createEscrowCustomer,
-  updateEscrowCustomer,
-  createEscrowTransaction,
-  listEscrowTransactions,
-  getEscrowTransactionById,
-  updateEscrowTransaction,
-  getEscrowCustomerProfile,
-  testEscrowConnection
+  createMetamaskCustomer,
+  updateMetamaskCustomer,
+  createMetamaskTransaction,
+  listMetamaskTransactions,
+  getMetamaskTransactionById,
+  updateMetamaskTransaction,
+  getMetamaskCustomerProfile,
+  testMetamaskConnection
 };
 
 

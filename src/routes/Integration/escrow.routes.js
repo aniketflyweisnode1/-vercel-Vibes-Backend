@@ -4,41 +4,40 @@ const router = express.Router();
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateParams, validateQuery } = require('../../../middleware/validation');
 const {
-  createEscrowCustomer,
-  updateEscrowCustomer,
   createEscrowTransaction,
   listEscrowTransactions,
   getEscrowTransactionById,
   updateEscrowTransaction,
-  getEscrowCustomerProfile,
+  performEscrowAction,
+  addEscrowMessage,
+  createEscrowCustomer,
+  listEscrowCustomers,
+  getEscrowCustomerById,
   testEscrowConnection
-} = require('../../controllers/escrow.controller');
+} = require('../../controllers/escrowCom.controller');
 const {
-  createCustomerSchema,
-  updateCustomerSchema,
-  customerIdParamsSchema,
   createTransactionSchema,
   updateTransactionSchema,
   transactionIdParamsSchema,
   listTransactionQuerySchema,
-  asCustomerQuerySchema
-} = require('../../../validators/escrow.validator');
+  actionSchema,
+  messageSchema,
+  createCustomerSchema,
+  customerIdParamsSchema,
+  listCustomerQuerySchema
+} = require('../../../validators/escrowCom.validator');
 
 router.post('/customers', auth, validateBody(createCustomerSchema), createEscrowCustomer);
-router.patch('/customers/:customerId', auth, validateParams(customerIdParamsSchema), validateBody(updateCustomerSchema), updateEscrowCustomer);
-router.get('/customers/me', auth, validateQuery(asCustomerQuerySchema), getEscrowCustomerProfile);
 
+router.get('/customers', auth, validateQuery(listCustomerQuerySchema), listEscrowCustomers);  
+router.get('/customers/:customerId', auth, validateParams(customerIdParamsSchema), getEscrowCustomerById);
 router.post('/transactions', auth, validateBody(createTransactionSchema), createEscrowTransaction);
 router.get('/transactions', auth, validateQuery(listTransactionQuerySchema), listEscrowTransactions);
-router.get('/transactions/:transactionId', auth, validateParams(transactionIdParamsSchema), validateQuery(asCustomerQuerySchema), getEscrowTransactionById);
-router.patch('/transactions/:transactionId', auth, validateParams(transactionIdParamsSchema), validateBody(updateTransactionSchema), updateEscrowTransaction);
-
-/**
- * @route   GET /api/integrations/escrow/test-connection
- * @desc    Test Escrow API connection and authentication
- * @access  Private
- */
-router.get('/test-connection', auth, testEscrowConnection);
+router.get('/transactions/:transactionId', auth, validateParams(transactionIdParamsSchema), getEscrowTransactionById);
+router.put('/transactions/:transactionId', auth, validateParams(transactionIdParamsSchema), validateBody(updateTransactionSchema), updateEscrowTransaction);
+router.post('/transactions/:transactionId/actions', auth, validateParams(transactionIdParamsSchema), validateBody(actionSchema), performEscrowAction);
+router.post('/transactions/:transactionId/messages', auth, validateParams(transactionIdParamsSchema), validateBody(messageSchema), addEscrowMessage);
+router.get('/test-connection',  testEscrowConnection);
 
 module.exports = router;
 
