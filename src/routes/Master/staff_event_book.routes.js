@@ -9,7 +9,8 @@ const {
   getStaffEventBooksByAuth,
   getStaffEventBooksByVendorId,
   updateStaffEventBook, 
-  deleteStaffEventBook
+  deleteStaffEventBook,
+  getStaffEventBooksByVendorAuth
 } = require('../../controllers/staff_event_book.controller');
 
 // Import payment controller
@@ -41,6 +42,7 @@ router.get('/getAll', getAllStaffEventBooks);
 // Get staff event bookings by authenticated user with auth
 router.get('/getByAuth', auth, getStaffEventBooksByAuth);
 
+router.get('/getByVendorAuth', auth, getStaffEventBooksByVendorAuth);
 // Get staff event bookings by vendor ID with auth
 router.get('/getStaffByVendorId', auth,  getStaffEventBooksByVendorId);
 

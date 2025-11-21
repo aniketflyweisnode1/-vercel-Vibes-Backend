@@ -128,6 +128,51 @@ const getStaffEventBooksByAuth = asyncHandler(async (req, res) => {
   }
 });
 
+
+const getStaffEventBooksByVendorAuth = asyncHandler(async (req, res) => {
+  try {
+    const vendorId = req.userId;
+
+    if (!vendorId) {
+      return sendError(res, 'Vendor authentication required', 401);
+    }
+
+    // Fetch all staff members created by this vendor (role_id: 4 = staff)
+    const staffUsers = await User.find({
+      created_by: vendorId,
+      role_id: 4,
+      status: true
+    }).select('user_id name email mobile role_id');
+
+    const staffIds = staffUsers.map((staff) => staff.user_id);
+
+    if (staffIds.length === 0) {
+      return sendSuccess(res, [], 'No staff event bookings found for this vendor');
+    }
+
+    // Fetch bookings linked to vendor's staff members
+    const staffEventBooks = await StaffEventBook.find({
+      staff_id: { $in: staffIds }
+    }).sort({ created_at: -1 }).lean();
+
+    const staffMap = staffUsers.reduce((acc, staff) => {
+      acc[staff.user_id] = staff;
+      return acc;
+    }, {});
+
+    const response = staffEventBooks.map((booking) => ({
+      ...booking,
+      vendor_id: vendorId,
+      staff_details: staffMap[booking.staff_id] || null
+    }));
+
+    sendSuccess(res, response, 'Staff event bookings retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+
 /**
  * Get staff event bookings by vendor ID (simple - no pagination, search, or filters)
  * @param {Object} req - Express request object
@@ -136,7 +181,7 @@ const getStaffEventBooksByAuth = asyncHandler(async (req, res) => {
 const getStaffEventBooksByVendorId = asyncHandler(async (req, res) => {
   try {
     const vendorId = req.userId;
-    
+
     const staffEventBooks = await User.find({ created_by: parseInt(vendorId), role_id: 4 })
       .sort({ created_at: -1 });
 
@@ -164,8 +209,8 @@ const updateStaffEventBook = asyncHandler(async (req, res) => {
     const staffEventBook = await StaffEventBook.findOneAndUpdate(
       { staff_event_book_id: parseInt(id) },
       updateData,
-      { 
-        new: true, 
+      {
+        new: true,
         runValidators: true
       }
     );
@@ -227,7 +272,7 @@ const deleteStaffEventBook = asyncHandler(async (req, res) => {
 
     const staffEventBook = await StaffEventBook.findOneAndUpdate(
       { staff_event_book_id: parseInt(id) },
-      { 
+      {
         status: false,
         updated_by: req.userId,
         updated_at: new Date()
@@ -270,9 +315,9 @@ const deleteStaffEventBook = asyncHandler(async (req, res) => {
  */
 const StaffBookingPayment = asyncHandler(async (req, res) => {
   try {
-    const { 
-      staff_event_book_id, 
-      payment_method_id, 
+    const {
+      staff_event_book_id,
+      payment_method_id,
       billingDetails,
       description = 'Staff booking payment'
     } = req.body;
@@ -283,20 +328,20 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
     }
 
     // Get the staff event booking to find staff details
-    const staffEventBook = await StaffEventBook.findOne({ 
-      staff_event_book_id: parseInt(staff_event_book_id) 
+    const staffEventBook = await StaffEventBook.findOne({
+      staff_event_book_id: parseInt(staff_event_book_id)
     });
 
     if (!staffEventBook) {
       return sendNotFound(res, 'Staff event booking not found');
     }
-// console.log(staffEventBook);
+    // console.log(staffEventBook);
     // Get the staff working price for the staff and category
     const staffWorkingPrice = await StaffWorkingPrice.findOne({
       staff_id: staffEventBook.staff_id,
       status: true
     });
-// console.log(staffWorkingPrice);
+    // console.log(staffWorkingPrice);
     if (!staffWorkingPrice) {
       return sendNotFound(res, 'Staff working price not found for this staff and category');
     }
@@ -432,6 +477,7 @@ module.exports = {
   getStaffEventBooksByVendorId,
   updateStaffEventBook,
   deleteStaffEventBook,
-  StaffBookingPayment
+  StaffBookingPayment,
+  getStaffEventBooksByVendorAuth
 };
 
