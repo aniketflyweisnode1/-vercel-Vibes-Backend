@@ -622,9 +622,8 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
     } = req.query;
 
     const filter = {
-      user_id: req.userId,
-      vendor_id: { $ne: null },
-      amount: { $gt: 0 }
+      vendor_id: req.userId,
+      Status: true
     };
 
     if (Date_start) {
@@ -728,6 +727,26 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
           bookingObj.updated_by_details = null;
         }
       }
+
+      // Calculate Cancellation_Charge based on vendor's cancellation charges percentage
+      let cancellationCharge = 0;
+      if (booking.vendor_id && booking.amount) {
+        try {
+          const vendorPortal = await VendorOnboardingPortal.findOne({
+            Vendor_id: booking.vendor_id,
+            Status: true
+          });
+
+          if (vendorPortal && vendorPortal.CancellationCharges) {
+            const cancellationChargesPercentage = Number(vendorPortal.CancellationCharges) || 0;
+            cancellationCharge = Math.round((booking.amount * cancellationChargesPercentage) / 100 * 100) / 100;
+          }
+        } catch (error) {
+          // If error occurs, cancellationCharge remains 0
+          cancellationCharge = 0;
+        }
+      }
+      bookingObj.Cancellation_Charge = cancellationCharge;
 
       return bookingObj;
     }));
