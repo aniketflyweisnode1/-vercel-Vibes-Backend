@@ -17,7 +17,8 @@ const {
   updateVendorBooking,
   deleteVendorBooking,
   getVendorBookingsByAuth,
-  VendorBookingPayment
+  VendorBookingPayment,
+  getVendorBookingsByUserId
 } = require('../../controllers/vendor_booking.controller');
 
 // Create vendor booking (with auth)
@@ -28,7 +29,7 @@ router.get('/getAll', validateQuery(queryVendorBookingSchema), getAllVendorBooki
 
 // Get vendor bookings for authenticated user
 router.get('/getByAuth', auth, validateQuery(queryVendorBookingSchema), getVendorBookingsByAuth);
-
+router.get('/getByuserAuth', auth, validateQuery(queryVendorBookingSchema), getVendorBookingsByUserId);
 // Get vendor booking by ID (with auth)
 router.get('/getById/:id', auth, validateParams(getVendorBookingByIdSchema), getVendorBookingById);
 

@@ -5,6 +5,10 @@ const User = require('../models/user.model');
 const Transaction = require('../models/transaction.model');
 const VendorOnboardingPortal = require('../models/vendor_onboarding_portal.model');
 const CategoriesFees = require('../models/categories_fees.model');
+const VenueDetails = require('../models/venue_details.model');
+const Country = require('../models/country.model');
+const State = require('../models/state.model');
+const City = require('../models/city.model');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
@@ -123,6 +127,44 @@ const populateVendorOnboardingPortal = async (portal) => {
   }
 
   return populatedData;
+};
+
+const populateEventDetails = async (eventId) => {
+  if (!eventId) {
+    return null;
+  }
+
+  try {
+    const event = await Event.findOne({ event_id: Number(eventId) }).lean();
+    if (!event) {
+      return null;
+    }
+
+    const [venueDetails, country, state, city] = await Promise.all([
+      event.venue_details_id
+        ? VenueDetails.findOne({ venue_details_id: event.venue_details_id }).lean()
+        : Promise.resolve(null),
+      event.country_id
+        ? Country.findOne({ country_id: event.country_id }).lean()
+        : Promise.resolve(null),
+      event.state_id
+        ? State.findOne({ state_id: event.state_id }).lean()
+        : Promise.resolve(null),
+      event.city_id
+        ? City.findOne({ city_id: event.city_id }).lean()
+        : Promise.resolve(null)
+    ]);
+
+    return {
+      ...event,
+      venue_details: venueDetails,
+      country_details: country,
+      state_details: state,
+      city_details: city
+    };
+  } catch (error) {
+    return null;
+  }
 };
 
 /**
@@ -367,14 +409,7 @@ const getAllVendorBookings = asyncHandler(async (req, res) => {
         }
       }
 
-      if (booking.Event_id) {
-        try {
-          const event = await Event.findOne({ event_id: booking.Event_id });
-          bookingObj.event_details = event || null;
-        } catch (error) {
-          bookingObj.event_details = null;
-        }
-      }
+      bookingObj.event_details = await populateEventDetails(booking.Event_id);
 
       if (booking.Vendor_Category_id && booking.Vendor_Category_id.length) {
         try {
@@ -471,10 +506,7 @@ const getVendorBookingById = asyncHandler(async (req, res) => {
       bookingObj.vendor_details = vendor || null;
     }
 
-    if (booking.Event_id) {
-      const event = await Event.findOne({ event_id: booking.Event_id });
-      bookingObj.event_details = event || null;
-    }
+    bookingObj.event_details = await populateEventDetails(booking.Event_id);
 
     if (booking.Vendor_Category_id && booking.Vendor_Category_id.length) {
       const categories = await Category.find({ category_id: { $in: booking.Vendor_Category_id } });
@@ -692,14 +724,7 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
         }
       }
 
-      if (booking.Event_id) {
-        try {
-          const event = await Event.findOne({ event_id: booking.Event_id });
-          bookingObj.event_details = event || null;
-        } catch (error) {
-          bookingObj.event_details = null;
-        }
-      }
+      bookingObj.event_details = await populateEventDetails(booking.Event_id);
 
       if (booking.Vendor_Category_id && booking.Vendor_Category_id.length) {
         try {
@@ -768,6 +793,164 @@ const getVendorBookingsByAuth = asyncHandler(async (req, res) => {
     throw error;
   }
 });
+
+const getVendorBookingsByUserId = asyncHandler(async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      Date_start,
+      End_date,
+      Start_time,
+      End_time,
+      Event_id,
+      User_availabil,
+      vender_booking_status,
+      vendor_booking_status,
+      Status
+    } = req.query;
+
+    const filter = {
+      user_id: req.userId,
+      Status: true
+    };
+
+    if (Date_start) {
+      const parsedStart = parseDateOrNull(Date_start, 'Date_start');
+      if (parsedStart) {
+        filter.Date_start = parsedStart;
+      }
+    }
+    if (End_date) {
+      const parsedEnd = parseDateOrNull(End_date, 'End_date');
+      if (parsedEnd) {
+        filter.End_date = parsedEnd;
+      }
+    }
+    if (Start_time) {
+      filter.Start_time = Start_time;
+    }
+    if (End_time) {
+      filter.End_time = End_time;
+    }
+    if (Event_id) {
+      filter.Event_id = parseInt(Event_id, 10);
+    }
+    if (User_availabil) {
+      filter.User_availabil = User_availabil;
+    }
+    if (Status !== undefined) {
+      filter.Status = Status === 'true';
+    }
+    const statusFilter = vender_booking_status ?? vendor_booking_status;
+    if (statusFilter) {
+      const normalizedStatus = String(statusFilter).toLowerCase();
+      if (ALLOWED_VENDOR_BOOKING_STATUS.includes(normalizedStatus)) {
+        filter.vender_booking_status = normalizedStatus;
+      }
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [bookings, total] = await Promise.all([
+      VendorBooking.find(filter)
+        .sort({ Date_start: -1 })
+        .skip(skip)
+        .limit(parseInt(limit, 10)),
+      VendorBooking.countDocuments(filter)
+    ]);
+
+    const populatedBookings = await Promise.all(bookings.map(async (booking) => {
+      const bookingObj = booking.toObject();
+
+      if (booking.user_id) {
+        try {
+          const user = await User.findOne({ user_id: booking.user_id }).select('user_id name email mobile');
+          bookingObj.user_details = user || null;
+        } catch (error) {
+          bookingObj.user_details = null;
+        }
+      }
+
+      if (booking.vendor_id) {
+        try {
+          const vendor = await User.findOne({ user_id: booking.vendor_id }).select('user_id name email mobile role_id');
+          bookingObj.vendor_details = vendor || null;
+        } catch (error) {
+          bookingObj.vendor_details = null;
+        }
+      }
+
+      bookingObj.event_details = await populateEventDetails(booking.Event_id);
+
+      if (booking.Vendor_Category_id && booking.Vendor_Category_id.length) {
+        try {
+          const categories = await Category.find({ category_id: { $in: booking.Vendor_Category_id } });
+          bookingObj.vendor_category_details = categories;
+        } catch (error) {
+          bookingObj.vendor_category_details = [];
+        }
+      }
+
+      if (booking.CreateBy) {
+        try {
+          const createdByUser = await User.findOne({ user_id: booking.CreateBy }).select('user_id name email');
+          bookingObj.created_by_details = createdByUser || null;
+        } catch (error) {
+          bookingObj.created_by_details = null;
+        }
+      }
+
+      if (booking.UpdatedBy) {
+        try {
+          const updatedByUser = await User.findOne({ user_id: booking.UpdatedBy }).select('user_id name email');
+          bookingObj.updated_by_details = updatedByUser || null;
+        } catch (error) {
+          bookingObj.updated_by_details = null;
+        }
+      }
+
+      // Calculate Cancellation_Charge based on vendor's cancellation charges percentage
+      let cancellationCharge = 0;
+      if (booking.vendor_id && booking.amount) {
+        try {
+          const vendorPortal = await VendorOnboardingPortal.findOne({
+            Vendor_id: booking.vendor_id,
+            Status: true
+          });
+
+          if (vendorPortal && vendorPortal.CancellationCharges) {
+            const cancellationChargesPercentage = Number(vendorPortal.CancellationCharges) || 0;
+            cancellationCharge = Math.round((booking.amount * cancellationChargesPercentage) / 100 * 100) / 100;
+          }
+        } catch (error) {
+          // If error occurs, cancellationCharge remains 0
+          cancellationCharge = 0;
+        }
+      }
+      bookingObj.Cancellation_Charge = cancellationCharge;
+
+      return bookingObj;
+    }));
+
+    const pagination = {
+      currentPage: parseInt(page, 10),
+      totalPages: Math.ceil(total / limit),
+      totalItems: total,
+      itemsPerPage: parseInt(limit, 10),
+      hasNextPage: page * limit < total,
+      hasPrevPage: page > 1
+    };
+
+    sendPaginated(res, populatedBookings, pagination, 'Vendor bookings retrieved successfully for authenticated user');
+  } catch (error) {
+    if (error.message.startsWith('Invalid')) {
+      return sendError(res, error.message, 400);
+    }
+    throw error;
+  }
+});
+
 
 /**
  * Vendor booking payment function
@@ -978,6 +1161,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       const vendor = await User.findOne({ user_id: updatedBooking.vendor_id }).select('user_id name email mobile role_id');
       bookingObj.vendor_details = vendor || null;
     }
+    bookingObj.event_details = await populateEventDetails(booking.Event_id);
 
     sendSuccess(res, {
       transaction_id: transaction.transaction_id,
@@ -1011,6 +1195,7 @@ module.exports = {
   updateVendorBooking,
   deleteVendorBooking,
   getVendorBookingsByAuth,
-  VendorBookingPayment
+  VendorBookingPayment,
+  getVendorBookingsByUserId
 };
 
