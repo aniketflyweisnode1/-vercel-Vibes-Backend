@@ -34,7 +34,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     }).sort({ createdAt: -1 }); // Get the most recent purchase
 
     if (!usergetTicket) {
-      return sendNotFound(res, 'No ticket purchase found for this event by the authenticated user');
+      return sendNotFound(res, `No ticket purchase found for event ID ${event_id} by the authenticated user. Please create a ticket purchase first using /api/master/event-entry-userget-tickets/create`);
     }
 
     // Check if tickets array exists
@@ -48,13 +48,37 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     const ticketBreakdown = [];
 
     for (const ticket of usergetTicket.tickets) {
+      // Auto-populate event_entry_tickets_id if not provided
+      let eventEntryTicketsId = ticket.event_entry_tickets_id;
+      
+      if (!eventEntryTicketsId || eventEntryTicketsId === null || eventEntryTicketsId === undefined) {
+        // Try to find the first active ticket for this event
+        try {
+          const eventTicket = await EventEntryTickets.findOne({
+            event_id: parseInt(event_id),
+            status: true
+          }).sort({ createdAt: -1 });
+
+          if (eventTicket) {
+            eventEntryTicketsId = eventTicket.event_entry_tickets_id;
+            // Update the ticket in the usergetTicket for future reference
+            ticket.event_entry_tickets_id = eventEntryTicketsId;
+          } else {
+            return sendNotFound(res, `No active event entry tickets found for event ID: ${event_id}`);
+          }
+        } catch (error) {
+          console.error('Error auto-populating event_entry_tickets_id:', error);
+          return sendError(res, 'Failed to find event entry ticket. Please ensure tickets are available for this event.', 400);
+        }
+      }
+
       // Get the ticket type for each ticket in the array
       const ticketType = await EventEntryTickets.findOne({
-        event_entry_tickets_id: parseInt(ticket.event_entry_tickets_id)
+        event_entry_tickets_id: parseInt(eventEntryTicketsId)
       });
 
       if (!ticketType) {
-        return sendNotFound(res, `Event entry ticket type not found for ID: ${ticket.event_entry_tickets_id}`);
+        return sendNotFound(res, `Event entry ticket type not found for ID: ${eventEntryTicketsId}`);
       }
 
       const itemQuantity = ticket.quantity;
@@ -65,7 +89,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       subtotal += itemSubtotal;
 
       ticketBreakdown.push({
-        ticket_type_id: ticket.event_entry_tickets_id,
+        ticket_type_id: eventEntryTicketsId,
         ticket_title: ticketType.title,
         quantity: itemQuantity,
         price_per_ticket: itemPrice,
