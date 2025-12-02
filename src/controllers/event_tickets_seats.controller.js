@@ -59,17 +59,20 @@ const createEventTicketSeat = asyncHandler(async (req, res) => {
             return sum + (s.capacity || 0);
           }, 0);
           
+          // Set max_capacity as totalCapacity - 1
+          const maxCapacity = Math.max(0, ticket.max_capacity - 1);
+          
           // Update ticket's max_capacity
           await Ticket.findOneAndUpdate(
             { event_id: seat.event_id, status: true },
             { 
-              max_capacity: totalCapacity,
+              max_capacity: maxCapacity,
               updated_at: new Date()
             },
             { new: true }
           );
           
-          console.log(`Updated Ticket max_capacity to ${totalCapacity} for event_id: ${seat.event_id}`);
+          console.log(`Updated Ticket max_capacity to ${maxCapacity} (totalCapacity: ${totalCapacity} - 1) for event_id: ${seat.event_id}`);
         }
       } catch (ticketError) {
         // Log error but don't fail the seat creation
@@ -225,17 +228,20 @@ const updateEventTicketSeat = asyncHandler(async (req, res) => {
             return sum + (s.capacity || 0);
           }, 0);
           
+          // Set max_capacity as totalCapacity - 1
+          const maxCapacity = Math.max(0, totalCapacity - 1);
+          
           // Update ticket's max_capacity
           await Ticket.findOneAndUpdate(
             { event_id: seat.event_id, status: true },
             { 
-              max_capacity: totalCapacity,
+              max_capacity: maxCapacity,
               updated_at: new Date()
             },
             { new: true }
           );
           
-          console.log(`Updated Ticket max_capacity to ${totalCapacity} for event_id: ${seat.event_id}`);
+          console.log(`Updated Ticket max_capacity to ${maxCapacity} (totalCapacity: ${totalCapacity} - 1) for event_id: ${seat.event_id}`);
         }
       } catch (ticketError) {
         // Log error but don't fail the seat update
