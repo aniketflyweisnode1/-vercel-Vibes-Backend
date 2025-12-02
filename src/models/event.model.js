@@ -106,6 +106,36 @@ const eventSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  BudgetRange: {
+    type: Number,
+    default: null,
+    min: [0, 'Budget range cannot be negative']
+  },
+  ExpectedGuestCount: {
+    type: Number,
+    default: null,
+    min: [0, 'Expected guest count cannot be negative']
+  },
+  ThemeOrStyle: {
+    type: [String],
+    default: []
+  },
+  MusicPreferences: {
+    type: [String],
+    default: []
+  },
+  DietaryRestrictionsAllergies: {
+    type: String,
+    trim: true,
+    default: null,
+    maxlength: [1000, 'Dietary restrictions/allergies cannot exceed 1000 characters']
+  },
+  SpecialRequestsNotes: {
+    type: String,
+    trim: true,
+    default: null,
+    maxlength: [2000, 'Special requests/notes cannot exceed 2000 characters']
+  },
   status: {
     type: Boolean,
     default: true

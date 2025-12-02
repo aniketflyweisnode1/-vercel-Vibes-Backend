@@ -16,11 +16,43 @@ const { asyncHandler } = require('../../middleware/errorHandler');
  */
 const createEvent = asyncHandler(async (req, res) => {
   try {
+    // Process array fields to ensure they are arrays
+    const processArrayField = (field) => {
+      if (!field) return [];
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        // Try to parse if it's a JSON string
+        try {
+          const parsed = JSON.parse(field);
+          return Array.isArray(parsed) ? parsed : [field];
+        } catch {
+          return [field];
+        }
+      }
+      return [];
+    };
+
     // Create event data
     const eventData = {
       ...req.body,
       created_by: req.userId || 1
     };
+
+    // Process array fields
+    if (req.body.ThemeOrStyle !== undefined) {
+      eventData.ThemeOrStyle = processArrayField(req.body.ThemeOrStyle);
+    }
+    if (req.body.MusicPreferences !== undefined) {
+      eventData.MusicPreferences = processArrayField(req.body.MusicPreferences);
+    }
+
+    // Ensure numeric fields are numbers
+    if (req.body.BudgetRange !== undefined && req.body.BudgetRange !== null) {
+      eventData.BudgetRange = Number(req.body.BudgetRange);
+    }
+    if (req.body.ExpectedGuestCount !== undefined && req.body.ExpectedGuestCount !== null) {
+      eventData.ExpectedGuestCount = Number(req.body.ExpectedGuestCount);
+    }
 
     // Create event
     const event = await Event.create(eventData);
