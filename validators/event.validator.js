@@ -204,8 +204,40 @@ const createEventSchema = Joi.object({
   live_vibes_invite_venue_tour: commonValidations.live_vibes_invite_venue_tour,
   live_vibes_invite_music_preview: commonValidations.live_vibes_invite_music_preview,
   live_vibes_invite_vip_perks: commonValidations.live_vibes_invite_vip_perks,
-  status: commonValidations.status
-});
+  status: commonValidations.status,
+  ticketData: Joi.array()
+    .items(Joi.object({
+      ticket_type_id: Joi.number()
+        .integer()
+        .positive()
+        .required()
+        .messages({
+          'number.base': 'Ticket type ID must be a number',
+          'number.integer': 'Ticket type ID must be an integer',
+          'number.positive': 'Ticket type ID must be a positive number',
+          'any.required': 'Ticket type ID is required'
+        }),
+      ticket_query: Joi.string()
+        .trim()
+        .required()
+        .messages({
+          'string.empty': 'Ticket query is required',
+          'any.required': 'Ticket query is required'
+        }),
+      price: Joi.number()
+        .min(0)
+        .required()
+        .messages({
+          'number.base': 'Price must be a number',
+          'number.min': 'Price cannot be negative',
+          'any.required': 'Price is required'
+        })
+    }))
+    .optional()
+    .messages({
+      'array.base': 'Ticket data must be an array'
+    })
+}).unknown(true); // Allow other fields not explicitly defined
 
 // Update event validation schema
 const updateEventSchema = Joi.object({

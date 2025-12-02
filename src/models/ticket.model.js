@@ -22,7 +22,6 @@ const ticketSchema = new mongoose.Schema({
     },
     ticket_query: {
       type: String,
-      required: [true, 'Ticket query is required'],
       trim: true,
       maxlength: [2000, 'Ticket query cannot exceed 2000 characters']
     },

@@ -26,7 +26,7 @@ const {
 } = require('../../../validators/event.validator');
 
 // Create event with auth
-router.post('/create', auth, validateBody(createEventSchema), createEvent);
+router.post('/create', auth, createEvent);
 
 // Get all events with auth
 router.get('/getAll', getAllEvents);
@@ -41,7 +41,7 @@ router.get('/getExcludingAuth', auth, validateQuery(getAllEventsSchema), getEven
 router.get('/getById/:id', auth, validateParams(getEventByIdSchema), getEventById);
 
 // Update event by ID with auth
-router.put('/updateById', auth, validateBody(updateEventSchema), updateEvent);
+router.put('/updateById', auth,  updateEvent);
 
 // Delete event by ID with auth
 router.delete('/deleteById/:id', auth, validateParams(getEventByIdSchema), deleteEvent);

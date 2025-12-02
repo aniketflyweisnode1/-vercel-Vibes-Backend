@@ -31,7 +31,8 @@ const createEvent = asyncHandler(async (req, res) => {
       }
       return [];
     };
-
+    
+    console.log('Creating event: \n', req.body);
     // Create event data
     const eventData = {
       ...req.body,
@@ -59,14 +60,54 @@ const createEvent = asyncHandler(async (req, res) => {
 
     if (event.Event_type === 'Public') {
       try {
-        console.log('Creating automatic ticket for public event: \n', event.event_id);
-        const ticket = await Ticket.create({
-          event_id: event.event_id,
-          ticketDateils: req.body.ticketDetails,
-          max_capacity: req.body.max_capacity,
-          status: true,
-          created_by: req.userId || event.created_by
-        });
+        console.log('Creating automatic ticket for public event: \n', event.event_id, req.body.ticketData);
+        
+        // Check if ticketData exists and is a valid array with required fields
+        if (req.body.ticketData && 
+            Array.isArray(req.body.ticketData) && 
+            req.body.ticketData.length > 0) {
+          
+          // Validate that at least one ticket has required fields
+          const isValidTicketData = req.body.ticketData.some(ticket => 
+            ticket.ticket_type_id !== undefined && 
+            ticket.ticket_query && 
+            ticket.price !== undefined
+          );
+          
+          if (isValidTicketData) {
+            // Prepare ticket details array - ensure all items have required fields
+            const ticketData = req.body.ticketData.map(ticket => ({
+              ticket_type_id: ticket.ticket_type_id,
+              ticket_query: ticket.ticket_query,
+              price: ticket.price
+            })).filter(ticket => 
+              ticket.ticket_type_id !== undefined && 
+              ticket.ticket_query && 
+              ticket.price !== undefined
+            );
+            
+            if (ticketData.length > 0) {
+              console.log('Ticket details:', ticketData);
+              
+              // Create ticket
+              const ticket = await Ticket.create({
+                event_id: event.event_id,
+                ticketDateils: ticketData,
+                max_capacity: req.body.max_capacity,
+                status: true,
+                created_by: req.userId || event.created_by
+              });
+              
+              console.log('Ticket created successfully:', ticket.ticket_id);
+            } else {
+              console.log('Skipping automatic ticket creation: No valid ticket data found');
+            }
+          } else {
+            console.log('Skipping automatic ticket creation: ticketData array is empty or missing required fields');
+          }
+        } else {
+          console.log('Skipping automatic ticket creation: ticketData not provided or not an array');
+        }
       } catch (ticketError) {
         console.error('Failed to create automatic ticket for public event:', ticketError);
       }
@@ -542,6 +583,7 @@ const getEventById = asyncHandler(async (req, res) => {
           event_id: event.event_id,
           status: true
         });
+        console.log('Ticket model details:', tickets);
         eventObj.EventTicketsData = tickets || [];
       } catch (error) {
         console.log('Error fetching Ticket model details for event ID:', event.event_id, error);
