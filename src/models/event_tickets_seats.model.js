@@ -7,9 +7,10 @@ const eventTicketsSeatsSchema = new mongoose.Schema({
     unique: true
   },
   event_entry_tickets_id: {
-    type: Number,
+    type: [Number],
     ref: 'EventEntryTickets',
-    required: true
+    required: true,
+    default: []
   },
   event_entry_userget_tickets_id: {
     type: Number,
@@ -22,12 +23,11 @@ const eventTicketsSeatsSchema = new mongoose.Schema({
     required: true
   },
   seat_no: {
-    type: String,
-    trim: true
+    type: [String],
+    default: []
   },
   firstName: {
     type: String,
-    required: true,
     trim: true
   },
   lastName: {
@@ -36,13 +36,11 @@ const eventTicketsSeatsSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
     trim: true,
     lowercase: true
   },
   phoneNo: {
     type: String,
-    required: true,
     trim: true
   },
   promo_code: {

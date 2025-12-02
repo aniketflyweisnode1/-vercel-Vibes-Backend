@@ -853,6 +853,252 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * Get all events excluding events created by authenticated user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getEventsExcludingAuth = asyncHandler(async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      status,
+      event_type_id,
+      Event_type,
+      country_id,
+      state_id,
+      city_id,
+      event_category_tags_id,
+      ticketed_events,
+      sortBy = 'created_at',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object - exclude events created by the authenticated user
+    const filter = {
+      created_by: { $ne: req.userId }
+    };
+
+    // Add search filter
+    if (search) {
+      filter.$or = [
+        { name_title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Add status filter
+  
+
+    // Add event_type_id filter
+    if (event_type_id) {
+      filter.event_type_id = event_type_id;
+    }
+
+    // Add Event_type filter (Private/Public)
+    if (Event_type) {
+      filter.Event_type = Event_type;
+    }
+
+    // Add country_id filter
+    if (country_id) {
+      filter.country_id = country_id;
+    }
+
+    // Add state_id filter
+    if (state_id) {
+      filter.state_id = state_id;
+    }
+
+    // Add city_id filter
+    if (city_id) {
+      filter.city_id = city_id;
+    }
+
+    // Add event_category_tags_id filter
+    if (event_category_tags_id) {
+      filter.event_category_tags_id = event_category_tags_id;
+    }
+
+    // Add ticketed_events filter
+    if (ticketed_events !== undefined) {
+      filter.ticketed_events = ticketed_events === 'true';
+    }
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Execute query
+    const [events, total] = await Promise.all([
+      Event.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Event.countDocuments(filter)
+    ]);
+
+    // Manually populate all ID fields for each event
+    const eventsWithPopulatedData = await Promise.all(events.map(async (event) => {
+      const eventObj = event.toObject();
+      
+      // Populate event_type_id
+      if (event.event_type_id) {
+        try {
+          const EventType = require('../models/event_type.model');
+          const eventType = await EventType.findOne({ event_type_id: event.event_type_id });
+          eventObj.event_type_id = eventType;
+        } catch (error) {
+          console.log('EventType not found for ID:', event.event_type_id);
+        }
+      }
+
+      // Populate venue_details_id
+      if (event.venue_details_id) {
+        try {
+          const VenueDetails = require('../models/venue_details.model');
+          const venueDetails = await VenueDetails.findOne({
+            venue_details_id: parseInt(event.venue_details_id)
+          }).select('venue_details_id name address capacity type map');
+          eventObj.venue_details_id = venueDetails;
+        } catch (error) {
+          console.log('VenueDetails not found for ID:', event.venue_details_id);
+        }
+      }
+
+      // Populate country_id
+      if (event.country_id) {
+        try {
+          const Country = require('../models/country.model');
+          const country = await Country.findOne({ country_id: event.country_id });
+          eventObj.country_id = country;
+        } catch (error) {
+          console.log('Country not found for ID:', event.country_id);
+        }
+      }
+
+      // Populate state_id
+      if (event.state_id) {
+        try {
+          const State = require('../models/state.model');
+          const state = await State.findOne({ state_id: event.state_id });
+          eventObj.state_id = state;
+        } catch (error) {
+          console.log('State not found for ID:', event.state_id);
+        }
+      }
+
+      // Populate city_id
+      if (event.city_id) {
+        try {
+          const City = require('../models/city.model');
+          const city = await City.findOne({ city_id: event.city_id });
+          eventObj.city_id = city;
+        } catch (error) {
+          console.log('City not found for ID:', event.city_id);
+        }
+      }
+
+      // Populate event_category_tags_id
+      if (event.event_category_tags_id) {
+        try {
+          const EventCategoryTags = require('../models/event_category_tags.model');
+          const eventCategoryTags = await EventCategoryTags.findOne({ event_category_tags_id: event.event_category_tags_id });
+          eventObj.event_category_tags_id = eventCategoryTags;
+        } catch (error) {
+          console.log('EventCategoryTags not found for ID:', event.event_category_tags_id);
+        }
+      }
+
+      // Populate created_by
+      if (event.created_by) {
+        try {
+          const User = require('../models/user.model');
+          const createdByUser = await User.findOne({ user_id: event.created_by });
+          eventObj.created_by = createdByUser;
+        } catch (error) {
+          console.log('User not found for created_by ID:', event.created_by);
+        }
+      }
+
+      // Populate updated_by
+      if (event.updated_by) {
+        try {
+          const User = require('../models/user.model');
+          const updatedByUser = await User.findOne({ user_id: event.updated_by });
+          eventObj.updated_by = updatedByUser;
+        } catch (error) {
+          console.log('User not found for updated_by ID:', event.updated_by);
+        }
+      }
+
+      // Populate ticket details
+      if (event.event_id) {
+        try {
+          const EventEntryTickets = require('../models/event_entry_tickets.model');
+          const tickets = await EventEntryTickets.find({
+            event_id: event.event_id,
+            status: true
+          }).select('event_entry_tickets_id title price total_seats facility tag status');
+          eventObj.ticket_details = tickets || [];
+        } catch (error) {
+          console.log('Error fetching ticket details for event ID:', event.event_id, error);
+          eventObj.ticket_details = [];
+        }
+      } else {
+        eventObj.ticket_details = [];
+      }
+
+      // Calculate total tickets booked for this event
+      if (event.event_id) {
+        try {
+          const EventEntryTicketsOrder = require('../models/event_entry_tickets_order.model');
+          const ticketOrders = await EventEntryTicketsOrder.find({
+            event_id: event.event_id,
+            status: true
+          }).select('quantity');
+          
+          // Sum up all quantities
+          const totalTicketsBooked = ticketOrders.reduce((sum, order) => {
+            return sum + (order.quantity || 0);
+          }, 0);
+          
+          eventObj.TotalofTicketsBookingbyEvent = totalTicketsBooked;
+        } catch (error) {
+          console.log('Error calculating total tickets booked for event ID:', event.event_id, error);
+          eventObj.TotalofTicketsBookingbyEvent = 0;
+        }
+      } else {
+        eventObj.TotalofTicketsBookingbyEvent = 0;
+      }
+
+      return eventObj;
+    }));
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    const pagination = {
+      currentPage: parseInt(page),
+      totalPages,
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage,
+      hasPrevPage
+    };
+    sendPaginated(res, eventsWithPopulatedData, pagination, 'Events retrieved successfully (excluding current user)');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createEvent,
   getAllEvents,
@@ -860,6 +1106,7 @@ module.exports = {
   updateEvent,
   deleteEvent,
   getEventsByAuth,
+  getEventsExcludingAuth,
   eventPayment
 };
 

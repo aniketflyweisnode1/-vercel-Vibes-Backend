@@ -2,11 +2,16 @@ const Joi = require('joi');
 
 // Validation schema for creating event ticket seat
 const createEventTicketSeatSchema = Joi.object({
-  event_entry_tickets_id: Joi.number().integer().min(1).required().messages({
+  event_entry_tickets_id: Joi.alternatives().try(
+    Joi.array().items(Joi.number().integer().min(1)).min(1),
+    Joi.number().integer().min(1)
+  ).required().messages({
+    'any.required': 'Event entry tickets ID is required',
+    'alternatives.match': 'Event entry tickets ID must be a number or array of numbers',
+    'array.min': 'Event entry tickets ID array must contain at least one item',
     'number.base': 'Event entry tickets ID must be a number',
     'number.integer': 'Event entry tickets ID must be an integer',
-    'number.min': 'Event entry tickets ID must be greater than 0',
-    'any.required': 'Event entry tickets ID is required'
+    'number.min': 'Event entry tickets ID must be greater than 0'
   }),
   event_entry_userget_tickets_id: Joi.number().integer().min(1).required().messages({
     'number.base': 'Event entry userget tickets ID must be a number',
@@ -20,28 +25,25 @@ const createEventTicketSeatSchema = Joi.object({
     'number.min': 'Event ID must be greater than 0',
     'any.required': 'Event ID is required'
   }),
-  seat_no: Joi.string().trim().allow('').messages({
-    'string.base': 'Seat number must be a string'
+  seat_no: Joi.alternatives().try(
+    Joi.array().items(Joi.string().trim()),
+    Joi.string().trim().allow('')
+  ).messages({
+    'alternatives.match': 'Seat number must be a string or array of strings'
   }),
-  firstName: Joi.string().required().trim().min(1).max(100).messages({
-    'string.empty': 'First name is required',
+  firstName: Joi.string().trim().min(1).max(100).allow('', null).messages({
     'string.min': 'First name must be at least 1 character long',
-    'string.max': 'First name cannot exceed 100 characters',
-    'any.required': 'First name is required'
+    'string.max': 'First name cannot exceed 100 characters'
   }),
   lastName: Joi.string().trim().max(100).allow('').messages({
     'string.max': 'Last name cannot exceed 100 characters'
   }),
-  email: Joi.string().required().trim().email().lowercase().messages({
-    'string.empty': 'Email is required',
-    'string.email': 'Email must be a valid email address',
-    'any.required': 'Email is required'
+  email: Joi.string().trim().email().lowercase().allow('', null).messages({
+    'string.email': 'Email must be a valid email address'
   }),
-  phoneNo: Joi.string().required().trim().min(10).max(15).messages({
-    'string.empty': 'Phone number is required',
+  phoneNo: Joi.string().trim().min(10).max(15).allow('', null).messages({
     'string.min': 'Phone number must be at least 10 characters long',
-    'string.max': 'Phone number cannot exceed 15 characters',
-    'any.required': 'Phone number is required'
+    'string.max': 'Phone number cannot exceed 15 characters'
   }),
   promo_code: Joi.string().trim().allow('').messages({
     'string.base': 'Promo code must be a string'
@@ -69,7 +71,12 @@ const updateEventTicketSeatSchema = Joi.object({
     'number.min': 'ID must be greater than 0',
     'any.required': 'ID is required'
   }),
-  event_entry_tickets_id: Joi.number().integer().min(1).messages({
+  event_entry_tickets_id: Joi.alternatives().try(
+    Joi.array().items(Joi.number().integer().min(1)).min(1),
+    Joi.number().integer().min(1)
+  ).messages({
+    'alternatives.match': 'Event entry tickets ID must be a number or array of numbers',
+    'array.min': 'Event entry tickets ID array must contain at least one item',
     'number.base': 'Event entry tickets ID must be a number',
     'number.integer': 'Event entry tickets ID must be an integer',
     'number.min': 'Event entry tickets ID must be greater than 0'
@@ -84,7 +91,12 @@ const updateEventTicketSeatSchema = Joi.object({
     'number.integer': 'Event ID must be an integer',
     'number.min': 'Event ID must be greater than 0'
   }),
-  seat_no: Joi.string().trim().allow(''),
+  seat_no: Joi.alternatives().try(
+    Joi.array().items(Joi.string().trim()),
+    Joi.string().trim().allow('')
+  ).messages({
+    'alternatives.match': 'Seat number must be a string or array of strings'
+  }),
   firstName: Joi.string().trim().min(1).max(100).messages({
     'string.min': 'First name must be at least 1 character long',
     'string.max': 'First name cannot exceed 100 characters'

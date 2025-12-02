@@ -9,6 +9,7 @@ const {
   updateEvent,
   deleteEvent,
   getEventsByAuth,
+  getEventsExcludingAuth,
   eventPayment
 } = require('../../controllers/event.controller'); 
 
@@ -32,6 +33,9 @@ router.get('/getAll', getAllEvents);
 
 // Get events by authenticated user with auth
 router.get('/getByAuth', auth, validateQuery(getAllEventsSchema), getEventsByAuth);
+
+// Get all events excluding authenticated user's events with auth
+router.get('/getExcludingAuth', auth, validateQuery(getAllEventsSchema), getEventsExcludingAuth);
 
 // Get event by ID with auth
 router.get('/getById/:id', auth, validateParams(getEventByIdSchema), getEventById);

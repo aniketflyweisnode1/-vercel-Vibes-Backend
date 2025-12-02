@@ -9,10 +9,34 @@ const { asyncHandler } = require('../../middleware/errorHandler');
  */
 const createEventTicketSeat = asyncHandler(async (req, res) => {
   try {
+    // Process array fields to ensure they are arrays
+    const processArrayField = (field) => {
+      if (!field) return [];
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        // Try to parse if it's a JSON string
+        try {
+          const parsed = JSON.parse(field);
+          return Array.isArray(parsed) ? parsed : [field];
+        } catch {
+          return [field];
+        }
+      }
+      return [field];
+    };
+
     const seatData = {
       ...req.body,
       createdBy: req.userId
     };
+
+    // Process array fields
+    if (req.body.event_entry_tickets_id !== undefined) {
+      seatData.event_entry_tickets_id = processArrayField(req.body.event_entry_tickets_id).map(id => Number(id)).filter(id => !Number.isNaN(id));
+    }
+    if (req.body.seat_no !== undefined) {
+      seatData.seat_no = processArrayField(req.body.seat_no);
+    }
 
     const seat = await EventTicketsSeats.create(seatData);
 
@@ -39,7 +63,7 @@ const getAllEventTicketsSeats = asyncHandler(async (req, res) => {
         { lastName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
         { phoneNo: { $regex: search, $options: 'i' } },
-        { seat_no: { $regex: search, $options: 'i' } }
+        { seat_no: { $elemMatch: { $regex: search, $options: 'i' } } }
       ];
     }
   
@@ -47,7 +71,9 @@ const getAllEventTicketsSeats = asyncHandler(async (req, res) => {
       filter.event_id = parseInt(event_id);
     }
     if (event_entry_tickets_id) {
-      filter.event_entry_tickets_id = parseInt(event_entry_tickets_id);
+      // Handle array field - check if the array contains the value
+      const ticketId = parseInt(event_entry_tickets_id);
+      filter.event_entry_tickets_id = ticketId;
     }
     if (event_entry_userget_tickets_id) {
       filter.event_entry_userget_tickets_id = parseInt(event_entry_userget_tickets_id);
@@ -104,12 +130,39 @@ const updateEventTicketSeat = asyncHandler(async (req, res) => {
   try {
     const { id } = req.body;
 
-    req.body.updatedBy = req.userId;
-    req.body.updatedAt = new Date();
+    // Process array fields to ensure they are arrays
+    const processArrayField = (field) => {
+      if (!field) return [];
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        // Try to parse if it's a JSON string
+        try {
+          const parsed = JSON.parse(field);
+          return Array.isArray(parsed) ? parsed : [field];
+        } catch {
+          return [field];
+        }
+      }
+      return [field];
+    };
+
+    const updateData = {
+      ...req.body,
+      updatedBy: req.userId,
+      updatedAt: new Date()
+    };
+
+    // Process array fields
+    if (req.body.event_entry_tickets_id !== undefined) {
+      updateData.event_entry_tickets_id = processArrayField(req.body.event_entry_tickets_id).map(id => Number(id)).filter(id => !Number.isNaN(id));
+    }
+    if (req.body.seat_no !== undefined) {
+      updateData.seat_no = processArrayField(req.body.seat_no);
+    }
 
     const seat = await EventTicketsSeats.findOneAndUpdate(
       { event_tickets_seats_id: parseInt(id) },
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
