@@ -57,19 +57,13 @@ const createEvent = asyncHandler(async (req, res) => {
     // Create event
     const event = await Event.create(eventData);
 
-    if (event.Event_type === 'Public' && event.EntryPrice > 0) {
+    if (event.Event_type === 'Public') {
       try {
-      const ticketDateils = [
-        {
-          ticket_type_id: 1,
-          ticket_query: `Automatic ticket created for public event ${event.event_id}`,
-          price: Number(event.EntryPrice) || 0
-        }
-      ];
-
-        await Ticket.create({
+        console.log('Creating automatic ticket for public event: \n', event.event_id);
+        const ticket = await Ticket.create({
           event_id: event.event_id,
-          ticketDateils,
+          ticketDateils: req.body.ticketDetails,
+          max_capacity: req.body.max_capacity,
           status: true,
           created_by: req.userId || event.created_by
         });
@@ -77,14 +71,14 @@ const createEvent = asyncHandler(async (req, res) => {
         console.error('Failed to create automatic ticket for public event:', ticketError);
       }
     }
-    
+
     // Send email with calendar attachment to the user who created the event
     try {
       const userId = req.userId || event.created_by;
       if (userId) {
         // Fetch user details
         const user = await User.findOne({ user_id: userId }).select('email name');
-        
+
         if (user && user.email) {
           // Prepare event data for email
           const emailEventData = {
@@ -125,7 +119,7 @@ const createEvent = asyncHandler(async (req, res) => {
       // Log notification error but don't fail the event creation
       console.error('Failed to create event notification:', notificationError);
     }
-    
+
     // Note: Number references cannot be populated directly
     sendSuccess(res, event, 'Event created successfully', 201);
   } catch (error) {
@@ -168,7 +162,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-  
+
 
     // Add event_type_id filter
     if (event_type_id) {
@@ -223,7 +217,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
     // Manually populate all ID fields for each event
     const eventsWithPopulatedData = await Promise.all(events.map(async (event) => {
       const eventObj = event.toObject();
-      
+
       // Populate event_type_id
       if (event.event_type_id) {
         try {
@@ -339,12 +333,12 @@ const getAllEvents = asyncHandler(async (req, res) => {
             event_id: event.event_id,
             status: true
           }).select('quantity');
-          
+
           // Sum up all quantities
           const totalTicketsBooked = ticketOrders.reduce((sum, order) => {
             return sum + (order.quantity || 0);
           }, 0);
-          
+
           eventObj.TotalofTicketsBookingbyEvent = totalTicketsBooked;
         } catch (error) {
           console.log('Error calculating total tickets booked for event ID:', event.event_id, error);
@@ -386,7 +380,7 @@ const getEventById = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Find event by event_id
-    const event = await Event.findOne({event_id: parseInt(id)});
+    const event = await Event.findOne({ event_id: parseInt(id) });
 
     if (!event) {
       return sendNotFound(res, 'Event not found');
@@ -394,7 +388,7 @@ const getEventById = asyncHandler(async (req, res) => {
 
     // Manually populate all ID fields
     const eventObj = event.toObject();
-    
+
     // Populate event_type_id
     if (event.event_type_id) {
       try {
@@ -510,12 +504,12 @@ const getEventById = asyncHandler(async (req, res) => {
           event_id: event.event_id,
           status: true
         }).select('quantity');
-        
+
         // Sum up all quantities
         const totalTicketsBooked = ticketOrders.reduce((sum, order) => {
           return sum + (order.quantity || 0);
         }, 0);
-        
+
         eventObj.TotalofTicketsBookingbyEvent = totalTicketsBooked;
       } catch (error) {
         console.log('Error calculating total tickets booked for event ID:', event.event_id, error);
@@ -548,10 +542,10 @@ const updateEvent = asyncHandler(async (req, res) => {
     };
 
     const event = await Event.findOneAndUpdate(
-      {event_id: parseInt(id)},
+      { event_id: parseInt(id) },
       updateData,
-      { 
-        new: true, 
+      {
+        new: true,
         runValidators: true
       }
     );
@@ -590,8 +584,8 @@ const deleteEvent = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const event = await Event.findOneAndUpdate(
-      {event_id: parseInt(id)},
-      { 
+      { event_id: parseInt(id) },
+      {
         status: false,
         updated_by: req.userId,
         updated_at: new Date()
@@ -769,7 +763,7 @@ const getEventsByAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-  
+
 
     // Add event_type_id filter
     if (event_type_id) {
@@ -890,7 +884,7 @@ const getEventsExcludingAuth = asyncHandler(async (req, res) => {
     }
 
     // Add status filter
-  
+
 
     // Add event_type_id filter
     if (event_type_id) {
@@ -946,7 +940,7 @@ const getEventsExcludingAuth = asyncHandler(async (req, res) => {
     // Manually populate all ID fields for each event
     const eventsWithPopulatedData = await Promise.all(events.map(async (event) => {
       const eventObj = event.toObject();
-      
+
       // Populate event_type_id
       if (event.event_type_id) {
         try {
@@ -1062,12 +1056,12 @@ const getEventsExcludingAuth = asyncHandler(async (req, res) => {
             event_id: event.event_id,
             status: true
           }).select('quantity');
-          
+
           // Sum up all quantities
           const totalTicketsBooked = ticketOrders.reduce((sum, order) => {
             return sum + (order.quantity || 0);
           }, 0);
-          
+
           eventObj.TotalofTicketsBookingbyEvent = totalTicketsBooked;
         } catch (error) {
           console.log('Error calculating total tickets booked for event ID:', event.event_id, error);

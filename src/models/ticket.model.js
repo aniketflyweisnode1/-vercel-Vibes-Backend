@@ -10,6 +10,10 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     ref: 'Event',
   },
+  max_capacity: {
+    type: Number,
+    min: [1, 'Max capacity must be at least 1']
+  },
   ticketDateils: [{
     ticket_type_id: {
       type: Number,
