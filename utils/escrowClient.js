@@ -1,10 +1,10 @@
 const axios = require('axios');
 const logger = require('./logger');
 
-const ESCROW_API_BASE_URL = (process.env.ESCROW_API_BASE_URL || 'https://api.escrow.com/2017-09-01').replace(/\/+$/, '');
+const ESCROW_API_BASE_URL = ('https://api.escrow.com/2017-09-01').replace(/\/+$/, '');
 const ESCROW_API_KEY = "node1@flyweis.technology";
 const ESCROW_API_SECRET = "18340_qVh8kYZrWgwgN5uBZR7Tl8L4adRKsA49lEyMUaRCyILIlrSnFYu8wfQalWFh60Ph";
-const ESCROW_API_TIMEOUT = parseInt(process.env.ESCROW_API_TIMEOUT || '30000', 10);
+const ESCROW_API_TIMEOUT = parseInt('30000', 10);
 
 const ensureCredentials = () => {
   if (!ESCROW_API_KEY || !ESCROW_API_SECRET) {

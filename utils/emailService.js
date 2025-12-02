@@ -19,8 +19,8 @@ class EmailService {
     try {
       // For development, you can use Gmail or other SMTP services
       // Make sure to set these environment variables in your .env file
-      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
-      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+      const emailUser = "";
+      const emailPass = "";
 
       // Only create transporter if credentials are provided
       if (!emailUser || !emailPass) {
@@ -86,8 +86,8 @@ class EmailService {
    */
   async sendForgotPasswordOTPEmail(to, otp, userName = 'User') {
     try {
-      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
-      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+      const emailUser = "";
+      const emailPass = "";
 
       // Check if email is configured
       if (!emailUser || !emailPass) {
@@ -142,8 +142,8 @@ class EmailService {
    */
   async sendOTPEmail(to, otp, userName = 'User') {
     try {
-      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
-      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+      const emailUser = "";
+      const emailPass = "";
 
       // Check if email is configured
       if (!emailUser || !emailPass) {
@@ -396,8 +396,8 @@ class EmailService {
    */
   async sendWelcomeEmail(to, userName) {
     try {
-      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
-      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+      const emailUser = "";
+      const emailPass = "";
 
       // Check if email is configured
       if (!emailUser || !emailPass) {
@@ -602,8 +602,8 @@ END:VCALENDAR`;
    */
   async sendEventCreatedEmail(to, eventData, userName, userEmail) {
     try {
-      const emailUser = process.env.EMAIL_USER || process.env.GMAIL_USER;
-      const emailPass = process.env.EMAIL_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+      const emailUser = "";
+      const emailPass = "";
 
       // Check if email is configured
       if (!emailUser || !emailPass) {

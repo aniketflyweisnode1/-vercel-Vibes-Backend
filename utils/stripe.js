@@ -229,7 +229,7 @@ const verifyWebhookSignature = (payload, signature, webhookSecret) => {
     const event = stripe.webhooks.constructEvent(
       payload,
       signature,
-      webhookSecret || process.env.STRIPE_WEBHOOK_SECRET
+      webhookSecret 
     );
 
     return {

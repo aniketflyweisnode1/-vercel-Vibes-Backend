@@ -4,12 +4,12 @@ const logger = require('./logger');
 // Infura / MetaMask credentials (https://docs.metamask.io/services/reference/gas-api/api-reference/)
 const METAMASK_API_KEY = 'c4d44b1c0c964f27a98fee7372bddc81';
 const INFURA_PROJECT_SECRET = 'VVJyo2dcWAaXy6hRlyI9T7QPd54FkaSmCFdFZR4y1pekGtw6OvH11Q';
-const INFURA_NETWORK = process.env.INFURA_NETWORK || 'mainnet';
-const METAMASK_SERVICE = (process.env.METAMASK_SERVICE || 'rpc').toLowerCase();
-const RPC_API_BASE_URL = (process.env.INFURA_API_BASE_URL || `https://${INFURA_NETWORK}.infura.io/v3`).replace(/\/+$/, '');
-const GAS_API_BASE_URL = (process.env.METAMASK_GAS_API_BASE_URL || 'https://gas.api.infura.io/v3').replace(/\/+$/, '');
+const INFURA_NETWORK = 'mainnet';
+const METAMASK_SERVICE = ('rpc').toLowerCase();
+const RPC_API_BASE_URL = (`https://${INFURA_NETWORK}.infura.io/v3`).replace(/\/+$/, '');
+const GAS_API_BASE_URL = ('https://gas.api.infura.io/v3').replace(/\/+$/, '');
 
-const timeout = parseInt(process.env.METAMASK_API_TIMEOUT || process.env.INFURA_API_TIMEOUT || '30000', 10);
+const timeout = parseInt('30000', 10);
 
 const ensureCredentials = () => {
   if (!METAMASK_API_KEY) {
@@ -20,7 +20,6 @@ const ensureCredentials = () => {
 };
 
 const baseURL = (
-  process.env.METAMASK_API_BASE_URL ||
   (METAMASK_SERVICE === 'gas'
     ? `${GAS_API_BASE_URL}/${METAMASK_API_KEY}`
     : `${RPC_API_BASE_URL}/${METAMASK_API_KEY}`)
