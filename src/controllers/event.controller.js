@@ -348,6 +348,22 @@ const getAllEvents = asyncHandler(async (req, res) => {
         eventObj.TotalofTicketsBookingbyEvent = 0;
       }
 
+      // Populate Ticket model full details
+      if (event.event_id) {
+        try {
+          const tickets = await Ticket.find({
+            event_id: event.event_id,
+            status: true
+          });
+          eventObj.EventTicketsData = tickets || [];
+        } catch (error) {
+          console.log('Error fetching Ticket model details for event ID:', event.event_id, error);
+          eventObj.EventTicketsData = [];
+        }
+      } else {
+        eventObj.EventTicketsData = [];
+      }
+
       return eventObj;
     }));
 
@@ -517,6 +533,22 @@ const getEventById = asyncHandler(async (req, res) => {
       }
     } else {
       eventObj.TotalofTicketsBookingbyEvent = 0;
+    }
+
+    // Populate Ticket model full details
+    if (event.event_id) {
+      try {
+        const tickets = await Ticket.find({
+          event_id: event.event_id,
+          status: true
+        });
+        eventObj.EventTicketsData = tickets || [];
+      } catch (error) {
+        console.log('Error fetching Ticket model details for event ID:', event.event_id, error);
+        eventObj.EventTicketsData = [];
+      }
+    } else {
+      eventObj.EventTicketsData = [];
     }
 
     sendSuccess(res, eventObj, 'Event retrieved successfully');
