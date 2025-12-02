@@ -8,7 +8,6 @@ const bankBranchNameSchema = new mongoose.Schema({
   },
   bank_branch_name: {
     type: String,
-    required: [true, 'Bank branch name is required'],
     trim: true,
     maxlength: [100, 'Bank branch name cannot exceed 100 characters']
   },
@@ -39,9 +38,19 @@ const bankBranchNameSchema = new mongoose.Schema({
     trim: true,
     maxlength: [20, 'Account number cannot exceed 20 characters']
   },
+  routingNo: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Routing number cannot exceed 20 characters']
+  },
+  accountType: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Account type cannot exceed 50 characters']
+  },
   address: {
     type: String,
-    required: [true, 'Address is required'],
+
     trim: true,
     maxlength: [500, 'Address cannot exceed 500 characters']
   },
@@ -52,7 +61,6 @@ const bankBranchNameSchema = new mongoose.Schema({
   },
   zipcode: {
     type: String,
-    required: [true, 'Zipcode is required'],
     trim: true,
     maxlength: [10, 'Zipcode cannot exceed 10 characters']
   },

@@ -51,6 +51,8 @@ const getAllBankBranchNames = asyncHandler(async (req, res) => {
         { upi: { $regex: search, $options: 'i' } },
         { ifsc: { $regex: search, $options: 'i' } },
         { accountNo: { $regex: search, $options: 'i' } },
+        { routingNo: { $regex: search, $options: 'i' } },
+        { accountType: { $regex: search, $options: 'i' } },
         { address: { $regex: search, $options: 'i' } },
         { cardNo: { $regex: search, $options: 'i' } },
         { zipcode: { $regex: search, $options: 'i' } }
@@ -245,6 +247,8 @@ const getBankBranchNamesByAuth = asyncHandler(async (req, res) => {
         { upi: { $regex: search, $options: 'i' } },
         { ifsc: { $regex: search, $options: 'i' } },
         { accountNo: { $regex: search, $options: 'i' } },
+        { routingNo: { $regex: search, $options: 'i' } },
+        { accountType: { $regex: search, $options: 'i' } },
         { address: { $regex: search, $options: 'i' } },
         { cardNo: { $regex: search, $options: 'i' } },
         { zipcode: { $regex: search, $options: 'i' } }

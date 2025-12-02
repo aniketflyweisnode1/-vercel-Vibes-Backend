@@ -26,7 +26,7 @@ const {
 } = require('../../../validators/bank_branch_name.validator');
 
 // Create bank branch name with auth
-router.post('/create', auth, validateBody(createBankBranchNameSchema), createBankBranchName);
+router.post('/create', auth, createBankBranchName);
 
 // Get all bank branch names with auth
 router.get('/getAll', auth, validateQuery(getAllBankBranchNamesSchema), getAllBankBranchNames);
