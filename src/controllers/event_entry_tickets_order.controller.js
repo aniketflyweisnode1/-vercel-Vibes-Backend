@@ -1,6 +1,6 @@
 const EventEntryTicketsOrder = require('../models/event_entry_tickets_order.model');
 const EventEntryUsergetTickets = require('../models/event_entry_userget_tickets.model');
-const EventEntryTickets = require('../models/event_entry_tickets.model');
+const Ticket = require('../models/ticket.model');
 const Event = require('../models/event.model');
 const Transaction = require('../models/transaction.model');
 const CouponCode = require('../models/coupon_code.model');
@@ -54,35 +54,48 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       if (!eventEntryTicketsId || eventEntryTicketsId === null || eventEntryTicketsId === undefined) {
         // Try to find the first active ticket for this event
         try {
-          const eventTicket = await EventEntryTickets.findOne({
+          const eventTicket = await Ticket.findOne({
             event_id: parseInt(event_id),
             status: true
-          }).sort({ createdAt: -1 });
+          }).sort({ created_at: -1 });
 
-          if (eventTicket) {
-            eventEntryTicketsId = eventTicket.event_entry_tickets_id;
+          if (eventTicket && eventTicket.ticketDateils && eventTicket.ticketDateils.length > 0) {
+            // Use the first ticket detail's ticket_type_id
+            eventEntryTicketsId = eventTicket.ticketDateils[0].ticket_type_id;
             // Update the ticket in the usergetTicket for future reference
             ticket.event_entry_tickets_id = eventEntryTicketsId;
           } else {
-            return sendNotFound(res, `No active event entry tickets found for event ID: ${event_id}`);
+            return sendNotFound(res, `No active tickets found for event ID: ${event_id}`);
           }
         } catch (error) {
           console.error('Error auto-populating event_entry_tickets_id:', error);
-          return sendError(res, 'Failed to find event entry ticket. Please ensure tickets are available for this event.', 400);
+          return sendError(res, 'Failed to find ticket. Please ensure tickets are available for this event.', 400);
         }
       }
 
-      // Get the ticket type for each ticket in the array
-      const ticketType = await EventEntryTickets.findOne({
-        event_entry_tickets_id: parseInt(eventEntryTicketsId)
+      // Get the ticket from Ticket model
+      // Find ticket by event_id and then find the matching ticket detail by ticket_type_id
+      const ticketDoc = await Ticket.findOne({
+        event_id: parseInt(event_id),
+        status: true,
+        'ticketDateils.ticket_type_id': parseInt(eventEntryTicketsId)
       });
 
-      if (!ticketType) {
-        return sendNotFound(res, `Event entry ticket type not found for ID: ${eventEntryTicketsId}`);
+      if (!ticketDoc || !ticketDoc.ticketDateils || ticketDoc.ticketDateils.length === 0) {
+        return sendNotFound(res, `Ticket type not found for ID: ${eventEntryTicketsId}`);
+      }
+
+      // Find the specific ticket detail that matches the ticket_type_id
+      const ticketDetail = ticketDoc.ticketDateils.find(
+        detail => detail.ticket_type_id === parseInt(eventEntryTicketsId)
+      );
+
+      if (!ticketDetail) {
+        return sendNotFound(res, `Ticket detail not found for ticket type ID: ${eventEntryTicketsId}`);
       }
 
       const itemQuantity = ticket.quantity;
-      const itemPrice = ticketType.price;
+      const itemPrice = ticketDetail.price;
       const itemSubtotal = itemQuantity * itemPrice;
 
       totalQuantity += itemQuantity;
@@ -90,7 +103,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
 
       ticketBreakdown.push({
         ticket_type_id: eventEntryTicketsId,
-        ticket_title: ticketType.title,
+        ticket_title: ticketDetail.ticket_query || `Ticket Type ${eventEntryTicketsId}`,
         quantity: itemQuantity,
         price_per_ticket: itemPrice,
         item_subtotal: itemSubtotal
