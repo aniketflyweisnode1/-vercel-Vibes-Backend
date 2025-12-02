@@ -485,7 +485,7 @@ const login = asyncHandler(async (req, res) => {
     // await OTP.findOneAndUpdate({ otp_id: otp.otp_id });
     //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
     // }
-
+    await emailService.sendOTPEmail(email, otpCode, user.name || 'User');
     sendSuccess(res, {
       message: 'OTP sent successfully to your email address. Please verify to complete login.',
       expiresIn: '10 minutes',
@@ -1100,6 +1100,42 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Test sendForgotPasswordOTPEmail function
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const testSendForgotPasswordOTPEmail = asyncHandler(async (req, res) => {
+  try {
+    const { email, otp, userName } = req.body;
+
+    // Validate required fields
+    if (!email) {
+      return sendError(res, 'Email is required', 400);
+    }
+
+    // Generate OTP if not provided
+    const otpCode = otp || generateOTP();
+    const user = userName || 'Test User';
+
+    // Send forgot password OTP email
+    const emailSent = await emailService.sendForgotPasswordOTPEmail(email, otpCode, user);
+
+    if (!emailSent) {
+      return sendError(res, 'Failed to send forgot password OTP email', 500);
+    }
+
+    sendSuccess(res, {
+      message: 'Forgot password OTP email sent successfully',
+      email: email,
+      otp: otpCode, // Include OTP in response for testing purposes
+      userName: user
+    }, 'Email sent successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * Process platform fee payment
  * Creates a transaction with transactionType = "PlatformFee"
  * Updates user's PlatFormFee_status and trangaction_id
@@ -1485,6 +1521,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   PlatFormFeePayment,
-  updateStaffProfile
+  updateStaffProfile,
+  testSendForgotPasswordOTPEmail
 };
 

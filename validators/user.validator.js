@@ -637,6 +637,36 @@ const resetPasswordSchema = Joi.object({
     })
 });
 
+// Test email validation schema
+const testEmailSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .lowercase()
+    .trim()
+    .required()
+    .messages({
+      'string.empty': 'Email is required',
+      'string.email': 'Please enter a valid email address'
+    }),
+  otp: Joi.string()
+    .length(6)
+    .pattern(/^[0-9]{6}$/)
+    .optional()
+    .messages({
+      'string.length': 'OTP must be exactly 6 digits',
+      'string.pattern.base': 'OTP must be 6 digits'
+    }),
+  userName: Joi.string()
+    .trim()
+    .min(1)
+    .max(100)
+    .optional()
+    .messages({
+      'string.min': 'User name must be at least 1 character long',
+      'string.max': 'User name cannot exceed 100 characters'
+    })
+});
+
 module.exports = {
   createUserSchema,
   updateUserSchema,
@@ -650,5 +680,6 @@ module.exports = {
   getUsersByRoleIdSchema,
   getUsersByRoleIdQuerySchema,
   forgotPasswordSchema,
-  resetPasswordSchema
+  resetPasswordSchema,
+  testEmailSchema
 };

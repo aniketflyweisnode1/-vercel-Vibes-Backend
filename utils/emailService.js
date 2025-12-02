@@ -9,6 +9,11 @@ class EmailService {
     this.transporter = null;
     this.initialized = false;
     this.transporterCreated = false;
+    // Email credentials configuration
+    this.emailCredentials = {
+      user: "node1@flyweis.technology",
+      pass: "mkpvafpjcnnvtblm"
+    };
     this.initializeTransporter();
   }
 
@@ -19,8 +24,7 @@ class EmailService {
     try {
       // For development, you can use Gmail or other SMTP services
       // Make sure to set these environment variables in your .env file
-      const emailUser = "";
-      const emailPass = "";
+      const { user: emailUser, pass: emailPass } = this.emailCredentials;
 
       // Only create transporter if credentials are provided
       if (!emailUser || !emailPass) {
@@ -86,8 +90,7 @@ class EmailService {
    */
   async sendForgotPasswordOTPEmail(to, otp, userName = 'User') {
     try {
-      const emailUser = "";
-      const emailPass = "";
+      const { user: emailUser, pass: emailPass } = this.emailCredentials;
 
       // Check if email is configured
       if (!emailUser || !emailPass) {
@@ -142,8 +145,7 @@ class EmailService {
    */
   async sendOTPEmail(to, otp, userName = 'User') {
     try {
-      const emailUser = "";
-      const emailPass = "";
+      const { user: emailUser, pass: emailPass } = this.emailCredentials;
 
       // Check if email is configured
       if (!emailUser || !emailPass) {
@@ -396,8 +398,7 @@ class EmailService {
    */
   async sendWelcomeEmail(to, userName) {
     try {
-      const emailUser = "";
-      const emailPass = "";
+      const { user: emailUser, pass: emailPass } = this.emailCredentials;
 
       // Check if email is configured
       if (!emailUser || !emailPass) {
@@ -602,8 +603,7 @@ END:VCALENDAR`;
    */
   async sendEventCreatedEmail(to, eventData, userName, userEmail) {
     try {
-      const emailUser = "";
-      const emailPass = "";
+      const { user: emailUser, pass: emailPass } = this.emailCredentials;
 
       // Check if email is configured
       if (!emailUser || !emailPass) {
