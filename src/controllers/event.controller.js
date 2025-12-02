@@ -299,6 +299,29 @@ const getAllEvents = asyncHandler(async (req, res) => {
         eventObj.ticket_details = [];
       }
 
+      // Calculate total tickets booked for this event
+      if (event.event_id) {
+        try {
+          const EventEntryTicketsOrder = require('../models/event_entry_tickets_order.model');
+          const ticketOrders = await EventEntryTicketsOrder.find({
+            event_id: event.event_id,
+            status: true
+          }).select('quantity');
+          
+          // Sum up all quantities
+          const totalTicketsBooked = ticketOrders.reduce((sum, order) => {
+            return sum + (order.quantity || 0);
+          }, 0);
+          
+          eventObj.TotalofTicketsBookingbyEvent = totalTicketsBooked;
+        } catch (error) {
+          console.log('Error calculating total tickets booked for event ID:', event.event_id, error);
+          eventObj.TotalofTicketsBookingbyEvent = 0;
+        }
+      } else {
+        eventObj.TotalofTicketsBookingbyEvent = 0;
+      }
+
       return eventObj;
     }));
 
