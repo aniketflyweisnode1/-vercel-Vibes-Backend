@@ -18,7 +18,7 @@ const PaymentMethods = require('../models/payment_methods.model');
  */
 const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
   try {
-    const { event_id, tax_percentage = 0, coupon_code } = req.body;
+    const { event_id, coupon_code } = req.body;
 
     // Get the event (for validation)
     const event = await Event.findOne({ event_id: parseInt(event_id) });
@@ -193,7 +193,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
         total_quantity: totalQuantity,
         ticket_breakdown: ticketBreakdown,
         subtotal: subtotal,
-        tax_percentage: tax_percentage,
+        tax_percentage: 0,
         tax_amount: taxAmount,
         Platformfee: PlatformFee,
         total_before_discount: total,
