@@ -6,7 +6,7 @@ const { createEventTicketSeatSchema, updateEventTicketSeatSchema, querySchema, i
 const { createEventTicketSeat, getAllEventTicketsSeats, getEventTicketSeatById, updateEventTicketSeat, deleteEventTicketSeat } = require('../../controllers/event_tickets_seats.controller');
 
 // Create event ticket seat (with auth)
-router.post('/create', auth, validateBody(createEventTicketSeatSchema), createEventTicketSeat);
+router.post('/create', auth,  createEventTicketSeat);
 
 // Get all event ticket seats (with auth)
 router.get('/all', auth, validateQuery(querySchema), getAllEventTicketsSeats);
