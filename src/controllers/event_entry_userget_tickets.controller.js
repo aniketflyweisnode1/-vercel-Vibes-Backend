@@ -1,4 +1,5 @@
 const EventEntryUsergetTickets = require('../models/event_entry_userget_tickets.model');
+const EventEntryTickets = require('../models/event_entry_tickets.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -9,8 +10,35 @@ const { asyncHandler } = require('../../middleware/errorHandler');
  */
 const createEventEntryUsergetTicket = asyncHandler(async (req, res) => {
   try {
+    const { event_id, tickets } = req.body;
+
+    // Auto-populate event_entry_tickets_id if not provided
+    let processedTickets = tickets;
+    if (tickets && Array.isArray(tickets)) {
+      processedTickets = await Promise.all(tickets.map(async (ticket) => {
+        // If event_entry_tickets_id is not provided, try to get it automatically
+        if (!ticket.event_entry_tickets_id && event_id) {
+          try {
+            // Find the first active ticket for this event
+            const eventTicket = await EventEntryTickets.findOne({
+              event_id: parseInt(event_id),
+              status: true
+            }).sort({ createdAt: -1 });
+
+            if (eventTicket) {
+              ticket.event_entry_tickets_id = eventTicket.event_entry_tickets_id;
+            }
+          } catch (error) {
+            console.error('Error auto-populating event_entry_tickets_id:', error);
+          }
+        }
+        return ticket;
+      }));
+    }
+
     const ticketData = {
-      ...req.body,
+      event_id,
+      tickets: processedTickets,
       createdBy: req.userId
     };
 

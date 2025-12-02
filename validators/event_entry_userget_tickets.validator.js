@@ -10,11 +10,10 @@ const createEventEntryUsergetTicketSchema = Joi.object({
   }),
   tickets: Joi.array().min(1).items(
     Joi.object({
-      event_entry_tickets_id: Joi.number().integer().min(1).required().messages({
+      event_entry_tickets_id: Joi.number().integer().min(1).optional().messages({
         'number.base': 'Event entry tickets ID must be a number',
         'number.integer': 'Event entry tickets ID must be an integer',
-        'number.min': 'Event entry tickets ID must be greater than 0',
-        'any.required': 'Event entry tickets ID is required'
+        'number.min': 'Event entry tickets ID must be greater than 0'
       }),
       quantity: Joi.number().integer().min(1).required().messages({
         'number.base': 'Quantity must be a number',
@@ -44,11 +43,10 @@ const updateEventEntryUsergetTicketSchema = Joi.object({
   }),
   tickets: Joi.array().min(1).items(
     Joi.object({
-      event_entry_tickets_id: Joi.number().integer().min(1).required().messages({
+      event_entry_tickets_id: Joi.number().integer().min(1).optional().messages({
         'number.base': 'Event entry tickets ID must be a number',
         'number.integer': 'Event entry tickets ID must be an integer',
-        'number.min': 'Event entry tickets ID must be greater than 0',
-        'any.required': 'Event entry tickets ID is required'
+        'number.min': 'Event entry tickets ID must be greater than 0'
       }),
       quantity: Joi.number().integer().min(1).required().messages({
         'number.base': 'Quantity must be a number',

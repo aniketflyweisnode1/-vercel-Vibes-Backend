@@ -15,7 +15,7 @@ const eventEntryUsergetTicketsSchema = new mongoose.Schema({
     event_entry_tickets_id: {
       type: Number,
       ref: 'EventEntryTickets',
-      required: true
+      required: false
     },
     quantity: {
       type: Number,
