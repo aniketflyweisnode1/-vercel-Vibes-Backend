@@ -317,11 +317,11 @@ const getAllEvents = asyncHandler(async (req, res) => {
       // Populate ticket details
       if (event.event_id) {
         try {
-          const EventEntryTickets = require('../models/event_entry_tickets.model');
-          const tickets = await EventEntryTickets.find({
+          const EventTicketsSeats = require('../models/event_tickets_seats.model');
+          const tickets = await EventTicketsSeats.find({
             event_id: event.event_id,
             status: true
-          }).select('event_entry_tickets_id title price total_seats facility tag status');
+          }).select('event_tickets_seats_id seat_no firstName lastName email phoneNo promo_code loyalty_points capacity type map status');
           eventObj.ticket_details = tickets || [];
         } catch (error) {
           console.log('Error fetching ticket details for event ID:', event.event_id, error);

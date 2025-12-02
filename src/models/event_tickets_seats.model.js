@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const AutoIncrement = require('mongoose-sequence')(mongoose);
+const EventEntryTickets = require('./event_entry_tickets.model');
 
 const eventTicketsSeatsSchema = new mongoose.Schema({
   event_tickets_seats_id: {
