@@ -28,7 +28,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     }
 
     // Find the userget ticket (purchase record) by event_id and createdBy (authenticated user)
-    const usergetTicket = await EventEntryUsergetTickets.findOne({ 
+    const usergetTicket = await EventEntryUsergetTickets.findOne({
       event_id: parseInt(event_id),
       createdBy: req.userId
     }).sort({ createdAt: -1 }); // Get the most recent purchase
@@ -49,8 +49,8 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
 
     for (const ticket of usergetTicket.tickets) {
       // Get the ticket type for each ticket in the array
-      const ticketType = await EventEntryTickets.findOne({ 
-        event_entry_tickets_id: parseInt(ticket.event_entry_tickets_id) 
+      const ticketType = await EventEntryTickets.findOne({
+        event_entry_tickets_id: parseInt(ticket.event_entry_tickets_id)
       });
 
       if (!ticketType) {
@@ -74,10 +74,10 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     }
 
     // Calculate tax (default 0% if not provided)
-    const taxAmount = (subtotal * parseFloat(tax_percentage)) / 100;
-
+    const taxAmount = 0;
+    const PlatformFee = (subtotal * 7) / 100;
     // Calculate total before discount
-    const total = subtotal + taxAmount;
+    const total = subtotal + PlatformFee;
 
     // Handle coupon code if provided
     let discountAmount = 0;
@@ -85,7 +85,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     let couponDetails = null;
 
     if (coupon_code) {
-      const coupon = await CouponCode.findOne({ 
+      const coupon = await CouponCode.findOne({
         code: coupon_code.toUpperCase(),
         status: true
       });
@@ -109,7 +109,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
 
         // Calculate discount
         discountAmount = coupon.price;
-        
+
         // Apply max discount limit
         if (discountAmount > coupon.max_discount_amount) {
           discountAmount = coupon.max_discount_amount;
@@ -131,7 +131,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
         // Increment usage count
         await CouponCode.findOneAndUpdate(
           { coupon_code_id: coupon.coupon_code_id },
-          { 
+          {
             $inc: { used_count: 1 },
             updated_by: req.userId,
             updated_at: new Date()
@@ -153,6 +153,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       price: subtotal / totalQuantity, // Average price
       subtotal: subtotal,
       tax: taxAmount,
+      Platform: PlatformFee,
       total: total,
       coupon_code_id: couponCodeId,
       discount_amount: discountAmount,
@@ -170,6 +171,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
         subtotal: subtotal,
         tax_percentage: tax_percentage,
         tax_amount: taxAmount,
+        Platformfee: PlatformFee,
         total_before_discount: total,
         coupon_applied: couponDetails,
         discount_amount: discountAmount,
@@ -192,7 +194,7 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const filter = {};
-  
+
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -253,7 +255,7 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const filter = { createdBy: req.userId };
-  
+
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -339,8 +341,8 @@ const processPayment = asyncHandler(async (req, res) => {
     const { order_id, payment_method_id, billingDetails } = req.body;
 
     // Find the order
-    const order = await EventEntryTicketsOrder.findOne({ 
-      event_entry_tickets_order_id: parseInt(order_id) 
+    const order = await EventEntryTicketsOrder.findOne({
+      event_entry_tickets_order_id: parseInt(order_id)
     });
 
     if (!order) {
@@ -437,8 +439,8 @@ const processPayment = asyncHandler(async (req, res) => {
     if (transaction.payment_method_id) {
       try {
         const PaymentMethods = require('../models/payment_methods.model');
-        const paymentMethod = await PaymentMethods.findOne({ 
-          payment_methods_id: transaction.payment_method_id 
+        const paymentMethod = await PaymentMethods.findOne({
+          payment_methods_id: transaction.payment_method_id
         });
         populatedTransaction.payment_method_id = paymentMethod;
       } catch (error) {
@@ -449,7 +451,7 @@ const processPayment = asyncHandler(async (req, res) => {
     // Update order status to mark as paid
     await EventEntryTicketsOrder.findOneAndUpdate(
       { event_entry_tickets_order_id: parseInt(order_id) },
-      { 
+      {
         updatedBy: req.userId,
         updatedAt: new Date()
       }
@@ -521,11 +523,11 @@ const confirmPayment = asyncHandler(async (req, res) => {
       confirmedPayment = await confirmPaymentIntent(payment_intent_id, payment_method_id);
     } catch (confirmError) {
       console.error('Payment confirmation error:', confirmError);
-      
+
       // Check if the error is because payment is already confirmed
-      if (confirmError.message.includes('already succeeded') || 
-          confirmError.message.includes('already confirmed')) {
-        
+      if (confirmError.message.includes('already succeeded') ||
+        confirmError.message.includes('already confirmed')) {
+
         // Return success with status information instead of error
         return sendSuccess(res, {
           payment_status: 'already_confirmed',
@@ -534,7 +536,7 @@ const confirmPayment = asyncHandler(async (req, res) => {
           message: 'Payment has already been confirmed and cannot be confirmed again'
         }, 'Payment status checked - already confirmed', 200);
       }
-      
+
       // For other errors, return status instead of error
       return sendSuccess(res, {
         payment_status: 'confirmation_failed',
@@ -559,9 +561,9 @@ const confirmPayment = asyncHandler(async (req, res) => {
     let populatedTransaction = updatedTransaction.toObject();
     if (updatedTransaction.payment_method_id) {
       try {
-       
-        const paymentMethod = await PaymentMethods.findOne({ 
-          payment_methods_id: updatedTransaction.payment_method_id 
+
+        const paymentMethod = await PaymentMethods.findOne({
+          payment_methods_id: updatedTransaction.payment_method_id
         });
         populatedTransaction.payment_method_id = paymentMethod;
       } catch (error) {
@@ -573,7 +575,7 @@ const confirmPayment = asyncHandler(async (req, res) => {
     if (confirmedPayment.status === 'succeeded') {
       await EventEntryTicketsOrder.findOneAndUpdate(
         { event_entry_tickets_order_id: transaction.metadata.order_id },
-        { 
+        {
           updatedBy: req.userId,
           updatedAt: new Date()
         }
@@ -621,7 +623,7 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
 
     if (paymentIntent.status === 'succeeded') {
       // Handle successful payment
-      
+
       // Find the transaction by payment intent ID
       const transaction = await Transaction.findOne({
         reference_number: paymentIntent.id,
@@ -647,8 +649,8 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
       let populatedTransaction = updatedTransaction.toObject();
       if (updatedTransaction.payment_method_id) {
         try {
-          const paymentMethod = await PaymentMethods.findOne({ 
-            payment_methods_id: updatedTransaction.payment_method_id 
+          const paymentMethod = await PaymentMethods.findOne({
+            payment_methods_id: updatedTransaction.payment_method_id
           });
           populatedTransaction.payment_method_id = paymentMethod;
         } catch (error) {
@@ -662,7 +664,7 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
         if (metadata.order_id) {
           await EventEntryTicketsOrder.findOneAndUpdate(
             { event_entry_tickets_order_id: metadata.order_id },
-            { 
+            {
               updatedBy: req.userId,
               updatedAt: new Date()
             }

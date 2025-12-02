@@ -57,6 +57,10 @@ const eventEntryTicketsOrderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  Platform: {
+    type: Number,
+    default: 7
+  },
   status: {
     type: Boolean,
     default: true
