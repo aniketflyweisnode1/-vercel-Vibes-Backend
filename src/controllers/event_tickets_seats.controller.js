@@ -1,4 +1,5 @@
 const EventTicketsSeats = require('../models/event_tickets_seats.model');
+const Ticket = require('../models/ticket.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -39,6 +40,42 @@ const createEventTicketSeat = asyncHandler(async (req, res) => {
     }
 
     const seat = await EventTicketsSeats.create(seatData);
+
+    // Update Ticket model's max_capacity if capacity is provided
+    if (seat.capacity && seat.event_id) {
+      try {
+        // Find the ticket for this event
+        const ticket = await Ticket.findOne({ event_id: seat.event_id, status: true });
+        
+        if (ticket) {
+          // Calculate total capacity from all seats for this event
+          const allSeats = await EventTicketsSeats.find({ 
+            event_id: seat.event_id, 
+            status: true 
+          });
+          
+          // Sum up all capacities
+          const totalCapacity = allSeats.reduce((sum, s) => {
+            return sum + (s.capacity || 0);
+          }, 0);
+          
+          // Update ticket's max_capacity
+          await Ticket.findOneAndUpdate(
+            { event_id: seat.event_id, status: true },
+            { 
+              max_capacity: totalCapacity,
+              updated_at: new Date()
+            },
+            { new: true }
+          );
+          
+          console.log(`Updated Ticket max_capacity to ${totalCapacity} for event_id: ${seat.event_id}`);
+        }
+      } catch (ticketError) {
+        // Log error but don't fail the seat creation
+        console.error('Failed to update Ticket max_capacity:', ticketError);
+      }
+    }
 
     sendSuccess(res, seat, 'Event ticket seat created successfully', 201);
   } catch (error) {
@@ -170,6 +207,42 @@ const updateEventTicketSeat = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Event ticket seat not found');
     }
 
+    // Update Ticket model's max_capacity if event_id exists
+    if (seat.event_id) {
+      try {
+        // Find the ticket for this event
+        const ticket = await Ticket.findOne({ event_id: seat.event_id, status: true });
+        
+        if (ticket) {
+          // Calculate total capacity from all seats for this event
+          const allSeats = await EventTicketsSeats.find({ 
+            event_id: seat.event_id, 
+            status: true 
+          });
+          
+          // Sum up all capacities
+          const totalCapacity = allSeats.reduce((sum, s) => {
+            return sum + (s.capacity || 0);
+          }, 0);
+          
+          // Update ticket's max_capacity
+          await Ticket.findOneAndUpdate(
+            { event_id: seat.event_id, status: true },
+            { 
+              max_capacity: totalCapacity,
+              updated_at: new Date()
+            },
+            { new: true }
+          );
+          
+          console.log(`Updated Ticket max_capacity to ${totalCapacity} for event_id: ${seat.event_id}`);
+        }
+      } catch (ticketError) {
+        // Log error but don't fail the seat update
+        console.error('Failed to update Ticket max_capacity:', ticketError);
+      }
+    }
+
     sendSuccess(res, seat, 'Event ticket seat updated successfully');
   } catch (error) {
     throw error;
@@ -185,10 +258,51 @@ const deleteEventTicketSeat = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const seat = await EventTicketsSeats.findOneAndDelete({ event_tickets_seats_id: parseInt(id) });
+    const seat = await EventTicketsSeats.findOne({ event_tickets_seats_id: parseInt(id) });
 
     if (!seat) {
       return sendNotFound(res, 'Event ticket seat not found');
+    }
+
+    const eventId = seat.event_id;
+
+    // Delete the seat
+    await EventTicketsSeats.findOneAndDelete({ event_tickets_seats_id: parseInt(id) });
+
+    // Update Ticket model's max_capacity after deletion
+    if (eventId) {
+      try {
+        // Find the ticket for this event
+        const ticket = await Ticket.findOne({ event_id: eventId, status: true });
+        
+        if (ticket) {
+          // Calculate total capacity from all remaining seats for this event
+          const allSeats = await EventTicketsSeats.find({ 
+            event_id: eventId, 
+            status: true 
+          });
+          
+          // Sum up all capacities
+          const totalCapacity = allSeats.reduce((sum, s) => {
+            return sum + (s.capacity || 0);
+          }, 0);
+          
+          // Update ticket's max_capacity
+          await Ticket.findOneAndUpdate(
+            { event_id: eventId, status: true },
+            { 
+              max_capacity: totalCapacity,
+              updated_at: new Date()
+            },
+            { new: true }
+          );
+          
+          console.log(`Updated Ticket max_capacity to ${totalCapacity} for event_id: ${eventId} after seat deletion`);
+        }
+      } catch (ticketError) {
+        // Log error but don't fail the seat deletion
+        console.error('Failed to update Ticket max_capacity:', ticketError);
+      }
     }
 
     sendSuccess(res, null, 'Event ticket seat deleted successfully');
