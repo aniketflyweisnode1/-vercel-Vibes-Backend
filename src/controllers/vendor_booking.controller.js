@@ -235,22 +235,91 @@ const createVendorBooking = asyncHandler(async (req, res) => {
         return sendError(res, 'Vendor has not configured any categories fees. Please ensure the vendor has set up pricing for selected categories.', 400);
       }
 
+      const missingCategories = [];
+      const invalidPricingCategories = [];
+      const matchedCategories = [];
+
       bookingCategoryIds.forEach(categoryId => {
         const matchingFee = populatedPortal.categories_fees_details.find(
           fee => Number(fee.category_id) === Number(categoryId) && fee.status === true
         );
 
-        if (matchingFee) {
+        if (!matchingFee) {
+          missingCategories.push(categoryId);
+        } else {
           const MinFee = Number(matchingFee.MinFee) || 0;
           const price = Number(matchingFee.Price) || 0;
 
-          const vendorAmount = MinFee;
-          const customerAmount = price;
+          if (price <= 0 || MinFee <= 0) {
+            invalidPricingCategories.push({
+              category_id: categoryId,
+              price: price,
+              minFee: MinFee
+            });
+          } else {
+            const vendorAmount = MinFee;
+            const customerAmount = price;
 
-          calculatedVendorAmount += vendorAmount;
-          calculatedAmount += customerAmount;
+            calculatedVendorAmount += vendorAmount;
+            calculatedAmount += customerAmount;
+            matchedCategories.push({
+              category_id: categoryId,
+              price: price,
+              minFee: MinFee
+            });
+          }
         }
       });
+
+      // Log for debugging
+      console.log('Pricing calculation summary:', {
+        bookingCategoryIds,
+        matchedCategories: matchedCategories.length,
+        missingCategories: missingCategories.length,
+        invalidPricingCategories: invalidPricingCategories.length,
+        calculatedAmount,
+        calculatedVendorAmount
+      });
+
+      // Build detailed error message if there are issues
+      if (missingCategories.length > 0 || invalidPricingCategories.length > 0) {
+        const errorMessages = [];
+        
+        if (missingCategories.length > 0) {
+          errorMessages.push(`Categories not found in vendor pricing: ${missingCategories.join(', ')}`);
+        }
+        
+        if (invalidPricingCategories.length > 0) {
+          const invalidIds = invalidPricingCategories.map(c => c.category_id).join(', ');
+          errorMessages.push(`Categories with invalid pricing (Price or MinFee must be > 0): ${invalidIds}`);
+        }
+
+        // If manual amounts are provided, allow them to override
+        const manualAmount = Number(req.body.amount || 0);
+        const manualVendorAmount = Number(req.body.vendor_amount || 0);
+        
+        if (manualAmount > 0 && manualVendorAmount > 0) {
+          // Allow manual amounts to override, but log a warning
+          console.warn('Using manual amounts due to missing/invalid category pricing:', errorMessages.join('; '));
+          calculatedAmount = manualAmount;
+          calculatedVendorAmount = manualVendorAmount;
+        } else {
+          return sendError(res, `${errorMessages.join('. ')}. Please ensure all selected categories have valid pricing, or provide manual amount and vendor_amount.`, 400);
+        }
+      }
+
+      // If no categories matched or all had invalid pricing, and no manual amounts provided
+      if (calculatedAmount <= 0 && calculatedVendorAmount <= 0) {
+        const manualAmount = Number(req.body.amount || 0);
+        const manualVendorAmount = Number(req.body.vendor_amount || 0);
+        
+        if (manualAmount > 0 && manualVendorAmount > 0) {
+          calculatedAmount = manualAmount;
+          calculatedVendorAmount = manualVendorAmount;
+        } else {
+          return sendError(res, `No valid pricing found for the selected categories (${bookingCategoryIds.join(', ')}). Please ensure all categories have valid pricing (Price and MinFee > 0), or provide manual amount and vendor_amount in the request body.`, 400);
+        }
+      }
     } catch (pricingError) {
       console.error('Error calculating pricing from vendor portal:', pricingError);
       return sendError(res, 'Unable to calculate pricing from vendor portal. Please verify vendor pricing configuration.', 500);
@@ -260,7 +329,8 @@ const createVendorBooking = asyncHandler(async (req, res) => {
     const finalVendorAmount = calculatedVendorAmount > 0 ? calculatedVendorAmount : Number(req.body.vendor_amount || 0);
 
     if (finalAmount <= 0 || finalVendorAmount <= 0) {
-      return sendError(res, 'Unable to determine booking pricing. Please ensure vendor categories have valid pricing.', 400);
+      const categoryList = bookingCategoryIds.join(', ');
+      return sendError(res, `Unable to determine booking pricing for categories: [${categoryList}]. Please ensure: 1) All categories exist in vendor pricing, 2) Each category has Price > 0 and MinFee > 0, OR 3) Provide manual 'amount' and 'vendor_amount' in the request body.`, 400);
     }
 
     const bookingData = {

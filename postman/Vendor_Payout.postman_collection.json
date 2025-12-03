@@ -1,0 +1,226 @@
+{
+	"info": {
+		"_postman_id": "vendor-payout-collection",
+		"name": "Vendor Payout API",
+		"description": "Collection for Vendor Payout CRUD operations",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Vendor Payout",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"Vendor_id\": 1,\n  \"amount\": 1000,\n  \"paymentType\": \"Bank Transfer\",\n  \"bank_branch_name_id\": 1,\n  \"Event_Id\": 1,\n  \"PendingAmount\": 0,\n  \"Status\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/master/vendor-payout/create",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"master",
+						"vendor-payout",
+						"create"
+					]
+				},
+				"description": "Create a new vendor payout. Requires authentication."
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Vendor Payouts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/master/vendor-payout/all?page=1&limit=10&status=true&Vendor_id=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"master",
+						"vendor-payout",
+						"all"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1",
+							"description": "Page number"
+						},
+						{
+							"key": "limit",
+							"value": "10",
+							"description": "Items per page"
+						},
+						{
+							"key": "status",
+							"value": "true",
+							"description": "Filter by status (true/false)",
+							"disabled": true
+						},
+						{
+							"key": "Vendor_id",
+							"value": "1",
+							"description": "Filter by vendor ID",
+							"disabled": true
+						}
+					]
+				},
+				"description": "Get all vendor payouts with pagination and optional filtering. No authentication required."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Vendor Payout By ID",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/master/vendor-payout/get/:id",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"master",
+						"vendor-payout",
+						"get",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "1",
+							"description": "Vendor Payout ID"
+						}
+					]
+				},
+				"description": "Get a specific vendor payout by ID. Requires authentication."
+			},
+			"response": []
+		},
+		{
+			"name": "Update Vendor Payout",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"Vendor_Payout_id\": 1,\n  \"amount\": 1500,\n  \"paymentType\": \"UPI\",\n  \"bank_branch_name_id\": 2,\n  \"Event_Id\": 2,\n  \"PendingAmount\": 500,\n  \"Status\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/master/vendor-payout/update",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"master",
+						"vendor-payout",
+						"update"
+					]
+				},
+				"description": "Update an existing vendor payout. Requires authentication. Vendor_Payout_id is required, other fields are optional."
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Vendor Payout",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{auth_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/master/vendor-payout/delete/:id",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"master",
+						"vendor-payout",
+						"delete",
+						":id"
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "1",
+							"description": "Vendor Payout ID"
+						}
+					]
+				},
+				"description": "Delete a vendor payout by ID. Requires authentication."
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

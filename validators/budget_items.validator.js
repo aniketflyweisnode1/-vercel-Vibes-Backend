@@ -37,10 +37,8 @@ const updateBudgetItemsSchema = Joi.object({
     'number.min': 'ID must be greater than 0',
     'any.required': 'ID is required'
   }),
-  items: Joi.array().items(itemSchema).min(1).messages({
-    'array.min': 'At least one item is required'
-  }),
-  status: Joi.boolean()
+  items: Joi.any().optional().allow(null, []),
+  status: Joi.boolean().optional()
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'
 });

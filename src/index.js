@@ -89,6 +89,7 @@ const cateringMarketplaceBookingRoutes = require('./routes/Master/catering_marke
 const contactVendorRoutes = require('./routes/Master/contact_vendor.routes.js');
 const availabilityCalenderRoutes = require('./routes/Master/availability_calender.routes.js');
 const globalSearchRoutes = require('./routes/Master/global_search.routes.js');
+const vendorPayoutRoutes = require('./routes/Master/vendor_payout.routes.js');
 const emailTemplateRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/email_template.routes.js');
 const metamaskRoutes = require('./routes/Integration/metamask.routes.js');
 const escrowRoutes = require('./routes/Integration/escrow.routes.js');
@@ -228,6 +229,7 @@ router.use('/master/catering-marketplace-booking', cateringMarketplaceBookingRou
 router.use('/master/contact-vendor', contactVendorRoutes);
 router.use('/master/availability-calender', availabilityCalenderRoutes);
 router.use('/master/global-search', globalSearchRoutes);
+router.use('/master/vendor-payout', vendorPayoutRoutes);
 router.use('/vendor/email-template', emailTemplateRoutes);
 router.use('/integrations/metamask', metamaskRoutes);
 router.use('/integrations/escrow', escrowRoutes);
