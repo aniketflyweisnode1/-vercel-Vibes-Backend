@@ -180,6 +180,76 @@ const commonValidations = {
     .default(true)
     .messages({
       'boolean.base': 'Status must be a boolean value'
+    }),
+
+  BudgetRange: Joi.number()
+    .min(0)
+    .optional()
+    .allow(null)
+    .messages({
+      'number.base': 'Budget range must be a number',
+      'number.min': 'Budget range cannot be negative'
+    }),
+
+  budget_min: Joi.number()
+    .min(0)
+    .optional()
+    .allow(null)
+    .messages({
+      'number.base': 'Budget minimum must be a number',
+      'number.min': 'Budget minimum cannot be negative'
+    }),
+
+  budget_max: Joi.number()
+    .min(0)
+    .optional()
+    .allow(null)
+    .messages({
+      'number.base': 'Budget maximum must be a number',
+      'number.min': 'Budget maximum cannot be negative'
+    }),
+
+  ExpectedGuestCount: Joi.number()
+    .min(0)
+    .optional()
+    .allow(null)
+    .messages({
+      'number.base': 'Expected guest count must be a number',
+      'number.min': 'Expected guest count cannot be negative'
+    }),
+
+  ThemeOrStyle: Joi.array()
+    .items(Joi.string().trim())
+    .default([])
+    .optional()
+    .messages({
+      'array.base': 'Theme or Style must be an array'
+    }),
+
+  MusicPreferences: Joi.array()
+    .items(Joi.string().trim())
+    .default([])
+    .optional()
+    .messages({
+      'array.base': 'Music Preferences must be an array'
+    }),
+
+  DietaryRestrictionsAllergies: Joi.string()
+    .trim()
+    .max(1000)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.max': 'Dietary restrictions/allergies cannot exceed 1000 characters'
+    }),
+
+  SpecialRequestsNotes: Joi.string()
+    .trim()
+    .max(2000)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.max': 'Special requests/notes cannot exceed 2000 characters'
     })
 };
 
@@ -205,6 +275,14 @@ const createEventSchema = Joi.object({
   live_vibes_invite_music_preview: commonValidations.live_vibes_invite_music_preview,
   live_vibes_invite_vip_perks: commonValidations.live_vibes_invite_vip_perks,
   status: commonValidations.status,
+  BudgetRange: commonValidations.BudgetRange,
+  budget_min: commonValidations.budget_min,
+  budget_max: commonValidations.budget_max,
+  ExpectedGuestCount: commonValidations.ExpectedGuestCount,
+  ThemeOrStyle: commonValidations.ThemeOrStyle,
+  MusicPreferences: commonValidations.MusicPreferences,
+  DietaryRestrictionsAllergies: commonValidations.DietaryRestrictionsAllergies,
+  SpecialRequestsNotes: commonValidations.SpecialRequestsNotes,
   ticketData: Joi.array()
     .items(Joi.object({
       ticket_type_id: Joi.number()
@@ -237,6 +315,19 @@ const createEventSchema = Joi.object({
     .messages({
       'array.base': 'Ticket data must be an array'
     })
+}).custom((value, helpers) => {
+  // Validate that budget_max >= budget_min if both are provided
+  if (value.budget_min !== undefined && value.budget_min !== null &&
+      value.budget_max !== undefined && value.budget_max !== null) {
+    if (Number(value.budget_max) < Number(value.budget_min)) {
+      return helpers.error('budget.max.less.than.min', {
+        message: 'Budget maximum must be greater than or equal to budget minimum'
+      });
+    }
+  }
+  return value;
+}).messages({
+  'budget.max.less.than.min': 'Budget maximum must be greater than or equal to budget minimum'
 }).unknown(true); // Allow other fields not explicitly defined
 
 // Update event validation schema
@@ -270,7 +361,28 @@ const updateEventSchema = Joi.object({
   live_vibes_invite_venue_tour: commonValidations.live_vibes_invite_venue_tour.optional(),
   live_vibes_invite_music_preview: commonValidations.live_vibes_invite_music_preview.optional(),
   live_vibes_invite_vip_perks: commonValidations.live_vibes_invite_vip_perks.optional(),
-  status: commonValidations.status.optional()
+  status: commonValidations.status.optional(),
+  BudgetRange: commonValidations.BudgetRange.optional(),
+  budget_min: commonValidations.budget_min.optional(),
+  budget_max: commonValidations.budget_max.optional(),
+  ExpectedGuestCount: commonValidations.ExpectedGuestCount.optional(),
+  ThemeOrStyle: commonValidations.ThemeOrStyle.optional(),
+  MusicPreferences: commonValidations.MusicPreferences.optional(),
+  DietaryRestrictionsAllergies: commonValidations.DietaryRestrictionsAllergies.optional(),
+  SpecialRequestsNotes: commonValidations.SpecialRequestsNotes.optional()
+}).custom((value, helpers) => {
+  // Validate that budget_max >= budget_min if both are provided
+  if (value.budget_min !== undefined && value.budget_min !== null &&
+      value.budget_max !== undefined && value.budget_max !== null) {
+    if (Number(value.budget_max) < Number(value.budget_min)) {
+      return helpers.error('budget.max.less.than.min', {
+        message: 'Budget maximum must be greater than or equal to budget minimum'
+      });
+    }
+  }
+  return value;
+}).messages({
+  'budget.max.less.than.min': 'Budget maximum must be greater than or equal to budget minimum'
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'
 });

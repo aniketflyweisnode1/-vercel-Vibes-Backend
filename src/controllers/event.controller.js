@@ -51,6 +51,12 @@ const createEvent = asyncHandler(async (req, res) => {
     if (req.body.BudgetRange !== undefined && req.body.BudgetRange !== null) {
       eventData.BudgetRange = Number(req.body.BudgetRange);
     }
+    if (req.body.budget_min !== undefined && req.body.budget_min !== null) {
+      eventData.budget_min = Number(req.body.budget_min);
+    }
+    if (req.body.budget_max !== undefined && req.body.budget_max !== null) {
+      eventData.budget_max = Number(req.body.budget_max);
+    }
     if (req.body.ExpectedGuestCount !== undefined && req.body.ExpectedGuestCount !== null) {
       eventData.ExpectedGuestCount = Number(req.body.ExpectedGuestCount);
     }

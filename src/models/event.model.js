@@ -111,6 +111,16 @@ const eventSchema = new mongoose.Schema({
     default: null,
     min: [0, 'Budget range cannot be negative']
   },
+  budget_min: {
+    type: Number,
+    default: null,
+    min: [0, 'Budget minimum cannot be negative']
+  },
+  budget_max: {
+    type: Number,
+    default: null,
+    min: [0, 'Budget maximum cannot be negative']
+  },
   ExpectedGuestCount: {
     type: Number,
     default: null,
