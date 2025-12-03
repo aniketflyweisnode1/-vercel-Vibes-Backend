@@ -13,7 +13,7 @@ const createVendorPayoutSchema = Joi.object({
     'number.min': 'Amount cannot be negative',
     'any.required': 'Amount is required'
   }),
-  paymentType: Joi.string().trim().max(50).optional().allow(null, '').messages({
+  paymentType: Joi.string().trim().max(50).optional().allow(null).allow('').messages({
     'string.max': 'Payment type cannot exceed 50 characters'
   }),
   bank_branch_name_id: Joi.number().integer().min(1).optional().allow(null).messages({
@@ -50,7 +50,7 @@ const updateVendorPayoutSchema = Joi.object({
     'number.base': 'Amount must be a number',
     'number.min': 'Amount cannot be negative'
   }),
-  paymentType: Joi.string().trim().max(50).optional().allow(null, '').messages({
+  paymentType: Joi.string().trim().max(50).optional().allow(null).allow('').messages({
     'string.max': 'Payment type cannot exceed 50 characters'
   }),
   bank_branch_name_id: Joi.number().integer().min(1).optional().allow(null).messages({
