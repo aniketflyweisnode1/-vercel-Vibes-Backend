@@ -187,6 +187,9 @@ const getAllEvents = asyncHandler(async (req, res) => {
       city_id,
       event_category_tags_id,
       user_id,
+      min_price,
+      max_price,
+      DateRange,
       sortBy = 'created_at',
       sortOrder = 'desc'
     } = req.query;
@@ -238,6 +241,56 @@ const getAllEvents = asyncHandler(async (req, res) => {
     // Exclude events created by user_id if provided
     if (user_id) {
       filter.created_by = { $ne: parseInt(user_id) };
+    }
+
+    // Add price range filter
+    if (min_price !== undefined || max_price !== undefined) {
+      filter.EntryPrice = {};
+      if (min_price !== undefined) {
+        filter.EntryPrice.$gte = parseFloat(min_price);
+      }
+      if (max_price !== undefined) {
+        filter.EntryPrice.$lte = parseFloat(max_price);
+      }
+    }
+
+    // Add date range filter
+    if (DateRange) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+      
+      let endDate = new Date();
+      
+      switch (DateRange.toLowerCase()) {
+        case 'day':
+          endDate.setHours(23, 59, 59, 999); // End of today
+          break;
+        case 'week':
+          endDate.setDate(today.getDate() + 7);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case 'month':
+          endDate.setDate(today.getDate() + 30);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case '3month':
+          endDate.setDate(today.getDate() + 90);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        default:
+          // Invalid DateRange, skip filter
+          break;
+      }
+      
+      if (DateRange.toLowerCase() === 'day' || 
+          DateRange.toLowerCase() === 'week' || 
+          DateRange.toLowerCase() === 'month' || 
+          DateRange.toLowerCase() === '3month') {
+        filter.date = {
+          $gte: today,
+          $lte: endDate
+        };
+      }
     }
 
     // Build sort object
