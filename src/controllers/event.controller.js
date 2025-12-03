@@ -186,7 +186,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
       state_id,
       city_id,
       event_category_tags_id,
-      ticketed_events,
+      user_id,
       sortBy = 'created_at',
       sortOrder = 'desc'
     } = req.query;
@@ -210,11 +210,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
       filter.event_type_id = event_type_id;
     }
 
-    // Add Event_type filter (Private/Public)
-    if (Event_type) {
-      filter.Event_type = Event_type;
-    }
-
+   
     // Add country_id filter
     if (country_id) {
       filter.country_id = country_id;
@@ -235,8 +231,13 @@ const getAllEvents = asyncHandler(async (req, res) => {
       filter.event_category_tags_id = event_category_tags_id;
     }
 
-    if (ticketed_events !== undefined) {
-      filter.ticketed_events = true;
+    if (Event_type !== undefined) {
+      filter.Event_type = 'Public';
+    }
+
+    // Exclude events created by user_id if provided
+    if (user_id) {
+      filter.created_by = { $ne: parseInt(user_id) };
     }
 
     // Build sort object
@@ -539,11 +540,11 @@ const getEventById = asyncHandler(async (req, res) => {
     // Populate ticket details
     if (event.event_id) {
       try {
-        const EventEntryTickets = require('../models/event_entry_tickets.model');
-        const tickets = await EventEntryTickets.find({
+        const Ticket = require('../models/ticket.model');
+          const tickets = await Ticket.find({
           event_id: event.event_id,
           status: true
-        }).select('event_entry_tickets_id title price total_seats facility tag status');
+        }).select('ticket_id max_capacity ticketDateils reply status');
         eventObj.ticket_details = tickets || [];
       } catch (error) {
         console.log('Error fetching ticket details for event ID:', event.event_id, error);
