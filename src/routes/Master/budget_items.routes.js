@@ -15,7 +15,7 @@ router.get('/all', auth, validateQuery(querySchema), getAllBudgetItems);
 router.get('/get/:id', auth, validateParams(idSchema), getBudgetItemsById);
 
 // Update budget items (with auth)
-router.put('/update', auth, validateBody(updateBudgetItemsSchema), updateBudgetItems);
+router.put('/update', auth,  updateBudgetItems);
 
 // Delete budget items (with auth)
 router.delete('/delete/:id', auth, deleteBudgetItems);
