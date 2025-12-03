@@ -195,6 +195,8 @@ const getAllEvents = asyncHandler(async (req, res) => {
       user_id,
       min_price,
       max_price,
+      budget_min,
+      budget_max,
       DateRange,
       sortBy = 'created_at',
       sortOrder = 'desc'
@@ -257,6 +259,47 @@ const getAllEvents = asyncHandler(async (req, res) => {
       }
       if (max_price !== undefined) {
         filter.EntryPrice.$lte = parseFloat(max_price);
+      }
+    }
+
+    // Add budget range filter
+    // Filter events where budget range overlaps with requested range
+    if (budget_min !== undefined || budget_max !== undefined) {
+      if (budget_min !== undefined && budget_max !== undefined) {
+        // Find events where budget range overlaps with [budget_min, budget_max]
+        // Event's budget_max >= requested budget_min AND Event's budget_min <= requested budget_max
+        // Also include events where budget fields are null (no budget specified)
+        filter.$and = filter.$and || [];
+        filter.$and.push({
+          $or: [
+            { budget_max: { $gte: parseFloat(budget_min) } },
+            { budget_max: null }
+          ]
+        });
+        filter.$and.push({
+          $or: [
+            { budget_min: { $lte: parseFloat(budget_max) } },
+            { budget_min: null }
+          ]
+        });
+      } else if (budget_min !== undefined) {
+        // Filter events where budget_max >= budget_min (or budget_max is null)
+        filter.$and = filter.$and || [];
+        filter.$and.push({
+          $or: [
+            { budget_max: { $gte: parseFloat(budget_min) } },
+            { budget_max: null }
+          ]
+        });
+      } else if (budget_max !== undefined) {
+        // Filter events where budget_min <= budget_max (or budget_min is null)
+        filter.$and = filter.$and || [];
+        filter.$and.push({
+          $or: [
+            { budget_min: { $lte: parseFloat(budget_max) } },
+            { budget_min: null }
+          ]
+        });
       }
     }
 

@@ -485,6 +485,49 @@ const getAllEventsSchema = Joi.object({
     .messages({
       'boolean.base': 'Ticketed Events must be a boolean value'
     }),
+  user_id: Joi.number()
+    .integer()
+    .positive()
+    .optional()
+    .messages({
+      'number.base': 'User ID must be a number',
+      'number.integer': 'User ID must be an integer',
+      'number.positive': 'User ID must be a positive number'
+    }),
+  min_price: Joi.number()
+    .min(0)
+    .optional()
+    .messages({
+      'number.base': 'Minimum price must be a number',
+      'number.min': 'Minimum price cannot be negative'
+    }),
+  max_price: Joi.number()
+    .min(0)
+    .optional()
+    .messages({
+      'number.base': 'Maximum price must be a number',
+      'number.min': 'Maximum price cannot be negative'
+    }),
+  budget_min: Joi.number()
+    .min(0)
+    .optional()
+    .messages({
+      'number.base': 'Budget minimum must be a number',
+      'number.min': 'Budget minimum cannot be negative'
+    }),
+  budget_max: Joi.number()
+    .min(0)
+    .optional()
+    .messages({
+      'number.base': 'Budget maximum must be a number',
+      'number.min': 'Budget maximum cannot be negative'
+    }),
+  DateRange: Joi.string()
+    .valid('day', 'week', 'month', '3month')
+    .optional()
+    .messages({
+      'any.only': 'DateRange must be one of: day, week, month, 3month'
+    }),
   sortBy: Joi.string()
     .valid('name_title', 'date', 'created_at', 'updated_at')
     .default('created_at')
