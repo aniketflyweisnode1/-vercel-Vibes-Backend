@@ -284,6 +284,130 @@ const updateVendorPayout = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get vendor payouts by authenticated vendor
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getVendorPayoutsByAuth = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build filter object - only show payouts for the authenticated vendor
+    const filter = {
+      Vendor_id: req.userId
+    };
+    
+    if (status !== undefined && status !== '') {
+      filter.Status = status === 'true';
+    }
+
+    // Get vendor payouts with pagination
+    const [vendorPayouts, total] = await Promise.all([
+      VendorPayout.find(filter)
+        .sort({ CreateAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      VendorPayout.countDocuments(filter)
+    ]);
+
+    // Manually populate related fields
+    const populatedVendorPayouts = await Promise.all(
+      vendorPayouts.map(async (payout) => {
+        const payoutObj = payout.toObject();
+
+        // Populate Vendor_id
+        if (payout.Vendor_id) {
+          try {
+            const vendor = await User.findOne({ user_id: payout.Vendor_id });
+            payoutObj.vendor_details = vendor ? {
+              user_id: vendor.user_id,
+              name: vendor.name,
+              email: vendor.email,
+              mobile: vendor.mobile
+            } : null;
+          } catch (error) {
+            console.log('Error fetching vendor for ID:', payout.Vendor_id);
+            payoutObj.vendor_details = null;
+          }
+        }
+
+        // Populate bank_branch_name_id
+        if (payout.bank_branch_name_id) {
+          try {
+            const bankBranch = await BankBranchName.findOne({ bank_branch_name_id: payout.bank_branch_name_id });
+            payoutObj.bank_branch_details = bankBranch || null;
+          } catch (error) {
+            console.log('Error fetching bank branch for ID:', payout.bank_branch_name_id);
+            payoutObj.bank_branch_details = null;
+          }
+        }
+
+        // Populate Event_Id
+        if (payout.Event_Id) {
+          try {
+            const event = await Event.findOne({ event_id: payout.Event_Id });
+            payoutObj.event_details = event ? {
+              event_id: event.event_id,
+              name_title: event.name_title,
+              date: event.date
+            } : null;
+          } catch (error) {
+            console.log('Error fetching event for ID:', payout.Event_Id);
+            payoutObj.event_details = null;
+          }
+        }
+
+        // Populate CreateBy
+        if (payout.CreateBy) {
+          try {
+            const createdByUser = await User.findOne({ user_id: payout.CreateBy });
+            payoutObj.created_by_details = createdByUser ? {
+              user_id: createdByUser.user_id,
+              name: createdByUser.name,
+              email: createdByUser.email
+            } : null;
+          } catch (error) {
+            console.log('Error fetching created by user for ID:', payout.CreateBy);
+            payoutObj.created_by_details = null;
+          }
+        }
+
+        // Populate UpdatedBy
+        if (payout.UpdatedBy) {
+          try {
+            const updatedByUser = await User.findOne({ user_id: payout.UpdatedBy });
+            payoutObj.updated_by_details = updatedByUser ? {
+              user_id: updatedByUser.user_id,
+              name: updatedByUser.name,
+              email: updatedByUser.email
+            } : null;
+          } catch (error) {
+            console.log('Error fetching updated by user for ID:', payout.UpdatedBy);
+            payoutObj.updated_by_details = null;
+          }
+        }
+
+        return payoutObj;
+      })
+    );
+
+    const pagination = {
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+      totalItems: total,
+      itemsPerPage: parseInt(limit),
+      hasNextPage: parseInt(page) < Math.ceil(total / parseInt(limit)),
+      hasPrevPage: parseInt(page) > 1
+    };
+
+    sendPaginated(res, populatedVendorPayouts, pagination, 'Vendor payouts retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
+/**
  * Delete vendor payout
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -308,6 +432,7 @@ module.exports = {
   createVendorPayout,
   getAllVendorPayouts,
   getVendorPayoutById,
+  getVendorPayoutsByAuth,
   updateVendorPayout,
   deleteVendorPayout
 };

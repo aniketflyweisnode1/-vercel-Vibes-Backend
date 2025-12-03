@@ -3,7 +3,7 @@ const router = express.Router();
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
 const { createVendorPayoutSchema, updateVendorPayoutSchema, querySchema, idSchema } = require('../../../validators/vendor_payout.validator');
-const { createVendorPayout, getAllVendorPayouts, getVendorPayoutById, updateVendorPayout, deleteVendorPayout } = require('../../controllers/vendor_payout.controller');
+const { createVendorPayout, getAllVendorPayouts, getVendorPayoutById, getVendorPayoutsByAuth, updateVendorPayout, deleteVendorPayout } = require('../../controllers/vendor_payout.controller');
 
 // Create vendor payout (with auth)
 router.post('/create', auth, validateBody(createVendorPayoutSchema), createVendorPayout);
@@ -13,6 +13,9 @@ router.get('/all', validateQuery(querySchema), getAllVendorPayouts);
 
 // Get vendor payout by ID (with auth)
 router.get('/get/:id', auth, validateParams(idSchema), getVendorPayoutById);
+
+// Get vendor payouts by authenticated vendor (with auth)
+router.get('/getByAuth', auth, validateQuery(querySchema), getVendorPayoutsByAuth);
 
 // Update vendor payout (with auth)
 router.put('/update', auth, validateBody(updateVendorPayoutSchema), updateVendorPayout);
