@@ -826,6 +826,19 @@ const eventPayment = asyncHandler(async (req, res) => {
       return sendError(res, 'Amount must be greater than 0', 400);
     }
 
+    // Calculate 7% platform fee
+    const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
+    const baseAmount = normalizedAmount; // Base amount (what event host should receive)
+    const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
+    const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
+
+    // Get event to find event host (created_by)
+    let eventHostId = null;
+    if (event_id) {
+      const event = await Event.findOne({ event_id: parseInt(event_id) });
+      eventHostId = event ? event.created_by : null;
+    }
+
     // Fetch user for email
     const user = await User.findOne({ user_id: req.userId }).select('email name');
     if (!user || !user.email) {
@@ -839,7 +852,7 @@ const eventPayment = asyncHandler(async (req, res) => {
     let paymentIntent = null;
     try {
       const paymentOptions = {
-        amount: Math.round(normalizedAmount),
+        amount: Math.round(totalAmount), // Customer pays total (base + platform fee)
         billingDetails,
         currency: 'usd',
         customerEmail: user.email,
@@ -856,10 +869,10 @@ const eventPayment = asyncHandler(async (req, res) => {
       return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
     }
 
-    // Create transaction record
+    // Create transaction record for customer
     const transactionData = {
       user_id: req.userId,
-      amount: normalizedAmount,
+      amount: totalAmount, // Customer pays total (base + platform fee)
       status: paymentIntent.status,
       payment_method_id: payment_method_id,
       transactionType: 'EventPayment',
@@ -873,19 +886,62 @@ const eventPayment = asyncHandler(async (req, res) => {
         stripe_payment_intent_id: paymentIntent.paymentIntentId,
         stripe_client_secret: paymentIntent.clientSecret,
         event_id: event_id || null,
+        event_host_id: eventHostId,
+        base_amount: baseAmount,
+        platform_fee: platformFeeAmount,
+        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+        event_host_amount: baseAmount,
         description
       }),
       created_by: req.userId
     };
 
     const transaction = await Transaction.create(transactionData);
+    
+    // Create admin transaction for platform fee
+    const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
+    
+    if (adminUser && platformFeeAmount > 0) {
+      const adminTransactionData = {
+        user_id: adminUser.user_id,
+        amount: platformFeeAmount,
+        status: paymentIntent.status,
+        payment_method_id: parseInt(payment_method_id, 10),
+        transactionType: 'EventPayment',
+        transaction_date: new Date(),
+        reference_number: `PLATFORM_FEE_${paymentIntent.paymentIntentId}`,
+        coupon_code_id: null,
+        CGST: 0,
+        SGST: 0,
+        TotalGST: 0,
+        metadata: JSON.stringify({
+          payment_intent_id: paymentIntent.paymentIntentId,
+          stripe_payment_intent_id: paymentIntent.paymentIntentId,
+          event_id: event_id || null,
+          event_host_id: eventHostId,
+          customer_user_id: req.userId,
+          base_amount: baseAmount,
+          platform_fee: platformFeeAmount,
+          platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+          customer_transaction_id: transaction.transaction_id,
+          description: 'Platform fee from event payment'
+        }),
+        created_by: req.userId
+      };
+
+      await Transaction.create(adminTransactionData);
+    }
 
     // Success response
     return sendSuccess(res, {
       transaction_id: transaction.transaction_id,
       payment_intent_id: paymentIntent.paymentIntentId,
       client_secret: paymentIntent.clientSecret,
-      amount: normalizedAmount,
+      base_amount: baseAmount,
+      platform_fee: platformFeeAmount,
+      platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+      amount: totalAmount,
+      event_host_amount: baseAmount,
       currency: 'USD',
       status: paymentIntent.status,
       paymentIntent: {

@@ -419,11 +419,21 @@ const processPayment = asyncHandler(async (req, res) => {
       // Continue without customer if creation fails
     }
 
+    // Calculate 7% platform fee
+    const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
+    const baseAmount = order.final_amount; // Base amount (what event host should receive)
+    const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
+    const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
+    
+    // Get event to find event host (created_by)
+    const event = await Event.findOne({ event_id: order.event_id });
+    const eventHostId = event ? event.created_by : null;
+
     // Create Stripe payment intent
     let paymentIntent = null;
     try {
       const paymentOptions = {
-        amount: order.final_amount,
+        amount: totalAmount, // Customer pays total (base + platform fee)
         billingDetails: billingDetails,
         currency: 'usd',
         customerEmail: user.email,
@@ -444,10 +454,11 @@ const processPayment = asyncHandler(async (req, res) => {
     }
 
     console.log(order);
-    // Create transaction data
+    
+    // Create transaction data for customer
     const transactionData = {
       user_id: req.userId,
-      amount: order.final_amount,
+      amount: totalAmount, // Customer pays total (base + platform fee)
       currency: 'USD',
       status: paymentIntent.status,
       payment_method_id: payment_method_id,
@@ -463,13 +474,54 @@ const processPayment = asyncHandler(async (req, res) => {
         stripe_client_secret: paymentIntent.clientSecret,
         customer_id: customerId,
         order_id: order.event_entry_tickets_order_id,
-        event_id: order.event_id
+        event_id: order.event_id,
+        event_host_id: eventHostId,
+        base_amount: baseAmount,
+        platform_fee: platformFeeAmount,
+        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+        event_host_amount: baseAmount
       }),
       created_by: req.userId
     };
 
     // Create the transaction
     const transaction = await Transaction.create(transactionData);
+    
+    // Create admin transaction for platform fee
+    const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
+    
+    if (adminUser && platformFeeAmount > 0) {
+      const adminTransactionData = {
+        user_id: adminUser.user_id,
+        amount: platformFeeAmount,
+        status: paymentIntent.status,
+        payment_method_id: parseInt(payment_method_id, 10),
+        transactionType: 'TicketBooking',
+        transaction_date: new Date(),
+        reference_number: `PLATFORM_FEE_${paymentIntent.paymentIntentId}`,
+        coupon_code_id: null,
+        CGST: 0,
+        SGST: 0,
+        TotalGST: 0,
+        metadata: JSON.stringify({
+          payment_intent_id: paymentIntent.paymentIntentId,
+          stripe_payment_intent_id: paymentIntent.paymentIntentId,
+          customer_id: customerId,
+          order_id: order.event_entry_tickets_order_id,
+          event_id: order.event_id,
+          event_host_id: eventHostId,
+          customer_user_id: req.userId,
+          base_amount: baseAmount,
+          platform_fee: platformFeeAmount,
+          platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+          customer_transaction_id: transaction.transaction_id,
+          description: 'Platform fee from public event ticket booking payment'
+        }),
+        created_by: req.userId
+      };
+
+      await Transaction.create(adminTransactionData);
+    }
 
     // Populate payment_method_id
     let populatedTransaction = transaction.toObject();
@@ -511,8 +563,12 @@ const processPayment = asyncHandler(async (req, res) => {
         tax: order.tax,
         total_before_discount: order.total,
         discount_amount: order.discount_amount,
+        base_amount: baseAmount,
+        platform_fee: platformFeeAmount,
+        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
         final_amount: order.final_amount,
         amount_paid: transaction.amount,
+        event_host_amount: baseAmount,
         transaction_id: transaction.transaction_id,
         transaction_type: 'TicketBooking',
         payment_status: transaction.status,

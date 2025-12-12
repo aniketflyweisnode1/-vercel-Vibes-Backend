@@ -64,7 +64,7 @@ const populateVendorOnboardingPortal = async (portal) => {
   // Populate categories_fees_id
   if (portal.categories_fees_id && Array.isArray(portal.categories_fees_id) && portal.categories_fees_id.length > 0) {
     try {
-      
+
       const categoriesFees = await CategoriesFees.find({
         categories_fees_id: { $in: portal.categories_fees_id },
         status: true
@@ -239,10 +239,11 @@ const createVendorBooking = asyncHandler(async (req, res) => {
       const invalidPricingCategories = [];
       const matchedCategories = [];
 
+
       bookingCategoryIds.forEach(categoryId => {
         const matchingFee = populatedPortal.categories_fees_details.find(
-          fee => Number(fee.category_id) === Number(categoryId) && fee.status === true
-        );
+          fee => Number(fee.category_id) === Number(categoryId));
+
 
         if (!matchingFee) {
           missingCategories.push(categoryId);
@@ -271,52 +272,44 @@ const createVendorBooking = asyncHandler(async (req, res) => {
         }
       });
 
-      // Log for debugging
-      console.log('Pricing calculation summary:', {
-        bookingCategoryIds,
-        matchedCategories: matchedCategories.length,
-        missingCategories: missingCategories.length,
-        invalidPricingCategories: invalidPricingCategories.length,
-        calculatedAmount,
-        calculatedVendorAmount
-      });
+      // Check for manual amounts first - if provided, use them and skip category validation
+      const manualAmount = Number(req.body.amount || 0);
+      const manualVendorAmount = Number(req.body.vendor_amount || 0);
 
-      // Build detailed error message if there are issues
-      if (missingCategories.length > 0 || invalidPricingCategories.length > 0) {
-        const errorMessages = [];
-        
-        if (missingCategories.length > 0) {
-          errorMessages.push(`Categories not found in vendor pricing: ${missingCategories.join(', ')}`);
-        }
-        
-        if (invalidPricingCategories.length > 0) {
-          const invalidIds = invalidPricingCategories.map(c => c.category_id).join(', ');
-          errorMessages.push(`Categories with invalid pricing (Price or MinFee must be > 0): ${invalidIds}`);
+      if (manualAmount > 0 && manualVendorAmount > 0) {
+        // Manual amounts provided - use them directly
+        calculatedAmount = manualAmount;
+        calculatedVendorAmount = manualVendorAmount;
+      } else {
+        // No manual amounts - validate category pricing
+        // Log for debugging
+        console.log('Pricing calculation summary:', {
+          bookingCategoryIds,
+          matchedCategories: matchedCategories.length,
+          missingCategories: missingCategories.length,
+          invalidPricingCategories: invalidPricingCategories.length,
+          calculatedAmount,
+          calculatedVendorAmount
+        });
+
+        // Build detailed error message if there are issues
+        if (missingCategories.length > 0 || invalidPricingCategories.length > 0) {
+          const errorMessages = [];
+
+          if (missingCategories.length > 0) {
+            errorMessages.push(`Categories not found in vendor pricing: ${missingCategories.join(', ')}`);
+          }
+
+          if (invalidPricingCategories.length > 0) {
+            const invalidIds = invalidPricingCategories.map(c => c.category_id).join(', ');
+            errorMessages.push(`Categories with invalid pricing (Price or MinFee must be > 0): ${invalidIds}`);
+          }
+
+          return sendError(res, `${errorMessages.join('. ')}. Please ensure all selected categories have valid pricing, or provide manual amount and vendor_amount in the request body.`, 400);
         }
 
-        // If manual amounts are provided, allow them to override
-        const manualAmount = Number(req.body.amount || 0);
-        const manualVendorAmount = Number(req.body.vendor_amount || 0);
-        
-        if (manualAmount > 0 && manualVendorAmount > 0) {
-          // Allow manual amounts to override, but log a warning
-          console.warn('Using manual amounts due to missing/invalid category pricing:', errorMessages.join('; '));
-          calculatedAmount = manualAmount;
-          calculatedVendorAmount = manualVendorAmount;
-        } else {
-          return sendError(res, `${errorMessages.join('. ')}. Please ensure all selected categories have valid pricing, or provide manual amount and vendor_amount.`, 400);
-        }
-      }
-
-      // If no categories matched or all had invalid pricing, and no manual amounts provided
-      if (calculatedAmount <= 0 && calculatedVendorAmount <= 0) {
-        const manualAmount = Number(req.body.amount || 0);
-        const manualVendorAmount = Number(req.body.vendor_amount || 0);
-        
-        if (manualAmount > 0 && manualVendorAmount > 0) {
-          calculatedAmount = manualAmount;
-          calculatedVendorAmount = manualVendorAmount;
-        } else {
+        // If no categories matched or all had invalid pricing
+        if (calculatedAmount <= 0 && calculatedVendorAmount <= 0) {
           return sendError(res, `No valid pricing found for the selected categories (${bookingCategoryIds.join(', ')}). Please ensure all categories have valid pricing (Price and MinFee > 0), or provide manual amount and vendor_amount in the request body.`, 400);
         }
       }
@@ -1072,8 +1065,8 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
 
     // Step 5: Match vendor_booking.Vendor_Category_id with categories_fees.category_id
     const bookingCategoryIds = booking.Vendor_Category_id.map(id => Number(id));
-    let totalAmount = 0; // amount (Price + PlatformFee)
-    let totalVendorAmount = 0; // vendor_amount (just Price)
+    let baseAmount = 0; // Base amount before platform fee
+    let totalVendorAmount = 0; // vendor_amount (what vendor gets)
 
     const matchedCategories = [];
     const missingCategories = [];
@@ -1089,21 +1082,20 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       if (matchingFee) {
         const MinFee = Number(matchingFee.MinFee) || 0;
         const price = Number(matchingFee.Price) || 0;
-        const platformFee = Number(matchingFee.PlatformFee) || 0;
-        
+
         // Calculate amounts
-        const vendorAmount = MinFee; // vendor gets the price
-        const customerAmount = price; // customer pays price + platform fee
+        const vendorAmount = MinFee; // vendor gets the MinFee
+        const categoryBaseAmount = price; // base amount for this category
 
         totalVendorAmount += vendorAmount;
-        totalAmount += customerAmount;
+        baseAmount += categoryBaseAmount;
 
         matchedCategories.push({
           category_id: categoryId,
           price: price,
-          platformFee: platformFee,
-          vendor_amount: totalVendorAmount,
-          amount: totalAmount
+          minFee: MinFee,
+          vendor_amount: vendorAmount,
+          base_amount: categoryBaseAmount
         });
       } else {
         missingCategories.push(categoryId);
@@ -1114,9 +1106,14 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       return sendError(res, `Categories not found in vendor pricing: ${missingCategories.join(', ')}. Please ensure the vendor has set pricing for all selected categories.`, 400);
     }
 
-    if (totalAmount <= 0 || totalVendorAmount <= 0) {
+    if (baseAmount <= 0 || totalVendorAmount <= 0) {
       return sendError(res, 'Invalid pricing calculation. Amount must be greater than 0.', 400);
     }
+
+    // Step 5.5: Calculate 7% platform fee and total amount
+    const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
+    const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
+    const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
 
     // Step 6: Get user information for Stripe customer creation
     const user = await User.findOne({ user_id: req.userId });
@@ -1183,7 +1180,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    // Step 10: Create transaction
+    // Step 10: Create transaction for customer
     const transactionData = {
       user_id: req.userId,
       amount: totalAmount,
@@ -1201,6 +1198,9 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
         vendor_booking_id: parseInt(vendor_booking_id, 10),
         vendor_id: vendorId,
         vendor_amount: totalVendorAmount,
+        base_amount: baseAmount,
+        platform_fee: platformFeeAmount,
+        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
         amount: totalAmount,
         billingDetails: billingDetails || null,
         matched_categories: matchedCategories
@@ -1209,6 +1209,40 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     };
 
     const transaction = await Transaction.create(transactionData);
+
+    // Step 10.5: Create admin transaction for platform fee
+    // Find admin user (role_id = 1)
+    const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
+    
+    if (adminUser && platformFeeAmount > 0) {
+      const adminTransactionData = {
+        user_id: adminUser.user_id,
+        amount: platformFeeAmount,
+        status: paymentIntent.status, // Same status as customer transaction
+        payment_method_id: parseInt(payment_method_id, 10),
+        transactionType: 'VendorBooking', // Or create a new type like 'PlatformFee' if needed
+        vendor_booking_id: parseInt(vendor_booking_id, 10),
+        transaction_date: new Date(),
+        reference_number: `PLATFORM_FEE_${paymentIntent.paymentIntentId}`,
+        metadata: JSON.stringify({
+          payment_intent_id: paymentIntent.paymentIntentId,
+          stripe_payment_intent_id: paymentIntent.paymentIntentId,
+          customer_id: customerId,
+          vendor_booking_id: parseInt(vendor_booking_id, 10),
+          vendor_id: vendorId,
+          customer_user_id: req.userId,
+          base_amount: baseAmount,
+          platform_fee: platformFeeAmount,
+          platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+          vendor_amount: totalVendorAmount,
+          customer_transaction_id: transaction.transaction_id,
+          description: 'Platform fee from vendor booking payment'
+        }),
+        created_by: req.userId
+      };
+
+      await Transaction.create(adminTransactionData);
+    }
 
     // Step 11: Update booking with transaction_id
     const finalBooking = await VendorBooking.findOneAndUpdate(
@@ -1237,6 +1271,9 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       transaction_id: transaction.transaction_id,
       vendor_booking: bookingObj,
       amount: totalAmount,
+      base_amount: baseAmount,
+      platform_fee: platformFeeAmount,
+      platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
       vendor_amount: totalVendorAmount,
       matched_categories: matchedCategories,
       vendor_portal: {
