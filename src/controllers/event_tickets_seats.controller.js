@@ -1,4 +1,5 @@
 const EventTicketsSeats = require('../models/event_tickets_seats.model');
+const Ticket = require('../models/ticket.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 
@@ -9,29 +10,75 @@ const { asyncHandler } = require('../../middleware/errorHandler');
  */
 const createEventTicketSeat = asyncHandler(async (req, res) => {
   try {
+    // Process array fields to ensure they are arrays
+    const processArrayField = (field) => {
+      if (!field) return [];
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        // Try to parse if it's a JSON string
+        try {
+          const parsed = JSON.parse(field);
+          return Array.isArray(parsed) ? parsed : [field];
+        } catch {
+          return [field];
+        }
+      }
+      return [field];
+    };
+
     const seatData = {
       ...req.body,
       createdBy: req.userId
     };
 
-    // Ensure tickets array is properly formatted
-    if (req.body.tickets && Array.isArray(req.body.tickets)) {
-      seatData.tickets = req.body.tickets.map(ticket => ({
-        event_entry_tickets_id: parseInt(ticket.event_entry_tickets_id || ticket.ticket_id),
-        quantity: parseInt(ticket.quantity)
-      })).filter(ticket => ticket.event_entry_tickets_id && ticket.quantity > 0);
+    // Process array fields
+    if (req.body.event_entry_tickets_id !== undefined) {
+      seatData.event_entry_tickets_id = processArrayField(req.body.event_entry_tickets_id).map(id => Number(id)).filter(id => !Number.isNaN(id));
     }
-
-    // Validate required fields
-    if (!seatData.event_id) {
-      return sendError(res, 'Event ID is required', 400);
-    }
-
-    if (!seatData.tickets || seatData.tickets.length === 0) {
-      return sendError(res, 'At least one ticket with event_entry_tickets_id and quantity is required', 400);
+    if (req.body.seat_no !== undefined) {
+      seatData.seat_no = processArrayField(req.body.seat_no);
     }
 
     const seat = await EventTicketsSeats.create(seatData);
+
+    // Update Ticket model's max_capacity if capacity is provided
+    if (seat.capacity && seat.event_id) {
+      try {
+        // Find the ticket for this event
+        const ticket = await Ticket.findOne({ event_id: seat.event_id, status: true });
+        
+        if (ticket) {
+          // Calculate total capacity from all seats for this event
+          const allSeats = await EventTicketsSeats.find({ 
+            event_id: seat.event_id, 
+            status: true 
+          });
+          
+          // Sum up all capacities
+          const totalCapacity = allSeats.reduce((sum, s) => {
+            return sum + (s.capacity || 0);
+          }, 0);
+          
+          // Set max_capacity as totalCapacity - 1
+          const maxCapacity = Math.max(0, ticket.max_capacity - 1);
+          
+          // Update ticket's max_capacity
+          await Ticket.findOneAndUpdate(
+            { event_id: seat.event_id, status: true },
+            { 
+              max_capacity: maxCapacity,
+              updated_at: new Date()
+            },
+            { new: true }
+          );
+          
+          console.log(`Updated Ticket max_capacity to ${maxCapacity} (totalCapacity: ${totalCapacity} - 1) for event_id: ${seat.event_id}`);
+        }
+      } catch (ticketError) {
+        // Log error but don't fail the seat creation
+        console.error('Failed to update Ticket max_capacity:', ticketError);
+      }
+    }
 
     sendSuccess(res, seat, 'Event ticket seat created successfully', 201);
   } catch (error) {
@@ -46,7 +93,7 @@ const createEventTicketSeat = asyncHandler(async (req, res) => {
  */
 const getAllEventTicketsSeats = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, status, event_id, event_entry_tickets_id } = req.query;
+    const { page = 1, limit = 10, search, status, event_id, event_entry_tickets_id, event_entry_userget_tickets_id } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const filter = {};
@@ -56,8 +103,7 @@ const getAllEventTicketsSeats = asyncHandler(async (req, res) => {
         { lastName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
         { phoneNo: { $regex: search, $options: 'i' } },
-        { coupon_code: { $regex: search, $options: 'i' } },
-        { promo_code: { $regex: search, $options: 'i' } }
+        { seat_no: { $elemMatch: { $regex: search, $options: 'i' } } }
       ];
     }
   
@@ -65,9 +111,12 @@ const getAllEventTicketsSeats = asyncHandler(async (req, res) => {
       filter.event_id = parseInt(event_id);
     }
     if (event_entry_tickets_id) {
-      // Filter by event_entry_tickets_id in tickets array
+      // Handle array field - check if the array contains the value
       const ticketId = parseInt(event_entry_tickets_id);
-      filter['tickets.event_entry_tickets_id'] = ticketId;
+      filter.event_entry_tickets_id = ticketId;
+    }
+    if (event_entry_userget_tickets_id) {
+      filter.event_entry_userget_tickets_id = parseInt(event_entry_userget_tickets_id);
     }
 
     const [seats, total] = await Promise.all([
@@ -121,22 +170,35 @@ const updateEventTicketSeat = asyncHandler(async (req, res) => {
   try {
     const { id } = req.body;
 
+    // Process array fields to ensure they are arrays
+    const processArrayField = (field) => {
+      if (!field) return [];
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        // Try to parse if it's a JSON string
+        try {
+          const parsed = JSON.parse(field);
+          return Array.isArray(parsed) ? parsed : [field];
+        } catch {
+          return [field];
+        }
+      }
+      return [field];
+    };
+
     const updateData = {
       ...req.body,
       updatedBy: req.userId,
       updatedAt: new Date()
     };
 
-    // Ensure tickets array is properly formatted if provided
-    if (req.body.tickets && Array.isArray(req.body.tickets)) {
-      updateData.tickets = req.body.tickets.map(ticket => ({
-        event_entry_tickets_id: parseInt(ticket.event_entry_tickets_id || ticket.ticket_id),
-        quantity: parseInt(ticket.quantity)
-      })).filter(ticket => ticket.event_entry_tickets_id && ticket.quantity > 0);
+    // Process array fields
+    if (req.body.event_entry_tickets_id !== undefined) {
+      updateData.event_entry_tickets_id = processArrayField(req.body.event_entry_tickets_id).map(id => Number(id)).filter(id => !Number.isNaN(id));
     }
-
-    // Remove id from updateData to avoid updating it
-    delete updateData.id;
+    if (req.body.seat_no !== undefined) {
+      updateData.seat_no = processArrayField(req.body.seat_no);
+    }
 
     const seat = await EventTicketsSeats.findOneAndUpdate(
       { event_tickets_seats_id: parseInt(id) },
@@ -146,6 +208,45 @@ const updateEventTicketSeat = asyncHandler(async (req, res) => {
 
     if (!seat) {
       return sendNotFound(res, 'Event ticket seat not found');
+    }
+
+    // Update Ticket model's max_capacity if event_id exists
+    if (seat.event_id) {
+      try {
+        // Find the ticket for this event
+        const ticket = await Ticket.findOne({ event_id: seat.event_id, status: true });
+        
+        if (ticket) {
+          // Calculate total capacity from all seats for this event
+          const allSeats = await EventTicketsSeats.find({ 
+            event_id: seat.event_id, 
+            status: true 
+          });
+          
+          // Sum up all capacities
+          const totalCapacity = allSeats.reduce((sum, s) => {
+            return sum + (s.capacity || 0);
+          }, 0);
+          
+          // Set max_capacity as totalCapacity - 1
+          const maxCapacity = Math.max(0, totalCapacity - 1);
+          
+          // Update ticket's max_capacity
+          await Ticket.findOneAndUpdate(
+            { event_id: seat.event_id, status: true },
+            { 
+              max_capacity: maxCapacity,
+              updated_at: new Date()
+            },
+            { new: true }
+          );
+          
+          console.log(`Updated Ticket max_capacity to ${maxCapacity} (totalCapacity: ${totalCapacity} - 1) for event_id: ${seat.event_id}`);
+        }
+      } catch (ticketError) {
+        // Log error but don't fail the seat update
+        console.error('Failed to update Ticket max_capacity:', ticketError);
+      }
     }
 
     sendSuccess(res, seat, 'Event ticket seat updated successfully');
@@ -169,8 +270,46 @@ const deleteEventTicketSeat = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Event ticket seat not found');
     }
 
+    const eventId = seat.event_id;
+
     // Delete the seat
     await EventTicketsSeats.findOneAndDelete({ event_tickets_seats_id: parseInt(id) });
+
+    // Update Ticket model's max_capacity after deletion
+    if (eventId) {
+      try {
+        // Find the ticket for this event
+        const ticket = await Ticket.findOne({ event_id: eventId, status: true });
+        
+        if (ticket) {
+          // Calculate total capacity from all remaining seats for this event
+          const allSeats = await EventTicketsSeats.find({ 
+            event_id: eventId, 
+            status: true 
+          });
+          
+          // Sum up all capacities
+          const totalCapacity = allSeats.reduce((sum, s) => {
+            return sum + (s.capacity || 0);
+          }, 0);
+          
+          // Update ticket's max_capacity
+          await Ticket.findOneAndUpdate(
+            { event_id: eventId, status: true },
+            { 
+              max_capacity: totalCapacity,
+              updated_at: new Date()
+            },
+            { new: true }
+          );
+          
+          console.log(`Updated Ticket max_capacity to ${totalCapacity} for event_id: ${eventId} after seat deletion`);
+        }
+      } catch (ticketError) {
+        // Log error but don't fail the seat deletion
+        console.error('Failed to update Ticket max_capacity:', ticketError);
+      }
+    }
 
     sendSuccess(res, null, 'Event ticket seat deleted successfully');
   } catch (error) {

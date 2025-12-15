@@ -1,4 +1,5 @@
 const EventEntryTicketsOrder = require('../models/event_entry_tickets_order.model');
+const EventEntryUsergetTickets = require('../models/event_entry_userget_tickets.model');
 const EventEntryTickets = require('../models/event_entry_tickets.model');
 const Ticket = require('../models/ticket.model');
 const Event = require('../models/event.model');
@@ -18,7 +19,7 @@ const PaymentMethods = require('../models/payment_methods.model');
  */
 const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
   try {
-    const { event_id, event_entry_tickets_id, quantity, tickets, coupon_code } = req.body;
+    const { event_id, coupon_code } = req.body;
 
     // Get the event (for validation)
     const event = await Event.findOne({ event_id: parseInt(event_id) });
@@ -27,39 +28,54 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Event not found');
     }
 
-    // Support both single ticket and multiple tickets
-    let ticketsToProcess = [];
-    
-    if (tickets && Array.isArray(tickets) && tickets.length > 0) {
-      // Multiple tickets provided
-      ticketsToProcess = tickets;
-    } else if (event_entry_tickets_id && quantity) {
-      // Single ticket provided
-      ticketsToProcess = [{
-        event_entry_tickets_id: parseInt(event_entry_tickets_id),
-        quantity: parseInt(quantity)
-      }];
-    } else {
-      return sendError(res, 'Either provide event_entry_tickets_id and quantity, or provide tickets array', 400);
+    // Find the userget ticket (purchase record) by event_id and createdBy (authenticated user)
+    const usergetTicket = await EventEntryUsergetTickets.findOne({
+      event_id: parseInt(event_id),
+      createdBy: req.userId
+    }).sort({ createdAt: -1 }); // Get the most recent purchase
+
+    if (!usergetTicket) {
+      return sendNotFound(res, `No ticket purchase found for event ID ${event_id} by the authenticated user. Please create a ticket purchase first using /api/master/event-entry-userget-tickets/create`);
+    }
+
+    // Check if tickets array exists
+    if (!usergetTicket.tickets || usergetTicket.tickets.length === 0) {
+      return sendError(res, 'No tickets found in the purchase record', 400);
     }
 
     // Calculate total quantity and subtotal by processing all tickets
     let totalQuantity = 0;
     let subtotal = 0;
     const ticketBreakdown = [];
-    let primaryEventEntryTicketsId = null;
 
-    for (const ticketItem of ticketsToProcess) {
-      const eventEntryTicketsId = parseInt(ticketItem.event_entry_tickets_id);
-      const itemQuantity = parseInt(ticketItem.quantity);
+    for (const ticket of usergetTicket.tickets) {
+      // Auto-populate event_entry_tickets_id if not provided
+      let eventEntryTicketsId = ticket.event_entry_tickets_id;
+      
+      if (!eventEntryTicketsId || eventEntryTicketsId === null || eventEntryTicketsId === undefined) {
+        // Try to find the first active event entry ticket for this event
+        try {
+          const eventEntryTicket = await EventEntryTickets.findOne({
+            event_id: parseInt(event_id),
+            status: true
+          }).sort({ createdAt: -1 });
 
-      if (!eventEntryTicketsId || !itemQuantity || itemQuantity < 1) {
-        return sendError(res, 'Invalid ticket data. Each ticket must have event_entry_tickets_id and quantity >= 1', 400);
+          if (eventEntryTicket) {
+            eventEntryTicketsId = eventEntryTicket.event_entry_tickets_id;
+            // Update the ticket in the usergetTicket for future reference
+            ticket.event_entry_tickets_id = eventEntryTicketsId;
+          } else {
+            return sendNotFound(res, `No active event entry tickets found for event ID: ${event_id}`);
+          }
+        } catch (error) {
+          console.error('Error auto-populating event_entry_tickets_id:', error);
+          return sendError(res, 'Failed to find ticket. Please ensure tickets are available for this event.', 400);
+        }
       }
 
-      // Get the event entry ticket
+      // Get the event entry ticket directly from EventEntryTickets model
       const eventEntryTicket = await EventEntryTickets.findOne({
-        event_entry_tickets_id: eventEntryTicketsId,
+        event_entry_tickets_id: parseInt(eventEntryTicketsId),
         event_id: parseInt(event_id),
         status: true
       });
@@ -69,24 +85,20 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       }
 
       // Check if enough seats are available
-      if (eventEntryTicket.total_seats < itemQuantity) {
+      if (eventEntryTicket.total_seats < ticket.quantity) {
         return sendError(res, `Not enough seats available. Only ${eventEntryTicket.total_seats} seats available for ticket ID: ${eventEntryTicketsId}`, 400);
       }
 
+      const itemQuantity = ticket.quantity;
       const itemPrice = eventEntryTicket.price;
       const itemSubtotal = itemQuantity * itemPrice;
 
       totalQuantity += itemQuantity;
       subtotal += itemSubtotal;
 
-      // Set primary event_entry_tickets_id (use first one)
-      if (!primaryEventEntryTicketsId) {
-        primaryEventEntryTicketsId = eventEntryTicketsId;
-      }
-
       ticketBreakdown.push({
         event_entry_tickets_id: eventEntryTicketsId,
-        ticket_title: eventEntryTicket.title,
+        ticket_title: eventEntryTicket.title || `Ticket ${eventEntryTicketsId}`,
         quantity: itemQuantity,
         price_per_ticket: itemPrice,
         item_subtotal: itemSubtotal
@@ -167,7 +179,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
 
     // Create order data
     const orderData = {
-      event_entry_tickets_id: primaryEventEntryTicketsId,
+      event_entry_userget_tickets_id: usergetTicket.event_entry_userget_tickets_id,
       event_id: parseInt(event_id),
       quantity: totalQuantity,
       price: subtotal / totalQuantity, // Average price
@@ -210,7 +222,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
  */
 const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, event_id, event_entry_tickets_id } = req.query;
+    const { page = 1, limit = 10, status, event_id, event_entry_userget_tickets_id } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const filter = {};
@@ -218,8 +230,8 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
-    if (event_entry_tickets_id) {
-      filter.event_entry_tickets_id = parseInt(event_entry_tickets_id);
+    if (event_entry_userget_tickets_id) {
+      filter.event_entry_userget_tickets_id = parseInt(event_entry_userget_tickets_id);
     }
 
     const [orders, total] = await Promise.all([

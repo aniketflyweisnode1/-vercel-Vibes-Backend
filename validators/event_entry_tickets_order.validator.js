@@ -8,34 +8,6 @@ const createEventEntryTicketsOrderSchema = Joi.object({
     'number.min': 'Event ID must be greater than 0',
     'any.required': 'Event ID is required'
   }),
-  event_entry_tickets_id: Joi.number().integer().min(1).messages({
-    'number.base': 'Event entry tickets ID must be a number',
-    'number.integer': 'Event entry tickets ID must be an integer',
-    'number.min': 'Event entry tickets ID must be greater than 0'
-  }),
-  quantity: Joi.number().integer().min(1).messages({
-    'number.base': 'Quantity must be a number',
-    'number.integer': 'Quantity must be an integer',
-    'number.min': 'Quantity must be at least 1'
-  }),
-  tickets: Joi.array().items(
-    Joi.object({
-      event_entry_tickets_id: Joi.number().integer().min(1).required().messages({
-        'number.base': 'Event entry tickets ID must be a number',
-        'number.integer': 'Event entry tickets ID must be an integer',
-        'number.min': 'Event entry tickets ID must be greater than 0',
-        'any.required': 'Event entry tickets ID is required'
-      }),
-      quantity: Joi.number().integer().min(1).required().messages({
-        'number.base': 'Quantity must be a number',
-        'number.integer': 'Quantity must be an integer',
-        'number.min': 'Quantity must be at least 1',
-        'any.required': 'Quantity is required'
-      })
-    })
-  ).messages({
-    'array.base': 'Tickets must be an array'
-  }),
   tax_percentage: Joi.number().min(0).max(100).default(0).messages({
     'number.base': 'Tax percentage must be a number',
     'number.min': 'Tax percentage must be 0 or greater',
@@ -44,8 +16,6 @@ const createEventEntryTicketsOrderSchema = Joi.object({
   coupon_code: Joi.string().trim().uppercase().max(50).allow('', null).messages({
     'string.max': 'Coupon code cannot exceed 50 characters'
   })
-}).or('event_entry_tickets_id', 'tickets').messages({
-  'object.missing': 'Either event_entry_tickets_id with quantity, or tickets array must be provided'
 });
 
 // Validation schema for updating event entry tickets order
@@ -56,10 +26,10 @@ const updateEventEntryTicketsOrderSchema = Joi.object({
     'number.min': 'ID must be greater than 0',
     'any.required': 'ID is required'
   }),
-  event_entry_tickets_id: Joi.number().integer().min(1).messages({
-    'number.base': 'Event entry tickets ID must be a number',
-    'number.integer': 'Event entry tickets ID must be an integer',
-    'number.min': 'Event entry tickets ID must be greater than 0'
+  event_entry_userget_tickets_id: Joi.number().integer().min(1).messages({
+    'number.base': 'Event entry userget tickets ID must be a number',
+    'number.integer': 'Event entry userget tickets ID must be an integer',
+    'number.min': 'Event entry userget tickets ID must be greater than 0'
   }),
   event_id: Joi.number().integer().min(1).messages({
     'number.base': 'Event ID must be a number',
@@ -102,10 +72,10 @@ const querySchema = Joi.object({
     'number.integer': 'Event ID must be an integer',
     'number.min': 'Event ID must be greater than 0'
   }),
-  event_entry_tickets_id: Joi.number().integer().min(1).allow('').messages({
-    'number.base': 'Event entry tickets ID must be a number',
-    'number.integer': 'Event entry tickets ID must be an integer',
-    'number.min': 'Event entry tickets ID must be greater than 0'
+  event_entry_userget_tickets_id: Joi.number().integer().min(1).allow('').messages({
+    'number.base': 'Event entry userget tickets ID must be a number',
+    'number.integer': 'Event entry userget tickets ID must be an integer',
+    'number.min': 'Event entry userget tickets ID must be greater than 0'
   })
 });
 

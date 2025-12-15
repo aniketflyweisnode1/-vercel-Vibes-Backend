@@ -68,6 +68,7 @@ const vibeBusinessPlanSubscribedRoutes = require('./routes/Master/vibe_business_
 const filterVendorLeadsRoutes = require('./routes/Master/filter_vendor_leads.routes.js');
 const vendorCorporateClientRoutes = require('./routes/Master/vendor_corporate_client.routes.js');
 const eventEntryTicketsRoutes = require('./routes/Master/event_entry_tickets.routes.js');
+const eventEntryUsergetTicketsRoutes = require('./routes/Master/event_entry_userget_tickets.routes.js');
 const eventTicketsSeatsRoutes = require('./routes/Master/event_tickets_seats.routes.js');
 const eventEntryTicketsOrderRoutes = require('./routes/Master/event_entry_tickets_order.routes.js');
 const designCommunityTabsRoutes = require('./routes/Master/design_community_tabs.routes.js');
@@ -207,6 +208,7 @@ router.use('/master/vibe-business-plan-subscribed', vibeBusinessPlanSubscribedRo
 router.use('/master/filter-vendor-leads', filterVendorLeadsRoutes);
 router.use('/master/vendor-corporate-client', vendorCorporateClientRoutes);
 router.use('/master/event-entry-tickets', eventEntryTicketsRoutes);
+router.use('/master/event-entry-userget-tickets', eventEntryUsergetTicketsRoutes);
 router.use('/master/event-tickets-seats', eventTicketsSeatsRoutes);
 router.use('/master/event-entry-tickets-order', eventEntryTicketsOrderRoutes);
 router.use('/master/design-community-tabs', designCommunityTabsRoutes);

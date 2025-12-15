@@ -1,29 +1,31 @@
 const mongoose = require('mongoose');
 const AutoIncrement = require('mongoose-sequence')(mongoose);
+const EventEntryTickets = require('./event_entry_tickets.model');
 
 const eventTicketsSeatsSchema = new mongoose.Schema({
   event_tickets_seats_id: {
     type: Number,
     unique: true
   },
+  event_entry_tickets_id: {
+    type: [Number],
+    ref: 'EventEntryTickets',
+    required: true,
+    default: []
+  },
+  event_entry_userget_tickets_id: {
+    type: Number,
+    ref: 'EventEntryUsergetTickets',
+    required: true
+  },
   event_id: {
     type: Number,
     ref: 'Event',
     required: true
   },
-  tax_percentage: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100
-  },
-  coupon_code: {
-    type: String,
-    trim: true
-  },
-  promo_code: {
-    type: String,
-    trim: true
+  seat_no: {
+    type: [String],
+    default: []
   },
   firstName: {
     type: String,
@@ -42,22 +44,26 @@ const eventTicketsSeatsSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  promo_code: {
+    type: String,
+    trim: true
+  },
   loyalty_points: {
     type: Boolean,
     default: false
   },
-  tickets: [{
-    event_entry_tickets_id: {
-      type: Number,
-      ref: 'EventEntryTickets',
-      required: true
-    },
-    quantity: {
-      type: Number,
-      required: true,
-      min: 1
-    }
-  }],
+  capacity: {
+    type: Number,
+    min: 1
+  },
+  type: {
+    type: String,
+    trim: true
+  },
+  map: {
+    type: String,
+    trim: true
+  },
   status: {
     type: Boolean,
     default: true

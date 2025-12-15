@@ -6,9 +6,9 @@ const eventEntryTicketsOrderSchema = new mongoose.Schema({
     type: Number,
     unique: true
   },
-  event_entry_tickets_id: {
+  event_entry_userget_tickets_id: {
     type: Number,
-    ref: 'EventEntryTickets',
+    ref: 'EventEntryUsergetTickets',
     required: true
   },
   event_id: {
