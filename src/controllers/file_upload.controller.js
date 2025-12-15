@@ -1,14 +1,141 @@
 const multer = require('multer');
-const multerS3 = require('multer-s3');
-const { s3, BUCKET_NAME } = require('../../config/aws');
+const { s3Client, BUCKET_NAME } = require('../../config/aws');
 const { sendSuccess, sendError } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const path = require('path');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+
+// Custom storage engine for AWS SDK v3
+class S3Storage {
+  constructor(options) {
+    this.bucket = options.bucket;
+    this.acl = options.acl || 'public-read';
+    this.key = options.key;
+    this.contentType = options.contentType;
+    this.metadata = options.metadata;
+  }
+
+  _handleFile(req, file, cb) {
+    // Generate key using callback
+    let key;
+    if (typeof this.key === 'function') {
+      this.key(req, file, (err, keyValue) => {
+        if (err) return cb(err);
+        key = keyValue;
+        this._processFile(req, file, key, cb);
+      });
+    } else {
+      // Generate unique filename with timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const fileExtension = path.extname(file.originalname);
+      const fileName = file.fieldname + '-' + uniqueSuffix + fileExtension;
+      let folder = 'upload';
+      key = `${folder}/${fileName}`;
+      this._processFile(req, file, key, cb);
+    }
+  }
+
+  _processFile(req, file, key, cb) {
+    // Determine content type
+    let contentType = file.mimetype;
+    if (this.contentType) {
+      if (typeof this.contentType === 'function') {
+        this.contentType(req, file, (err, ct) => {
+          if (err) return cb(err);
+          contentType = ct || file.mimetype;
+          this._uploadFile(req, file, key, contentType, cb);
+        });
+        return;
+      } else {
+        contentType = this.contentType;
+      }
+    }
+
+    this._uploadFile(req, file, key, contentType, cb);
+  }
+
+  _uploadFile(req, file, key, contentType, cb) {
+    // Get metadata
+    let metadata = {};
+    if (this.metadata) {
+      if (typeof this.metadata === 'function') {
+        this.metadata(req, file, (err, meta) => {
+          if (err) return cb(err);
+          metadata = meta || {};
+          this._readAndUpload(req, file, key, contentType, metadata, cb);
+        });
+        return;
+      } else {
+        metadata = this.metadata;
+      }
+    }
+
+    this._readAndUpload(req, file, key, contentType, metadata, cb);
+  }
+
+  _readAndUpload(req, file, key, contentType, metadata, cb) {
+    // Read file stream
+    const chunks = [];
+    file.stream.on('data', (chunk) => {
+      chunks.push(chunk);
+    });
+
+    file.stream.on('error', (err) => {
+      cb(err);
+    });
+
+    file.stream.on('end', async () => {
+      try {
+        const buffer = Buffer.concat(chunks);
+        
+        const command = new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: buffer,
+          ContentType: contentType,
+          ACL: this.acl,
+          Metadata: {
+            ...metadata,
+            fieldName: file.fieldname,
+            originalName: file.originalname
+          }
+        });
+
+        const result = await s3Client.send(command);
+        
+        // Construct file object similar to multer-s3
+        const fileObj = {
+          fieldname: file.fieldname,
+          originalname: file.originalname,
+          encoding: file.encoding,
+          mimetype: file.mimetype,
+          size: buffer.length,
+          bucket: this.bucket,
+          key: key,
+          acl: this.acl,
+          contentType: contentType,
+          metadata: metadata,
+          location: `https://${this.bucket}.s3.ap-south-1.amazonaws.com/${key}`,
+          etag: result.ETag
+        };
+
+        cb(null, fileObj);
+      } catch (error) {
+        cb(error);
+      }
+    });
+  }
+
+  _removeFile(req, file, cb) {
+    // File removal is handled separately
+    cb(null);
+  }
+}
 
 // Configure multer for S3 upload
 const upload = multer({
-  storage: multerS3({
-    s3: s3,
+  storage: new S3Storage({
     bucket: BUCKET_NAME,
     acl: 'public-read',
     key: function (req, file, cb) {
@@ -18,20 +145,12 @@ const upload = multer({
       const fileName = file.fieldname + '-' + uniqueSuffix + fileExtension;
       
       // Create folder structure based on file type
-      let folder = 'general';
-      if (file.mimetype.startsWith('image/')) {
-        folder = 'images';
-      } else if (file.mimetype.startsWith('video/')) {
-        folder = 'videos';
-      } else if (file.mimetype.startsWith('audio/')) {
-        folder = 'audio';
-      } else if (file.mimetype.includes('pdf')) {
-        folder = 'documents';
-      }
-      
+      let folder = 'upload';
       cb(null, `${folder}/${fileName}`);
     },
-    contentType: multerS3.AUTO_CONTENT_TYPE,
+    contentType: function (req, file, cb) {
+      cb(null, file.mimetype);
+    },
     metadata: function (req, file, cb) {
       cb(null, {
         fieldName: file.fieldname,
@@ -185,7 +304,12 @@ const deleteFile = asyncHandler(async (req, res) => {
       Key: file_key
     };
 
-    await s3.deleteObject(deleteParams).promise();
+    const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+    const deleteCommand = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: file_key
+    });
+    await s3Client.send(deleteCommand);
 
     sendSuccess(res, {
       file_key: file_key,
@@ -217,7 +341,12 @@ const getFileInfo = asyncHandler(async (req, res) => {
       Key: file_key
     };
 
-    const fileInfo = await s3.headObject(headParams).promise();
+    const { HeadObjectCommand } = require('@aws-sdk/client-s3');
+    const headCommand = new HeadObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: file_key
+    });
+    const fileInfo = await s3Client.send(headCommand);
 
     sendSuccess(res, {
       file_key: file_key,
@@ -266,13 +395,14 @@ const generatePresignedUrl = asyncHandler(async (req, res) => {
 
     const key = `${folder}/${fileName}`;
 
-    const presignedUrl = s3.getSignedUrl('putObject', {
+    const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
       ContentType: file_type,
-      Expires: expires_in,
       ACL: 'public-read'
     });
+    
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: expires_in });
 
     sendSuccess(res, {
       presigned_url: presignedUrl,
