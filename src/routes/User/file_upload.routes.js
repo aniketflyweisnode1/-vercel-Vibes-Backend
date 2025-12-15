@@ -15,7 +15,7 @@ const {
 const { auth } = require('../../../middleware/auth');
 
 // Upload single file (with auth)
-router.post('/upload-single', auth, uploadSingleFile);
+router.post('/upload-single', uploadSingleFile);
 
 // Upload multiple files (with auth)
 router.post('/upload-multiple', auth, uploadMultipleFiles);

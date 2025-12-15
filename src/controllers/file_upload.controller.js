@@ -104,7 +104,7 @@ const uploadSingleFile = asyncHandler(async (req, res) => {
         bucket: req.file.bucket,
         key: req.file.key,
         etag: req.file.etag,
-        uploaded_by: req.userId || null,
+        uploaded_by: null,
         uploaded_at: new Date()
       };
 

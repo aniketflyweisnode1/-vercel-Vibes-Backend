@@ -286,6 +286,9 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
 
     const filter = {};
 
+    if (status !== undefined) {
+      filter.status = status === 'true';
+    }
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -301,6 +304,93 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
       EventEntryTicketsOrder.countDocuments(filter)
     ]);
 
+    // Populate related fields
+    const populatedOrders = await Promise.all(orders.map(async (order) => {
+      const orderObj = order.toObject();
+      
+      // Populate createdBy
+      if (order.createdBy) {
+        try {
+          const createdByUser = await User.findOne({ user_id: order.createdBy });
+          orderObj.createdBy = createdByUser;
+        } catch (error) {
+          console.log('User not found for createdBy ID:', order.createdBy);
+        }
+      }
+      
+      // Populate updatedBy
+      if (order.updatedBy) {
+        try {
+          const updatedByUser = await User.findOne({ user_id: order.updatedBy });
+          orderObj.updatedBy = updatedByUser;
+        } catch (error) {
+          console.log('User not found for updatedBy ID:', order.updatedBy);
+        }
+      }
+      
+      // Populate event
+      if (order.event_id) {
+        try {
+          const event = await Event.findOne({ event_id: order.event_id });
+          orderObj.event = event;
+        } catch (error) {
+          console.log('Event not found for ID:', order.event_id);
+        }
+      }
+      
+      // Populate event_entry_userget_tickets
+      if (order.event_entry_userget_tickets_id) {
+        try {
+          const usergetTicket = await EventEntryUsergetTickets.findOne({ 
+            event_entry_userget_tickets_id: order.event_entry_userget_tickets_id 
+          });
+          orderObj.event_entry_userget_tickets = usergetTicket;
+        } catch (error) {
+          console.log('EventEntryUsergetTickets not found for ID:', order.event_entry_userget_tickets_id);
+        }
+      }
+      
+      // Check payment status
+      try {
+        const transactions = await Transaction.find({
+          transactionType: 'TicketBooking',
+          status: 'completed'
+        });
+        
+        let paymentStatus = 'pending';
+        let transaction = null;
+        
+        for (const txn of transactions) {
+          if (txn.metadata) {
+            try {
+              const metadata = JSON.parse(txn.metadata);
+              if (metadata.order_id === order.event_entry_tickets_order_id) {
+                transaction = txn;
+                paymentStatus = 'completed';
+                break;
+              }
+            } catch (e) {
+              // Skip if metadata parsing fails
+            }
+          }
+        }
+        
+        orderObj.payment_status = paymentStatus;
+        orderObj.transaction = transaction ? {
+          transaction_id: transaction.transaction_id,
+          status: transaction.status,
+          amount: transaction.amount,
+          transaction_date: transaction.transaction_date,
+          reference_number: transaction.reference_number
+        } : null;
+      } catch (error) {
+        orderObj.payment_status = 'unknown';
+        orderObj.transaction = null;
+      }
+      
+      return orderObj;
+    }));
+
     const pagination = {
       current: parseInt(page),
       pages: Math.ceil(total / parseInt(limit)),
@@ -308,7 +398,7 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
       limit: parseInt(limit)
     };
 
-    sendPaginated(res, orders, pagination, 'Event entry tickets orders retrieved successfully');
+    sendPaginated(res, populatedOrders, pagination, 'Event entry tickets orders retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -329,7 +419,89 @@ const getEventEntryTicketsOrderById = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Event entry tickets order not found');
     }
 
-    sendSuccess(res, order, 'Event entry tickets order retrieved successfully');
+    const orderObj = order.toObject();
+    
+    // Populate createdBy
+    if (order.createdBy) {
+      try {
+        const createdByUser = await User.findOne({ user_id: order.createdBy });
+        orderObj.createdBy = createdByUser;
+      } catch (error) {
+        console.log('User not found for createdBy ID:', order.createdBy);
+      }
+    }
+    
+    // Populate updatedBy
+    if (order.updatedBy) {
+      try {
+        const updatedByUser = await User.findOne({ user_id: order.updatedBy });
+        orderObj.updatedBy = updatedByUser;
+      } catch (error) {
+        console.log('User not found for updatedBy ID:', order.updatedBy);
+      }
+    }
+    
+    // Populate event
+    if (order.event_id) {
+      try {
+        const event = await Event.findOne({ event_id: order.event_id });
+        orderObj.event = event;
+      } catch (error) {
+        console.log('Event not found for ID:', order.event_id);
+      }
+    }
+    
+    // Populate event_entry_userget_tickets
+    if (order.event_entry_userget_tickets_id) {
+      try {
+        const usergetTicket = await EventEntryUsergetTickets.findOne({ 
+          event_entry_userget_tickets_id: order.event_entry_userget_tickets_id 
+        });
+        orderObj.event_entry_userget_tickets = usergetTicket;
+      } catch (error) {
+        console.log('EventEntryUsergetTickets not found for ID:', order.event_entry_userget_tickets_id);
+      }
+    }
+    
+    // Check payment status
+    try {
+      const transactions = await Transaction.find({
+        transactionType: 'TicketBooking',
+        status: 'completed'
+      });
+      
+      let paymentStatus = 'pending';
+      let transaction = null;
+      
+      for (const txn of transactions) {
+        if (txn.metadata) {
+          try {
+            const metadata = JSON.parse(txn.metadata);
+            if (metadata.order_id === order.event_entry_tickets_order_id) {
+              transaction = txn;
+              paymentStatus = 'completed';
+              break;
+            }
+          } catch (e) {
+            // Skip if metadata parsing fails
+          }
+        }
+      }
+      
+      orderObj.payment_status = paymentStatus;
+      orderObj.transaction = transaction ? {
+        transaction_id: transaction.transaction_id,
+        status: transaction.status,
+        amount: transaction.amount,
+        transaction_date: transaction.transaction_date,
+        reference_number: transaction.reference_number
+      } : null;
+    } catch (error) {
+      orderObj.payment_status = 'unknown';
+      orderObj.transaction = null;
+    }
+
+    sendSuccess(res, orderObj, 'Event entry tickets order retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -347,6 +519,9 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
 
     const filter = { createdBy: req.userId };
 
+    if (status !== undefined) {
+      filter.status = status === 'true';
+    }
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -359,6 +534,74 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
       EventEntryTicketsOrder.countDocuments(filter)
     ]);
 
+    // Populate related fields
+    const populatedOrders = await Promise.all(orders.map(async (order) => {
+      const orderObj = order.toObject();
+      
+      // Populate event
+      if (order.event_id) {
+        try {
+          const event = await Event.findOne({ event_id: order.event_id });
+          orderObj.event = event;
+        } catch (error) {
+          console.log('Event not found for ID:', order.event_id);
+        }
+      }
+      
+      // Populate event_entry_userget_tickets
+      if (order.event_entry_userget_tickets_id) {
+        try {
+          const usergetTicket = await EventEntryUsergetTickets.findOne({ 
+            event_entry_userget_tickets_id: order.event_entry_userget_tickets_id 
+          });
+          orderObj.event_entry_userget_tickets = usergetTicket;
+        } catch (error) {
+          console.log('EventEntryUsergetTickets not found for ID:', order.event_entry_userget_tickets_id);
+        }
+      }
+      
+      // Check payment status
+      try {
+        const transactions = await Transaction.find({
+          transactionType: 'TicketBooking',
+          status: 'completed',
+          user_id: req.userId
+        });
+        
+        let paymentStatus = 'pending';
+        let transaction = null;
+        
+        for (const txn of transactions) {
+          if (txn.metadata) {
+            try {
+              const metadata = JSON.parse(txn.metadata);
+              if (metadata.order_id === order.event_entry_tickets_order_id) {
+                transaction = txn;
+                paymentStatus = 'completed';
+                break;
+              }
+            } catch (e) {
+              // Skip if metadata parsing fails
+            }
+          }
+        }
+        
+        orderObj.payment_status = paymentStatus;
+        orderObj.transaction = transaction ? {
+          transaction_id: transaction.transaction_id,
+          status: transaction.status,
+          amount: transaction.amount,
+          transaction_date: transaction.transaction_date,
+          reference_number: transaction.reference_number
+        } : null;
+      } catch (error) {
+        orderObj.payment_status = 'unknown';
+        orderObj.transaction = null;
+      }
+      
+      return orderObj;
+    }));
+
     const pagination = {
       current: parseInt(page),
       pages: Math.ceil(total / parseInt(limit)),
@@ -366,7 +609,7 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
       limit: parseInt(limit)
     };
 
-    sendPaginated(res, orders, pagination, 'User event entry tickets orders retrieved successfully');
+    sendPaginated(res, populatedOrders, pagination, 'User event entry tickets orders retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -379,22 +622,78 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
  */
 const updateEventEntryTicketsOrder = asyncHandler(async (req, res) => {
   try {
-    const { id } = req.body;
+    const { id, seats, ...updateFields } = req.body;
 
-    req.body.updatedBy = req.userId;
-    req.body.updatedAt = new Date();
+    // Find existing order
+    const existingOrder = await EventEntryTicketsOrder.findOne({ 
+      event_entry_tickets_order_id: parseInt(id) 
+    });
 
-    const order = await EventEntryTicketsOrder.findOneAndUpdate(
-      { event_entry_tickets_order_id: parseInt(id) },
-      req.body,
-      { new: true, runValidators: true }
-    );
-
-    if (!order) {
+    if (!existingOrder) {
       return sendNotFound(res, 'Event entry tickets order not found');
     }
 
-    sendSuccess(res, order, 'Event entry tickets order updated successfully');
+    // Process seats field if provided
+    if (seats !== undefined) {
+      const processSeatsField = (seatsField) => {
+        if (!seatsField) return [];
+        if (Array.isArray(seatsField)) {
+          return seatsField.map(seat => String(seat).trim()).filter(seat => seat.length > 0);
+        }
+        if (typeof seatsField === 'string') {
+          try {
+            const parsed = JSON.parse(seatsField);
+            if (Array.isArray(parsed)) {
+              return parsed.map(seat => String(seat).trim()).filter(seat => seat.length > 0);
+            }
+            return [String(seatsField).trim()].filter(seat => seat.length > 0);
+          } catch {
+            return seatsField.split(',').map(seat => String(seat).trim()).filter(seat => seat.length > 0);
+          }
+        }
+        return [];
+      };
+
+      updateFields.seats = processSeatsField(seats);
+      
+      // Validate seats count matches quantity if both are provided
+      if (updateFields.seats.length > 0 && updateFields.quantity && 
+          updateFields.seats.length !== updateFields.quantity) {
+        console.warn(`Warning: Seats count (${updateFields.seats.length}) does not match quantity (${updateFields.quantity})`);
+      }
+    }
+
+    updateFields.updatedBy = req.userId;
+    updateFields.updatedAt = new Date();
+
+    const order = await EventEntryTicketsOrder.findOneAndUpdate(
+      { event_entry_tickets_order_id: parseInt(id) },
+      updateFields,
+      { new: true, runValidators: true }
+    );
+
+    // Populate related fields for response
+    const orderObj = order.toObject();
+    
+    if (order.createdBy) {
+      try {
+        const createdByUser = await User.findOne({ user_id: order.createdBy });
+        orderObj.createdBy = createdByUser;
+      } catch (error) {
+        console.log('User not found for createdBy ID:', order.createdBy);
+      }
+    }
+    
+    if (order.updatedBy) {
+      try {
+        const updatedByUser = await User.findOne({ user_id: order.updatedBy });
+        orderObj.updatedBy = updatedByUser;
+      } catch (error) {
+        console.log('User not found for updatedBy ID:', order.updatedBy);
+      }
+    }
+
+    sendSuccess(res, orderObj, 'Event entry tickets order updated successfully');
   } catch (error) {
     throw error;
   }
@@ -402,6 +701,7 @@ const updateEventEntryTicketsOrder = asyncHandler(async (req, res) => {
 
 /**
  * Delete event entry tickets order
+ * Restores seats when order is deleted
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
@@ -409,13 +709,74 @@ const deleteEventEntryTicketsOrder = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const order = await EventEntryTicketsOrder.findOneAndDelete({ event_entry_tickets_order_id: parseInt(id) });
+    // Find the order first to get details for seat restoration
+    const order = await EventEntryTicketsOrder.findOne({ 
+      event_entry_tickets_order_id: parseInt(id) 
+    });
 
     if (!order) {
       return sendNotFound(res, 'Event entry tickets order not found');
     }
 
-    sendSuccess(res, null, 'Event entry tickets order deleted successfully');
+    // Check if payment is completed - if so, prevent deletion or handle refund
+    try {
+      const transactions = await Transaction.find({
+        transactionType: 'TicketBooking',
+        status: 'completed'
+      });
+
+      for (const txn of transactions) {
+        if (txn.metadata) {
+          try {
+            const metadata = JSON.parse(txn.metadata);
+            if (metadata.order_id === parseInt(id)) {
+              return sendError(res, 'Cannot delete order with completed payment. Please process a refund instead.', 400);
+            }
+          } catch (e) {
+            // Skip if metadata parsing fails
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+    }
+
+    // Get userget ticket to restore seats
+    try {
+      const usergetTicket = await EventEntryUsergetTickets.findOne({
+        event_entry_userget_tickets_id: order.event_entry_userget_tickets_id
+      });
+
+      if (usergetTicket && usergetTicket.tickets) {
+        // Restore seats for each ticket type
+        for (const ticket of usergetTicket.tickets) {
+          if (ticket.event_entry_tickets_id) {
+            try {
+              await EventEntryTickets.findOneAndUpdate(
+                { event_entry_tickets_id: ticket.event_entry_tickets_id },
+                { 
+                  $inc: { total_seats: ticket.quantity },
+                  updatedBy: req.userId,
+                  updatedAt: new Date()
+                },
+                { new: true }
+              );
+              console.log(`Restored ${ticket.quantity} seats for ticket ID ${ticket.event_entry_tickets_id}`);
+            } catch (seatRestoreError) {
+              console.error('Error restoring seats:', seatRestoreError);
+            }
+          }
+        }
+      }
+    } catch (restoreError) {
+      console.error('Error restoring seats during order deletion:', restoreError);
+      // Continue with deletion even if seat restoration fails
+    }
+
+    // Delete the order
+    await EventEntryTicketsOrder.findOneAndDelete({ event_entry_tickets_order_id: parseInt(id) });
+
+    sendSuccess(res, null, 'Event entry tickets order deleted successfully and seats restored');
   } catch (error) {
     throw error;
   }
@@ -745,13 +1106,25 @@ const confirmPayment = asyncHandler(async (req, res) => {
 
     // Update order status if payment succeeded
     if (confirmedPayment.status === 'succeeded') {
-      await EventEntryTicketsOrder.findOneAndUpdate(
-        { event_entry_tickets_order_id: transaction.metadata.order_id },
-        {
-          updatedBy: req.userId,
-          updatedAt: new Date()
+      try {
+        let orderId = null;
+        if (transaction.metadata) {
+          const metadata = JSON.parse(transaction.metadata);
+          orderId = metadata.order_id;
         }
-      );
+        
+        if (orderId) {
+          await EventEntryTicketsOrder.findOneAndUpdate(
+            { event_entry_tickets_order_id: orderId },
+            {
+              updatedBy: req.userId,
+              updatedAt: new Date()
+            }
+          );
+        }
+      } catch (error) {
+        console.error('Error updating order status:', error);
+      }
     }
 
     sendSuccess(res, {
