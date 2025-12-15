@@ -23,22 +23,17 @@ const {
 
 // Create vendor booking (with auth)
 router.post('/create', auth, validateBody(createVendorBookingSchema), createVendorBooking);
-
 // Get all vendor bookings
 router.get('/getAll', validateQuery(queryVendorBookingSchema), getAllVendorBookings);
-
 // Get vendor bookings for authenticated user
 router.get('/getByAuth', auth, validateQuery(queryVendorBookingSchema), getVendorBookingsByAuth);
 router.get('/getByuserAuth', auth, validateQuery(queryVendorBookingSchema), getVendorBookingsByUserId);
 // Get vendor booking by ID (with auth)
 router.get('/getById/:id', auth, validateParams(getVendorBookingByIdSchema), getVendorBookingById);
-
 // Update vendor booking (with auth)
 router.put('/update', auth, validateBody(updateVendorBookingSchema), updateVendorBooking);
-
 // Delete vendor booking (with auth)
 router.delete('/delete/:id', auth, validateParams(getVendorBookingByIdSchema), deleteVendorBooking);
-
 // Vendor booking payment (with auth)
 router.post('/payment', auth, validateBody(vendorBookingPaymentSchema), VendorBookingPayment);
 

@@ -642,7 +642,7 @@ const getEventById = asyncHandler(async (req, res) => {
     // Populate ticket details
     if (event.event_id) {
       try {
-        const Ticket = require('../models/ticket.model');
+        const Ticket = require('../models/event_entry_tickets.model');
           const tickets = await Ticket.find({
           event_id: event.event_id,
           status: true
