@@ -19,7 +19,7 @@ const PaymentMethods = require('../models/payment_methods.model');
  */
 const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
   try {
-    const { event_id, coupon_code } = req.body;
+    const { event_id, coupon_code, seats } = req.body;
 
     // Get the event (for validation)
     const event = await Event.findOne({ event_id: parseInt(event_id) });
@@ -197,7 +197,8 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       coupon_code_id: couponCodeId,
       discount_amount: discountAmount,
       final_amount: finalAmount,
-      createdBy: req.userId
+      createdBy: req.userId,
+      seats: seats
     };
 
     const order = await EventEntryTicketsOrder.create(orderData);
