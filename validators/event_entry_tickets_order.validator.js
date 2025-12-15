@@ -15,6 +15,12 @@ const createEventEntryTicketsOrderSchema = Joi.object({
   }),
   coupon_code: Joi.string().trim().uppercase().max(50).allow('', null).messages({
     'string.max': 'Coupon code cannot exceed 50 characters'
+  }),
+  seats: Joi.alternatives().try(
+    Joi.array().items(Joi.string().trim()),
+    Joi.string().trim().allow('', null)
+  ).messages({
+    'alternatives.match': 'Seats must be an array of strings or a string'
   })
 });
 

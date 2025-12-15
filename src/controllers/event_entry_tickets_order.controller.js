@@ -184,6 +184,37 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     // Calculate final amount after discount
     const finalAmount = total - discountAmount;
 
+    // Process seats field to ensure it's an array of strings
+    const processSeatsField = (seatsField) => {
+      if (!seatsField) return [];
+      if (Array.isArray(seatsField)) {
+        return seatsField.map(seat => String(seat).trim()).filter(seat => seat.length > 0);
+      }
+      if (typeof seatsField === 'string') {
+        // Try to parse if it's a JSON string
+        try {
+          const parsed = JSON.parse(seatsField);
+          if (Array.isArray(parsed)) {
+            return parsed.map(seat => String(seat).trim()).filter(seat => seat.length > 0);
+          }
+          return [String(seatsField).trim()].filter(seat => seat.length > 0);
+        } catch {
+          // If not JSON, treat as comma-separated string
+          return seatsField.split(',').map(seat => String(seat).trim()).filter(seat => seat.length > 0);
+        }
+      }
+      return [];
+    };
+
+    const processedSeats = processSeatsField(seats);
+
+    // Validate seats count matches quantity (optional validation)
+    if (processedSeats.length > 0 && processedSeats.length !== totalQuantity) {
+      console.warn(`Warning: Seats count (${processedSeats.length}) does not match total quantity (${totalQuantity})`);
+      // You can uncomment the line below to enforce strict validation
+      // return sendError(res, `Seats count (${processedSeats.length}) must match total quantity (${totalQuantity})`, 400);
+    }
+
     // Create order data
     const orderData = {
       event_entry_userget_tickets_id: usergetTicket.event_entry_userget_tickets_id,
@@ -198,7 +229,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       discount_amount: discountAmount,
       final_amount: finalAmount,
       createdBy: req.userId,
-      seats: seats
+      seats: processedSeats
     };
 
     const order = await EventEntryTicketsOrder.create(orderData);
