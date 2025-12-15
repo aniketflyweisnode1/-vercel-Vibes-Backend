@@ -639,15 +639,44 @@ const getEventById = asyncHandler(async (req, res) => {
       }
     }
 
-    // Populate ticket details
+    // Populate ticket details (EventEntryTickets)
     if (event.event_id) {
       try {
-        const Ticket = require('../models/event_entry_tickets.model');
-          const tickets = await Ticket.find({
+        const EventEntryTickets = require('../models/event_entry_tickets.model');
+        const User = require('../models/user.model');
+        const tickets = await EventEntryTickets.find({
           event_id: event.event_id,
           status: true
-        }).select('ticket_id max_capacity ticketDateils reply status');
-        eventObj.ticket_details = tickets || [];
+        }).select('event_entry_tickets_id title price total_seats facility tag status createdBy updatedBy createdAt updatedAt');
+        
+        // Populate createdBy and updatedBy for each ticket
+        const ticketsWithPopulatedIds = await Promise.all(tickets.map(async (ticket) => {
+          const ticketObj = ticket.toObject();
+          
+          // Populate createdBy
+          if (ticket.createdBy) {
+            try {
+              const createdByUser = await User.findOne({ user_id: ticket.createdBy });
+              ticketObj.createdBy = createdByUser;
+            } catch (error) {
+              console.log('User not found for createdBy ID:', ticket.createdBy);
+            }
+          }
+          
+          // Populate updatedBy
+          if (ticket.updatedBy) {
+            try {
+              const updatedByUser = await User.findOne({ user_id: ticket.updatedBy });
+              ticketObj.updatedBy = updatedByUser;
+            } catch (error) {
+              console.log('User not found for updatedBy ID:', ticket.updatedBy);
+            }
+          }
+          
+          return ticketObj;
+        }));
+        
+        eventObj.ticket_details = ticketsWithPopulatedIds || [];
       } catch (error) {
         console.log('Error fetching ticket details for event ID:', event.event_id, error);
         eventObj.ticket_details = [];
@@ -679,15 +708,64 @@ const getEventById = asyncHandler(async (req, res) => {
       eventObj.TotalofTicketsBookingbyEvent = 0;
     }
 
-    // Populate Ticket model full details
+    // Populate Ticket model full details with all nested IDs
     if (event.event_id) {
       try {
+        const Ticket = require('../models/ticket.model');
+        const TicketType = require('../models/ticket_type.model');
+        const User = require('../models/user.model');
         const tickets = await Ticket.find({
           event_id: event.event_id,
           status: true
         });
-        console.log('Ticket model details:', tickets);
-        eventObj.EventTicketsData = tickets || [];
+        
+        // Populate all IDs within tickets
+        const ticketsWithPopulatedIds = await Promise.all(tickets.map(async (ticket) => {
+          const ticketObj = ticket.toObject();
+          
+          // Populate ticket_type_id within ticketDateils array
+          if (ticketObj.ticketDateils && Array.isArray(ticketObj.ticketDateils)) {
+            ticketObj.ticketDateils = await Promise.all(ticketObj.ticketDateils.map(async (ticketDetail) => {
+              if (ticketDetail.ticket_type_id) {
+                try {
+                  const ticketType = await TicketType.findOne({ ticket_type_id: ticketDetail.ticket_type_id });
+                  return {
+                    ...ticketDetail,
+                    ticket_type_id: ticketType
+                  };
+                } catch (error) {
+                  console.log('TicketType not found for ID:', ticketDetail.ticket_type_id);
+                  return ticketDetail;
+                }
+              }
+              return ticketDetail;
+            }));
+          }
+          
+          // Populate created_by
+          if (ticket.created_by) {
+            try {
+              const createdByUser = await User.findOne({ user_id: ticket.created_by });
+              ticketObj.created_by = createdByUser;
+            } catch (error) {
+              console.log('User not found for created_by ID:', ticket.created_by);
+            }
+          }
+          
+          // Populate updated_by
+          if (ticket.updated_by) {
+            try {
+              const updatedByUser = await User.findOne({ user_id: ticket.updated_by });
+              ticketObj.updated_by = updatedByUser;
+            } catch (error) {
+              console.log('User not found for updated_by ID:', ticket.updated_by);
+            }
+          }
+          
+          return ticketObj;
+        }));
+        
+        eventObj.EventTicketsData = ticketsWithPopulatedIds || [];
       } catch (error) {
         console.log('Error fetching Ticket model details for event ID:', event.event_id, error);
         eventObj.EventTicketsData = [];
