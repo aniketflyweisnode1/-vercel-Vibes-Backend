@@ -685,14 +685,17 @@ const getEventById = asyncHandler(async (req, res) => {
       eventObj.ticket_details = [];
     }
 
-    // Calculate total tickets booked for this event
+    // Calculate total tickets booked for this event and get seats booking details
     if (event.event_id) {
       try {
         const EventEntryTicketsOrder = require('../models/event_entry_tickets_order.model');
+        const Transaction = require('../models/transaction.model');
+        const User = require('../models/user.model');
+        
         const ticketOrders = await EventEntryTicketsOrder.find({
           event_id: event.event_id,
           status: true
-        }).select('quantity');
+        }).select('event_entry_tickets_order_id event_entry_userget_tickets_id event_id quantity price seats subtotal tax total coupon_code_id discount_amount final_amount Platform status createdBy updatedBy createdAt updatedAt');
 
         // Sum up all quantities
         const totalTicketsBooked = ticketOrders.reduce((sum, order) => {
@@ -700,12 +703,82 @@ const getEventById = asyncHandler(async (req, res) => {
         }, 0);
 
         eventObj.TotalofTicketsBookingbyEvent = totalTicketsBooked;
+
+        // Get seats booking details with payment status
+        const seatsBookingDetails = await Promise.all(ticketOrders.map(async (order) => {
+          const orderObj = order.toObject();
+          
+          // Check if payment is completed for this order
+          let paymentStatus = 'pending';
+          let transaction = null;
+          
+          try {
+            const transactions = await Transaction.find({
+              transactionType: 'TicketBooking',
+              status: 'completed'
+            });
+            
+            // Find transaction for this order by checking metadata
+            for (const txn of transactions) {
+              if (txn.metadata) {
+                try {
+                  const metadata = JSON.parse(txn.metadata);
+                  if (metadata.order_id === order.event_entry_tickets_order_id) {
+                    transaction = txn;
+                    paymentStatus = 'completed';
+                    break;
+                  }
+                } catch (e) {
+                  // Skip if metadata parsing fails
+                }
+              }
+            }
+          } catch (error) {
+            console.log('Error checking payment status for order:', order.event_entry_tickets_order_id, error);
+          }
+          
+          // Populate createdBy
+          if (order.createdBy) {
+            try {
+              const createdByUser = await User.findOne({ user_id: order.createdBy });
+              orderObj.createdBy = createdByUser;
+            } catch (error) {
+              console.log('User not found for createdBy ID:', order.createdBy);
+            }
+          }
+          
+          // Populate updatedBy
+          if (order.updatedBy) {
+            try {
+              const updatedByUser = await User.findOne({ user_id: order.updatedBy });
+              orderObj.updatedBy = updatedByUser;
+            } catch (error) {
+              console.log('User not found for updatedBy ID:', order.updatedBy);
+            }
+          }
+          
+          return {
+            ...orderObj,
+            payment_status: paymentStatus,
+            transaction: transaction ? {
+              transaction_id: transaction.transaction_id,
+              status: transaction.status,
+              amount: transaction.amount,
+              transaction_date: transaction.transaction_date,
+              reference_number: transaction.reference_number
+            } : null
+          };
+        }));
+        
+        eventObj.seats_booking_details = seatsBookingDetails || [];
       } catch (error) {
         console.log('Error calculating total tickets booked for event ID:', event.event_id, error);
         eventObj.TotalofTicketsBookingbyEvent = 0;
+        eventObj.seats_booking_details = [];
       }
     } else {
       eventObj.TotalofTicketsBookingbyEvent = 0;
+      eventObj.seats_booking_details = [];
     }
 
     // Populate Ticket model full details with all nested IDs

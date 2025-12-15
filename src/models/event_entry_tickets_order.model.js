@@ -26,6 +26,10 @@ const eventEntryTicketsOrderSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  seats: {
+    type: [String],
+    default: []
+  },
   subtotal: {
     type: Number,
     required: true,

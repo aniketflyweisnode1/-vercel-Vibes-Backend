@@ -47,6 +47,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     let totalQuantity = 0;
     let subtotal = 0;
     const ticketBreakdown = [];
+    const ticketsToUpdate = []; // Store tickets that need seat updates
 
     for (const ticket of usergetTicket.tickets) {
       // Auto-populate event_entry_tickets_id if not provided
@@ -95,6 +96,12 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
 
       totalQuantity += itemQuantity;
       subtotal += itemSubtotal;
+
+      // Store ticket info for seat update
+      ticketsToUpdate.push({
+        event_entry_tickets_id: eventEntryTicketsId,
+        quantity: itemQuantity
+      });
 
       ticketBreakdown.push({
         event_entry_tickets_id: eventEntryTicketsId,
@@ -194,6 +201,26 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     };
 
     const order = await EventEntryTicketsOrder.create(orderData);
+
+    // Update seats for each ticket after order creation
+    try {
+      for (const ticketUpdate of ticketsToUpdate) {
+        await EventEntryTickets.findOneAndUpdate(
+          { event_entry_tickets_id: ticketUpdate.event_entry_tickets_id },
+          { 
+            $inc: { total_seats: -ticketUpdate.quantity },
+            updatedBy: req.userId,
+            updatedAt: new Date()
+          },
+          { new: true }
+        );
+        console.log(`Updated seats for ticket ID ${ticketUpdate.event_entry_tickets_id}: decremented ${ticketUpdate.quantity} seats`);
+      }
+    } catch (seatUpdateError) {
+      // Log error but don't fail the order creation
+      console.error('Error updating seats after order creation:', seatUpdateError);
+      // Note: In production, you might want to implement a rollback mechanism here
+    }
 
     sendSuccess(res, {
       ...order.toObject(),
@@ -384,6 +411,31 @@ const processPayment = asyncHandler(async (req, res) => {
     // Check if order belongs to the authenticated user
     if (order.createdBy !== req.userId) {
       return sendError(res, 'Unauthorized: This order does not belong to you', 403);
+    }
+
+    // Check if payment is already completed for this order
+    try {
+      const existingTransactions = await Transaction.find({
+        transactionType: 'TicketBooking',
+        status: 'completed'
+      });
+
+      // Check if any completed transaction exists for this order
+      for (const txn of existingTransactions) {
+        if (txn.metadata) {
+          try {
+            const metadata = JSON.parse(txn.metadata);
+            if (metadata.order_id === parseInt(order_id)) {
+              return sendError(res, 'Payment has already been completed for this order', 400);
+            }
+          } catch (e) {
+            // Skip if metadata parsing fails
+          }
+        }
+      }
+    } catch (paymentCheckError) {
+      console.error('Error checking existing payment:', paymentCheckError);
+      // Continue with payment processing if check fails
     }
 
     // Get user information for Stripe customer creation
