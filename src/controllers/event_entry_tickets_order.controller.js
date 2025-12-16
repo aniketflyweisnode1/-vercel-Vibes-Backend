@@ -6,10 +6,16 @@ const Event = require('../models/event.model');
 const Transaction = require('../models/transaction.model');
 const CouponCode = require('../models/coupon_code.model');
 const User = require('../models/user.model');
+const VenueDetails = require('../models/venue_details.model');
+const Country = require('../models/country.model');
+const State = require('../models/state.model');
+const City = require('../models/city.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { createPaymentIntent, createCustomer, confirmPaymentIntent, verifyPaymentStatus, getPaymentIntentById } = require('../../utils/stripe');
 const PaymentMethods = require('../models/payment_methods.model');
+const emailService = require('../../utils/emailService');
+const logger = require('../../utils/logger');
 /**
  * Create a new event entry tickets order
  * Automatically finds purchase by event_id and authenticated user
@@ -1031,6 +1037,96 @@ const processPayment = asyncHandler(async (req, res) => {
         updatedAt: new Date()
       }
     );
+
+    // Populate event details for email
+    let populatedEvent = null;
+    if (event) {
+      const [venueDetails, country, state, city] = await Promise.all([
+        event.venue_details_id
+          ? VenueDetails.findOne({ venue_details_id: event.venue_details_id }).lean()
+          : Promise.resolve(null),
+        event.country_id
+          ? Country.findOne({ country_id: event.country_id }).lean()
+          : Promise.resolve(null),
+        event.state_id
+          ? State.findOne({ state_id: event.state_id }).lean()
+          : Promise.resolve(null),
+        event.city_id
+          ? City.findOne({ city_id: event.city_id }).lean()
+          : Promise.resolve(null)
+      ]);
+
+      populatedEvent = {
+        ...event.toObject(),
+        venue_details_id: venueDetails,
+        country_id: country,
+        state_id: state,
+        city_id: city
+      };
+    }
+
+    // Send confirmation emails to customer, admin, and event host
+    const emailData = {
+      order: order.toObject(),
+      event: populatedEvent,
+      paymentBreakdown: {
+        total_amount: totalAmount,
+        base_amount: baseAmount,
+        platform_fee: platformFeeAmount,
+        platform_fee_percentage: platformFeeAmount > 0 ? ((platformFeeAmount / baseAmount) * 100).toFixed(2) : 0,
+        event_host_amount: eventHostAmount
+      },
+      transaction: customerTransaction.toObject()
+    };
+
+    // Send email to customer
+    try {
+      await emailService.sendTicketBookingPaymentEmail(
+        user.email,
+        emailData,
+        user.name || 'User'
+      );
+    } catch (emailError) {
+      logger.error('Failed to send ticket booking confirmation email to customer', {
+        error: emailError.message,
+        userEmail: user.email
+      });
+    }
+
+    // Send email to admin
+    try {
+      if (adminUser && adminUser.email) {
+        await emailService.sendTicketBookingPaymentEmail(
+          adminUser.email,
+          emailData,
+          adminUser.name || 'Admin'
+        );
+      }
+    } catch (emailError) {
+      logger.error('Failed to send ticket booking confirmation email to admin', {
+        error: emailError.message,
+        adminEmail: adminUser?.email
+      });
+    }
+
+    // Send email to event host (created_by)
+    try {
+      if (eventHostId) {
+        const eventHostUser = await User.findOne({ user_id: eventHostId, status: true });
+        if (eventHostUser && eventHostUser.email) {
+          await emailService.sendTicketBookingPaymentEmail(
+            eventHostUser.email,
+            emailData,
+            eventHostUser.name || 'Event Host'
+          );
+        }
+      }
+    } catch (emailError) {
+      logger.error('Failed to send ticket booking confirmation email to event host', {
+        error: emailError.message,
+        eventHostId: eventHostId
+      });
+    }
 
     sendSuccess(res, {
       paymentIntent: {
