@@ -1170,7 +1170,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       { Vendor_Booking_id: parseInt(vendor_booking_id, 10) },
       {
         amount: totalAmount,
-        vendor_amount: vendorAmount, // Vendor gets full payment
+        vendor_amount: vendorAmount, // Vendor receives baseAmount only
         amount_status: 'confirmed',
         vendor_amount_status: 'confirmed',
         vender_booking_status: 'confirmed',

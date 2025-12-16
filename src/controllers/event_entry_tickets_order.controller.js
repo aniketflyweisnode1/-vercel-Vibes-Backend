@@ -865,6 +865,9 @@ const processPayment = asyncHandler(async (req, res) => {
     const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
     const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
     
+    // Event host receives baseAmount, Admin receives platformFeeAmount
+    const eventHostAmount = baseAmount; // Event host receives base amount only
+    
     // Get event to find event host (created_by)
     const event = await Event.findOne({ event_id: order.event_id });
     const eventHostId = event ? event.created_by : null;
@@ -919,21 +922,62 @@ const processPayment = asyncHandler(async (req, res) => {
         base_amount: baseAmount,
         platform_fee: platformFeeAmount,
         platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-        event_host_amount: baseAmount
+        event_host_amount: eventHostAmount
       }),
       created_by: req.userId
     };
 
-    // Create the transaction
-    const transaction = await Transaction.create(transactionData);
+    // Create customer transaction
+    const customerTransaction = await Transaction.create(transactionData);
     
-    // Create admin transaction for platform fee
+    // Create event host transaction - Event host receives baseAmount only
+    if (eventHostId && eventHostAmount > 0) {
+      const eventHostUser = await User.findOne({ user_id: eventHostId, status: true });
+      
+      if (eventHostUser) {
+        const eventHostTransactionData = {
+          user_id: eventHostId, // Event host user ID
+          amount: eventHostAmount, // Event host receives baseAmount only
+          status: paymentIntent.status,
+          payment_method_id: parseInt(payment_method_id, 10),
+          transactionType: 'TicketBooking',
+          transaction_date: new Date(),
+          reference_number: `EVENT_HOST_PAYMENT_${paymentIntent.paymentIntentId}`,
+          coupon_code_id: null,
+          CGST: 0,
+          SGST: 0,
+          TotalGST: 0,
+          metadata: JSON.stringify({
+            payment_intent_id: paymentIntent.paymentIntentId,
+            stripe_payment_intent_id: paymentIntent.paymentIntentId,
+            customer_id: customerId,
+            order_id: order.event_entry_tickets_order_id,
+            event_id: order.event_id,
+            event_host_id: eventHostId,
+            customer_user_id: req.userId,
+            base_amount: baseAmount,
+            platform_fee: platformFeeAmount,
+            platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+            event_host_amount: eventHostAmount, // Event host receives baseAmount
+            total_amount: totalAmount,
+            customer_transaction_id: customerTransaction.transaction_id,
+            description: 'Event host receives base amount from ticket booking payment'
+          }),
+          created_by: req.userId
+        };
+
+        await Transaction.create(eventHostTransactionData);
+      }
+    }
+    
+    // Create admin transaction for platform fee only
+    // Admin receives only the 7% platform fee
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
     
     if (adminUser && platformFeeAmount > 0) {
       const adminTransactionData = {
         user_id: adminUser.user_id,
-        amount: platformFeeAmount,
+        amount: platformFeeAmount, // Admin receives only platform fee (7%)
         status: paymentIntent.status,
         payment_method_id: parseInt(payment_method_id, 10),
         transactionType: 'TicketBooking',
@@ -954,8 +998,10 @@ const processPayment = asyncHandler(async (req, res) => {
           base_amount: baseAmount,
           platform_fee: platformFeeAmount,
           platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-          customer_transaction_id: transaction.transaction_id,
-          description: 'Platform fee from public event ticket booking payment'
+          event_host_amount: eventHostAmount, // Event host receives baseAmount
+          total_amount: totalAmount,
+          customer_transaction_id: customerTransaction.transaction_id,
+          description: 'Platform fee (7%) from ticket booking payment - Admin receives platform fee'
         }),
         created_by: req.userId
       };
@@ -964,16 +1010,16 @@ const processPayment = asyncHandler(async (req, res) => {
     }
 
     // Populate payment_method_id
-    let populatedTransaction = transaction.toObject();
-    if (transaction.payment_method_id) {
+    let populatedTransaction = customerTransaction.toObject();
+    if (customerTransaction.payment_method_id) {
       try {
         const PaymentMethods = require('../models/payment_methods.model');
         const paymentMethod = await PaymentMethods.findOne({
-          payment_methods_id: transaction.payment_method_id
+          payment_methods_id: customerTransaction.payment_method_id
         });
         populatedTransaction.payment_method_id = paymentMethod;
       } catch (error) {
-        console.log('PaymentMethod not found for ID:', transaction.payment_method_id);
+        console.log('PaymentMethod not found for ID:', customerTransaction.payment_method_id);
       }
     }
 
@@ -997,6 +1043,32 @@ const processPayment = asyncHandler(async (req, res) => {
       transaction: populatedTransaction,
       order: order,
       customer_id: customerId,
+      customer_transaction_id: customerTransaction.transaction_id,
+      payment_breakdown: {
+        total_amount: totalAmount, // Customer pays this (baseAmount + platformFeeAmount)
+        base_amount: baseAmount, // Event host receives this
+        platform_fee: platformFeeAmount, // Admin receives this (7%)
+        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+        event_host_amount: eventHostAmount // Event host receives baseAmount only
+      },
+      transactions: {
+        customer: {
+          transaction_id: customerTransaction.transaction_id,
+          user_id: req.userId,
+          amount: totalAmount,
+          description: 'Customer payment for ticket booking (baseAmount + platformFee)'
+        },
+        event_host: {
+          user_id: eventHostId,
+          amount: eventHostAmount, // baseAmount
+          description: 'Event host receives base amount'
+        },
+        admin: {
+          user_id: adminUser ? adminUser.user_id : null,
+          amount: platformFeeAmount,
+          description: 'Admin receives 7% platform fee'
+        }
+      },
       payment_summary: {
         order_id: order.event_entry_tickets_order_id,
         subtotal: order.subtotal,
@@ -1007,15 +1079,15 @@ const processPayment = asyncHandler(async (req, res) => {
         platform_fee: platformFeeAmount,
         platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
         final_amount: order.final_amount,
-        amount_paid: transaction.amount,
-        event_host_amount: baseAmount,
-        transaction_id: transaction.transaction_id,
+        amount_paid: customerTransaction.amount,
+        event_host_amount: eventHostAmount,
+        transaction_id: customerTransaction.transaction_id,
         transaction_type: 'TicketBooking',
-        payment_status: transaction.status,
-        reference_number: transaction.reference_number,
+        payment_status: customerTransaction.status,
+        reference_number: customerTransaction.reference_number,
         stripe_payment_intent_id: paymentIntent.paymentIntentId
       }
-    }, 'Payment intent created successfully. Use client_secret to complete payment on frontend.', 201);
+    }, 'Ticket booking payment processed successfully. Three transactions created: Customer pays total amount, Event host receives base amount, Admin receives 7% platform fee.', 201);
   } catch (error) {
     throw error;
   }

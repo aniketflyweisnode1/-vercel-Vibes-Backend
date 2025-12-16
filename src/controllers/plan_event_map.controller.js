@@ -4,6 +4,265 @@ const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../u
 const { asyncHandler } = require('../../middleware/errorHandler');
 
 /**
+ * Helper function to populate all IDs in plan event map
+ */
+const populatePlanEventMap = async (planEventMap) => {
+  if (!planEventMap) return planEventMap;
+
+  const planObj = planEventMap.toObject ? planEventMap.toObject() : planEventMap;
+
+  // Populate event_id
+  if (planObj.event_id) {
+    try {
+      const Event = require('../models/event.model');
+      const event = await Event.findOne({ event_id: planObj.event_id });
+      planObj.event_details = event || null;
+    } catch (error) {
+      console.log('Event not found for ID:', planObj.event_id);
+      planObj.event_details = null;
+    }
+  }
+
+  // Populate menu_drinks
+  if (planObj.menu_drinks && Array.isArray(planObj.menu_drinks) && planObj.menu_drinks.length > 0) {
+    try {
+      const Drinks = require('../models/drinks.model');
+      const drinks = await Drinks.find({ drinks_id: { $in: planObj.menu_drinks } });
+      planObj.menu_drinks_details = drinks || [];
+    } catch (error) {
+      console.log('Error populating menu_drinks:', error);
+      planObj.menu_drinks_details = [];
+    }
+  } else {
+    planObj.menu_drinks_details = [];
+  }
+
+  // Populate menu_food
+  if (planObj.menu_food && Array.isArray(planObj.menu_food) && planObj.menu_food.length > 0) {
+    try {
+      const Food = require('../models/food.model');
+      const food = await Food.find({ food_id: { $in: planObj.menu_food } });
+      planObj.menu_food_details = food || [];
+    } catch (error) {
+      console.log('Error populating menu_food:', error);
+      planObj.menu_food_details = [];
+    }
+  } else {
+    planObj.menu_food_details = [];
+  }
+
+  // Populate menu_entertainment
+  if (planObj.menu_entertainment && Array.isArray(planObj.menu_entertainment) && planObj.menu_entertainment.length > 0) {
+    try {
+      const Entertainment = require('../models/entertainment.model');
+      const entertainment = await Entertainment.find({ entertainment_id: { $in: planObj.menu_entertainment } });
+      planObj.menu_entertainment_details = entertainment || [];
+    } catch (error) {
+      console.log('Error populating menu_entertainment:', error);
+      planObj.menu_entertainment_details = [];
+    }
+  } else {
+    planObj.menu_entertainment_details = [];
+  }
+
+  // Populate menu_decorations
+  if (planObj.menu_decorations && Array.isArray(planObj.menu_decorations) && planObj.menu_decorations.length > 0) {
+    try {
+      const Decorations = require('../models/decorations.model');
+      const decorations = await Decorations.find({ decorations_id: { $in: planObj.menu_decorations } });
+      planObj.menu_decorations_details = decorations || [];
+    } catch (error) {
+      console.log('Error populating menu_decorations:', error);
+      planObj.menu_decorations_details = [];
+    }
+  } else {
+    planObj.menu_decorations_details = [];
+  }
+
+  // Populate tasks
+  if (planObj.tasks && Array.isArray(planObj.tasks) && planObj.tasks.length > 0) {
+    try {
+      const EventTasks = require('../models/event_tasks.model');
+      const tasks = await EventTasks.find({ event_tasks_id: { $in: planObj.tasks } });
+      planObj.tasks_details = tasks || [];
+    } catch (error) {
+      console.log('Error populating tasks:', error);
+      planObj.tasks_details = [];
+    }
+  } else {
+    planObj.tasks_details = [];
+  }
+
+  // Populate chat
+  if (planObj.chat && Array.isArray(planObj.chat) && planObj.chat.length > 0) {
+    try {
+      const EventDiscussionChat = require('../models/event_discussion_chat.model');
+      const chats = await EventDiscussionChat.find({ event_discussion_chat_id: { $in: planObj.chat } });
+      planObj.chat_details = chats || [];
+    } catch (error) {
+      console.log('Error populating chat:', error);
+      planObj.chat_details = [];
+    }
+  } else {
+    planObj.chat_details = [];
+  }
+
+  // Populate budget_items_id
+  if (planObj.budget_items_id && Array.isArray(planObj.budget_items_id) && planObj.budget_items_id.length > 0) {
+    try {
+      const BudgetItems = require('../models/budget_items.model');
+      const budgetItems = await BudgetItems.find({ budget_items_id: { $in: planObj.budget_items_id } });
+      planObj.budget_items_details = budgetItems || [];
+    } catch (error) {
+      console.log('Error populating budget_items_id:', error);
+      planObj.budget_items_details = [];
+    }
+  } else {
+    planObj.budget_items_details = [];
+  }
+
+  // Populate venue_management
+  if (planObj.venue_management) {
+    // Populate venue_details
+    if (planObj.venue_management.venue_details) {
+      try {
+        const VenueDetails = require('../models/venue_details.model');
+        const venueDetails = await VenueDetails.findOne({ venue_details_id: planObj.venue_management.venue_details });
+        planObj.venue_management.venue_details_details = venueDetails || null;
+      } catch (error) {
+        console.log('Error populating venue_details:', error);
+        planObj.venue_management.venue_details_details = null;
+      }
+    }
+
+    // Populate amenities_id
+    if (planObj.venue_management.amenities_id && Array.isArray(planObj.venue_management.amenities_id) && planObj.venue_management.amenities_id.length > 0) {
+      try {
+        const EventAmenities = require('../models/event_amenities.model');
+        const amenities = await EventAmenities.find({ event_amenities_id: { $in: planObj.venue_management.amenities_id } });
+        planObj.venue_management.amenities_details = amenities || [];
+      } catch (error) {
+        console.log('Error populating amenities_id:', error);
+        planObj.venue_management.amenities_details = [];
+      }
+    } else {
+      planObj.venue_management.amenities_details = [];
+    }
+
+    // Populate setup_requirements
+    if (planObj.venue_management.setup_requirements && Array.isArray(planObj.venue_management.setup_requirements) && planObj.venue_management.setup_requirements.length > 0) {
+      try {
+        const EventSetupRequirements = require('../models/event_setup_requirements.model');
+        const setupRequirementsDetails = await Promise.all(
+          planObj.venue_management.setup_requirements.map(async (req) => {
+            if (req.setup_requirements_id) {
+              const setupReq = await EventSetupRequirements.findOne({ event_setup_requirements_id: req.setup_requirements_id });
+              return {
+                ...req,
+                setup_requirements_details: setupReq || null
+              };
+            }
+            return req;
+          })
+        );
+        planObj.venue_management.setup_requirements_details = setupRequirementsDetails;
+      } catch (error) {
+        console.log('Error populating setup_requirements:', error);
+        planObj.venue_management.setup_requirements_details = planObj.venue_management.setup_requirements;
+      }
+    } else {
+      planObj.venue_management.setup_requirements_details = [];
+    }
+  }
+
+  // Populate event_gallery
+  if (planObj.event_gallery && Array.isArray(planObj.event_gallery) && planObj.event_gallery.length > 0) {
+    try {
+      const EventGallery = require('../models/event_gallery.model');
+      const gallery = await EventGallery.find({ event_gallery_id: { $in: planObj.event_gallery } });
+      planObj.event_gallery_details = gallery || [];
+    } catch (error) {
+      console.log('Error populating event_gallery:', error);
+      planObj.event_gallery_details = [];
+    }
+  } else {
+    planObj.event_gallery_details = [];
+  }
+
+  // Populate guests_id
+  if (planObj.guests_id && Array.isArray(planObj.guests_id) && planObj.guests_id.length > 0) {
+    try {
+      const Guest = require('../models/guest.model');
+      const guestsDetails = await Promise.all(
+        planObj.guests_id.map(async (guestItem) => {
+          if (guestItem.guest_id) {
+            const guest = await Guest.findOne({ guest_id: guestItem.guest_id });
+            return {
+              ...guestItem,
+              guest_details: guest || null
+            };
+          }
+          return guestItem;
+        })
+      );
+      planObj.guests_details = guestsDetails;
+    } catch (error) {
+      console.log('Error populating guests_id:', error);
+      planObj.guests_details = planObj.guests_id;
+    }
+  } else {
+    planObj.guests_details = [];
+  }
+
+  // Populate transaction_id
+  if (planObj.transaction_id) {
+    try {
+      const transaction = await Transaction.findOne({ transaction_id: planObj.transaction_id });
+      planObj.transaction_details = transaction || null;
+    } catch (error) {
+      console.log('Transaction not found for ID:', planObj.transaction_id);
+      planObj.transaction_details = null;
+    }
+  }
+
+  // Populate createdBy
+  if (planObj.createdBy) {
+    try {
+      const User = require('../models/user.model');
+      const createdByUser = await User.findOne({ user_id: planObj.createdBy });
+      planObj.created_by_details = createdByUser ? {
+        user_id: createdByUser.user_id,
+        name: createdByUser.name,
+        email: createdByUser.email,
+        mobile: createdByUser.mobile
+      } : null;
+    } catch (error) {
+      console.log('User not found for createdBy ID:', planObj.createdBy);
+      planObj.created_by_details = null;
+    }
+  }
+
+  // Populate updatedBy
+  if (planObj.updatedBy) {
+    try {
+      const User = require('../models/user.model');
+      const updatedByUser = await User.findOne({ user_id: planObj.updatedBy });
+      planObj.updated_by_details = updatedByUser ? {
+        user_id: updatedByUser.user_id,
+        name: updatedByUser.name,
+        email: updatedByUser.email,
+        mobile: updatedByUser.mobile
+      } : null;
+    } catch (error) {
+      console.log('User not found for updatedBy ID:', planObj.updatedBy);
+      planObj.updated_by_details = null;
+    }
+  }
+
+  return planObj;
+};
+
+/**
  * Create a new plan event map
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -161,6 +420,9 @@ const getPlanEventMapsByEventId = asyncHandler(async (req, res) => {
     // Build filter object
     const filter = { event_id: parseInt(eventId) };
   
+    if (status !== undefined) {
+      filter.status = status === 'true';
+    }
 
     // Get plan event maps with pagination
     const [planEventMaps, total] = await Promise.all([
@@ -171,6 +433,11 @@ const getPlanEventMapsByEventId = asyncHandler(async (req, res) => {
       PlanEventMap.countDocuments(filter)
     ]);
 
+    // Populate all IDs for each plan event map
+    const populatedPlanEventMaps = await Promise.all(
+      planEventMaps.map(planEventMap => populatePlanEventMap(planEventMap))
+    );
+
     const pagination = {
       current: parseInt(page),
       pages: Math.ceil(total / parseInt(limit)),
@@ -178,7 +445,7 @@ const getPlanEventMapsByEventId = asyncHandler(async (req, res) => {
       limit: parseInt(limit)
     };
 
-    sendPaginated(res, planEventMaps, pagination, 'Plan event maps by event retrieved successfully');
+    sendPaginated(res, populatedPlanEventMaps, pagination, 'Plan event maps by event retrieved successfully');
   } catch (error) {
     throw error;
   }
