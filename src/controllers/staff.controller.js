@@ -313,54 +313,46 @@ const getAllStaff = asyncHandler(async (req, res) => {
     const {
       page = 1,
       limit = 10,
-      search = '',
       staff_category_id,
-      min_price,
-      max_price,
       status,
       sort_by = 'created_at',
       sort_order = 'desc'
     } = req.query;
 
-    // Build filter object
-    const filter = {};
-
-    // If search is provided, search by email in User table first, then filter by staff_id
-    let staffIdsToFilter = null;
-    if (search) {
-      // Search for users by email
-      const users = await User.find({
-        email: { $regex: search, $options: 'i' }
-      }).select('user_id');
-      
-      const userIds = users.map(u => u.user_id);
-      
-      if (userIds.length > 0) {
-        // If users found by email, include them in staff_id search
-        filter.$or = [
-          { staff_id: { $regex: search, $options: 'i' } },
-          { staff_id: { $in: userIds } }
-        ];
-      } else {
-        // If no users found by email, just search by staff_id
-        filter.$or = [
-          { staff_id: { $regex: search, $options: 'i' } }
-        ];
-      }
-    }
-
-    if (staff_category_id) {
-      filter.staff_category_id = parseInt(staff_category_id);
-    }
-
-    if (min_price || max_price) {
-      filter.price = {};
-      if (min_price) filter.price.$gte = parseFloat(min_price);
-      if (max_price) filter.price.$lte = parseFloat(max_price);
-    }
+    // Build filter object for User model (role_id = 4 for staff)
+    const filter = {
+      role_id: 4
+    };
 
     if (status !== undefined) {
       filter.status = status === 'true';
+    }
+
+    // If staff_category_id is provided, get staff_ids that have this category first
+    let staffIdsWithCategory = null;
+    if (staff_category_id) {
+      const categoryId = parseInt(staff_category_id);
+      const staffWorkingPrices = await StaffWorkingPrice.find({
+        staff_category_id: categoryId,
+        status: true
+      });
+      staffIdsWithCategory = staffWorkingPrices.map(swp => swp.staff_id);
+      
+      // If no staff found with this category, return empty result
+      if (staffIdsWithCategory.length === 0) {
+        const paginationInfo = {
+          current_page: parseInt(page),
+          total_pages: 0,
+          total_items: 0,
+          items_per_page: parseInt(limit),
+          has_next_page: false,
+          has_prev_page: false
+        };
+        return sendPaginated(res, [], 'Staff retrieved successfully', paginationInfo);
+      }
+      
+      // Filter by staff_ids that have the category
+      filter.user_id = { $in: staffIdsWithCategory };
     }
 
     // Build sort object
@@ -370,19 +362,78 @@ const getAllStaff = asyncHandler(async (req, res) => {
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Get total count
-    const total = await StaffWorkingPrice.countDocuments(filter);
+    // Get total count of staff users
+    const total = await User.countDocuments(filter);
 
-    // Get staff with pagination
-    const staffList = await StaffWorkingPrice.find(filter)
+    // Get staff users with pagination
+    const staffUsers = await User.find(filter)
       .sort(sort)
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .select('-password');
 
-    // Populate staff data and filter out entries where user doesn't exist
-    const populatedStaffList = (await Promise.all(
-      staffList.map(staff => populateStaffData(staff))
-    )).filter(staff => staff.staff_info !== null);
+    // Populate staff data with working prices and categories
+    const populatedStaffList = await Promise.all(
+      staffUsers.map(async (user) => {
+        // Get staff working prices for this user
+        const staffWorkingPrices = await StaffWorkingPrice.find({
+          staff_id: user.user_id,
+          status: true
+        });
+
+        // Get staff categories for the working prices
+        const staffCategories = await Promise.all(
+          staffWorkingPrices.map(async (price) => {
+            const category = await StaffCategory.findOne({
+              staff_category_id: price.staff_category_id
+            });
+            return {
+              ...price.toObject(),
+              category_details: category
+            };
+          })
+        );
+
+        // Format response similar to populateStaffData
+        return {
+          staff_working_price_id: staffWorkingPrices[0]?.staff_working_price_id || null,
+          staff_id: user.user_id,
+          staff_category_id: staffWorkingPrices[0]?.staff_category_id || null,
+          price: staffWorkingPrices[0]?.price || null,
+          review_count: staffWorkingPrices[0]?.review_count || 0,
+          status: user.status,
+          created_by: user.created_by || null,
+          created_at: user.created_at || user.createdAt,
+          updated_by: user.updated_by || null,
+          updated_at: user.updated_at || user.updatedAt,
+          staff_info: {
+            user_id: user.user_id,
+            name: user.name,
+            email: user.email,
+            mobile: user.mobile,
+            user_img: user.user_img,
+            gender: user.gender,
+            address: user.address,
+            postal_code: user.postal_code,
+            online_status: user.online_status,
+            status: user.status,
+            country_id: user.country_id,
+            state_id: user.state_id,
+            city_id: user.city_id,
+            business_name: user.business_name,
+            business_category_id: user.business_category_id,
+            business_type_id: user.business_type_id,
+            business_description: user.business_description,
+            business_address: user.business_address,
+            business_website: user.business_website
+          },
+          staff_category: staffCategories[0]?.category_details || null,
+          working_prices: staffCategories,
+          created_by_info: user.created_by ? await User.findOne({ user_id: user.created_by }).select('user_id name email') : null,
+          updated_by_info: user.updated_by ? await User.findOne({ user_id: user.updated_by }).select('user_id name email') : null
+        };
+      })
+    );
 
     // Calculate pagination info
     const totalPages = Math.ceil(total / parseInt(limit));
