@@ -191,23 +191,6 @@ const parseCategoriesFeesInput = (input, fieldName = 'categories_fees') => {
       normalizedItem.Price = priceValue;
     }
 
-    const rawPlatformFee = item.PlatformFee ?? item.platform_fee ?? item.platformFee;
-    if (rawPlatformFee !== undefined && rawPlatformFee !== null && rawPlatformFee !== '') {
-      const platformFeeValue = Number(rawPlatformFee);
-      if (Number.isNaN(platformFeeValue)) {
-        throw new Error(`PlatformFee at index ${index} must be a numeric value`);
-      }
-      normalizedItem.PlatformFee = platformFeeValue;
-    }
-
-    const rawMinFee = item.MinFee ?? item.min_fee ?? item.minFee;
-    if (rawMinFee !== undefined && rawMinFee !== null && rawMinFee !== '') {
-      const minFeeValue = Number(rawMinFee);
-      if (Number.isNaN(minFeeValue)) {
-        throw new Error(`MinFee at index ${index} must be a numeric value`);
-      }
-      normalizedItem.MinFee = minFeeValue;
-    }
 
     const rawCurrency = item.pricing_currency ?? item.currency ?? item.currency_code;
     if (rawCurrency !== undefined && rawCurrency !== null) {
@@ -231,11 +214,8 @@ const parseCategoriesFeesInput = (input, fieldName = 'categories_fees') => {
  */
 const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
   try {
-    // Calculate initial_payment_required from MinFee and Price if provided
-    let normalizedInitialPayment = false;
-    if (req.body.MinFee && req.body.Price) {
-      normalizedInitialPayment = (parseFloat(req.body.MinFee) / 100) * parseFloat(req.body.Price);
-    }
+    // Calculate initial_payment_required if provided
+    let normalizedInitialPayment = req.body.initial_payment_required || false;
 
     let categoriesFeesResult;
     try {
@@ -256,7 +236,6 @@ const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
 
     delete portalData.categories;
     delete portalData.categories_fees;
-    delete portalData.MinFee;
     delete portalData.Price;
     delete portalData.service_categories;
 
@@ -341,16 +320,19 @@ const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
 
           if (existingFees) {
             // Update existing fees instead of creating new one
+            const updateData = {
+              pricing_currency: item.pricing_currency || 'USD',
+              updated_by: req.userId,
+              updated_at: new Date()
+            };
+
+            if (item.Price !== undefined) {
+              updateData.Price = Number(item.Price);
+            }
+
             const updatedFees = await CategoriesFees.findOneAndUpdate(
               { category_id: Number(item.category_id), status: true },
-              {
-                pricing_currency: item.pricing_currency || 'USD',
-                PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
-                Price: item.Price !== undefined ? Number(item.Price) : existingFees.Price,
-                MinFee: item.MinFee !== undefined ? Number(item.MinFee) : existingFees.MinFee,
-                updated_by: req.userId,
-                updated_at: new Date()
-              },
+              updateData,
               { new: true }
             );
             createdCategoriesFees.push(updatedFees);
@@ -360,12 +342,13 @@ const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
           const categoriesFeesData = {
             category_id: Number(item.category_id),
             pricing_currency: item.pricing_currency || 'USD',
-            PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
-            Price: item.Price !== undefined ? Number(item.Price) : undefined,
-            MinFee: item.MinFee !== undefined ? Number(item.MinFee) : undefined,
             status: true,
             created_by: req.userId || 1
           };
+
+          if (item.Price !== undefined) {
+            categoriesFeesData.Price = Number(item.Price);
+          }
 
           // Validate required fields
           if (!categoriesFeesData.Price) {
@@ -373,10 +356,6 @@ const createVendorOnboardingPortal = asyncHandler(async (req, res) => {
             continue;
           }
 
-          if (categoriesFeesData.MinFee === undefined) {
-            errors.push(`Item ${i + 1}: MinFee is required`);
-            continue;
-          }
 
           const categoriesFees = await CategoriesFees.create(categoriesFeesData);
           createdCategoriesFees.push(categoriesFees);
@@ -551,7 +530,6 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
     delete updateData.categories;
     delete updateData.service_categories;
     delete updateData.categories_fees;
-    delete updateData.MinFee;
     delete updateData.Price;
 
     // Handle categories_fees if provided
@@ -655,16 +633,19 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
 
           if (existingFees) {
             // Update existing fees instead of creating new one
+            const updateData = {
+              pricing_currency: item.pricing_currency || 'USD',
+              updated_by: req.userId,
+              updated_at: new Date()
+            };
+
+            if (item.Price !== undefined) {
+              updateData.Price = Number(item.Price);
+            }
+
             const updatedFees = await CategoriesFees.findOneAndUpdate(
               { category_id: Number(item.category_id), status: true },
-              {
-                pricing_currency: item.pricing_currency || 'USD',
-                PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
-                Price: item.Price !== undefined ? Number(item.Price) : existingFees.Price,
-                MinFee: item.MinFee !== undefined ? Number(item.MinFee) : existingFees.MinFee,
-                updated_by: req.userId,
-                updated_at: new Date()
-              },
+              updateData,
               { new: true }
             );
             createdCategoriesFees.push(updatedFees);
@@ -674,12 +655,13 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
           const categoriesFeesData = {
             category_id: Number(item.category_id),
             pricing_currency: item.pricing_currency || 'USD',
-            PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
-            Price: item.Price !== undefined ? Number(item.Price) : undefined,
-            MinFee: item.MinFee !== undefined ? Number(item.MinFee) : undefined,
             status: true,
             created_by: req.userId || 1
           };
+
+          if (item.Price !== undefined) {
+            categoriesFeesData.Price = Number(item.Price);
+          }
 
           // Validate required fields
           if (!categoriesFeesData.Price) {
@@ -687,10 +669,6 @@ const updateVendorOnboardingPortal = asyncHandler(async (req, res) => {
             continue;
           }
 
-          if (categoriesFeesData.MinFee === undefined) {
-            errors.push(`Item ${i + 1}: MinFee is required`);
-            continue;
-          }
 
           const categoriesFees = await CategoriesFees.create(categoriesFeesData);
           createdCategoriesFees.push(categoriesFees);
@@ -938,16 +916,19 @@ const createVendorPortal = asyncHandler(async (req, res) => {
 
             if (existingFees) {
               // Update existing fees
+              const updateData = {
+                pricing_currency: item.pricing_currency || 'USD',
+                updated_by: userId,
+                updated_at: new Date()
+              };
+
+              if (item.Price !== undefined) {
+                updateData.Price = Number(item.Price);
+              }
+
               const updatedFees = await CategoriesFees.findOneAndUpdate(
                 { category_id: Number(item.category_id), status: true },
-                {
-                  pricing_currency: item.pricing_currency || 'USD',
-                  PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
-                  Price: item.Price !== undefined ? Number(item.Price) : existingFees.Price,
-                  MinFee: parseFloat(item.Price / 100) * parseFloat(item.MinFee),
-                  updated_by: userId,
-                  updated_at: new Date()
-                },
+                updateData,
                 { new: true }
               );
               categoriesFeesIds.push(updatedFees.categories_fees_id);
@@ -955,16 +936,14 @@ const createVendorPortal = asyncHandler(async (req, res) => {
             }
 
             // Validate required fields
-            if (!item.Price || item.MinFee === undefined) {
+            if (!item.Price) {
               continue;
             }
 
             const categoriesFeesData = {
               category_id: Number(item.category_id),
               pricing_currency: item.pricing_currency || 'USD',
-              PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
               Price: Number(item.Price),
-              MinFee: parseFloat(item.Price / 100) * parseFloat(item.MinFee),
               status: true,
               created_by: userId
             };
@@ -979,13 +958,7 @@ const createVendorPortal = asyncHandler(async (req, res) => {
       }
 
       // Step 4: Calculate initial_payment_required
-      let initialPaymentRequired = false;
-      if (req.body.service_categories && Array.isArray(req.body.service_categories) && req.body.service_categories.length > 0) {
-        const firstCategory = req.body.service_categories[0];
-        if (firstCategory.MinFee && firstCategory.Price) {
-          initialPaymentRequired = true;
-        }
-      }
+      let initialPaymentRequired = req.body.initial_payment_required || false;
 
       // Step 5: Create VendorOnboardingPortal
       const portalData = {

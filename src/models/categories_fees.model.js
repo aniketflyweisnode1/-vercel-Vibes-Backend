@@ -17,21 +17,10 @@ const categoriesFeesSchema = new mongoose.Schema({
     maxlength: [10, 'Currency code cannot exceed 10 characters'],
     default: 'USD'
   },
-  PlatformFee: {
-    type: Number,
-    default: 10,
-    //required: [true, 'Platform fee is required'],
-    min: [0, 'Platform fee must be a positive number']
-  },
   Price: {
     type: Number,
     required: [true, 'Price is required'],
     min: [0, 'Price must be a positive number']
-  },
-  MinFee: {
-    type: Number,
-    required: [true, 'Minimum fee is required'],
-    min: [0, 'Minimum fee must be a positive number']
   },
   status: {
     type: Boolean,

@@ -6,15 +6,6 @@ const Joi = require('joi');
 
 // Common validation patterns
 const commonValidations = {
-  PlatformFee: Joi.number()
-    .min(0)
-    .required()
-    .messages({
-      'number.base': 'Platform fee must be a number',
-      'number.min': 'Platform fee must be a positive number',
-      'any.required': 'Platform fee is required'
-    }),
-
   Price: Joi.number()
     .min(0)
     .required()
@@ -22,15 +13,6 @@ const commonValidations = {
       'number.base': 'Price must be a number',
       'number.min': 'Price must be a positive number',
       'any.required': 'Price is required'
-    }),
-
-  MinFee: Joi.number()
-    .min(0)
-    .required()
-    .messages({
-      'number.base': 'Minimum fee must be a number',
-      'number.min': 'Minimum fee must be a positive number',
-      'any.required': 'Minimum fee is required'
     }),
 
   status: Joi.boolean()
@@ -60,9 +42,7 @@ const createCategoriesFeesSchema = Joi.object({
     .messages({
       'string.max': 'Currency code cannot exceed 10 characters'
     }),
-  PlatformFee: commonValidations.PlatformFee,
   Price: commonValidations.Price,
-  MinFee: commonValidations.MinFee,
   status: commonValidations.status
 });
 
@@ -94,9 +74,7 @@ const updateCategoriesFeesSchema = Joi.object({
     .messages({
       'string.max': 'Currency code cannot exceed 10 characters'
     }),
-  PlatformFee: commonValidations.PlatformFee.optional(),
   Price: commonValidations.Price.optional(),
-  MinFee: commonValidations.MinFee.optional(),
   status: commonValidations.status.optional()
 }).min(2).messages({
   'object.min': 'At least one field besides id must be provided for update'
@@ -167,10 +145,10 @@ const getAllCategoriesFeesSchema = Joi.object({
       'string.max': 'Currency code cannot exceed 10 characters'
     }),
   sortBy: Joi.string()
-    .valid('created_at', 'updated_at', 'category_id', 'Price', 'PlatformFee', 'MinFee')
+    .valid('created_at', 'updated_at', 'category_id', 'Price')
     .default('created_at')
     .messages({
-      'any.only': 'Sort by must be one of: created_at, updated_at, category_id, Price, PlatformFee, MinFee'
+      'any.only': 'Sort by must be one of: created_at, updated_at, category_id, Price'
     }),
   sortOrder: Joi.string()
     .valid('asc', 'desc')

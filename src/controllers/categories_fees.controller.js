@@ -58,23 +58,6 @@ const parseCategoriesFeesInput = (input, fieldName = 'categories_fees') => {
       normalizedItem.Price = priceValue;
     }
 
-    const rawPlatformFee = item.PlatformFee ?? item.platform_fee ?? item.platformFee;
-    if (rawPlatformFee !== undefined && rawPlatformFee !== null && rawPlatformFee !== '') {
-      const platformFeeValue = Number(rawPlatformFee);
-      if (Number.isNaN(platformFeeValue)) {
-        throw new Error(`PlatformFee at index ${index} must be a numeric value`);
-      }
-      normalizedItem.PlatformFee = platformFeeValue;
-    }
-
-    const rawMinFee = item.MinFee ?? item.min_fee ?? item.minFee;
-    if (rawMinFee !== undefined && rawMinFee !== null && rawMinFee !== '') {
-      const minFeeValue = Number(rawMinFee);
-      if (Number.isNaN(minFeeValue)) {
-        throw new Error(`MinFee at index ${index} must be a numeric value`);
-      }
-      normalizedItem.MinFee = minFeeValue;
-    }
 
     const rawCurrency = item.pricing_currency ?? item.currency ?? item.currency_code;
     if (rawCurrency !== undefined && rawCurrency !== null) {
@@ -178,9 +161,7 @@ const createCategoriesFees = asyncHandler(async (req, res) => {
           const categoriesFeesData = {
             category_id: Number(item.category_id),
             pricing_currency: item.pricing_currency || 'USD',
-            PlatformFee: item.PlatformFee !== undefined ? Number(item.PlatformFee) : 10,
             Price: item.Price !== undefined ? Number(item.Price) : undefined,
-            MinFee: item.MinFee !== undefined ? Number(item.MinFee) : undefined,
             status: true,
             created_by: req.userId || 1
           };
@@ -188,11 +169,6 @@ const createCategoriesFees = asyncHandler(async (req, res) => {
           // Validate required fields
           if (!categoriesFeesData.Price) {
             errors.push(`Item ${i + 1}: Price is required`);
-            continue;
-          }
-
-          if (categoriesFeesData.MinFee === undefined) {
-            errors.push(`Item ${i + 1}: MinFee is required`);
             continue;
           }
 
@@ -248,7 +224,6 @@ const createCategoriesFees = asyncHandler(async (req, res) => {
         ...req.body,
         category_id: req.body.category_id ? Number(req.body.category_id) : undefined,
         pricing_currency: req.body.pricing_currency || 'USD',
-        PlatformFee: req.body.PlatformFee !== undefined ? Number(req.body.PlatformFee) : 10,
         created_by: req.userId || 1
       };
 
