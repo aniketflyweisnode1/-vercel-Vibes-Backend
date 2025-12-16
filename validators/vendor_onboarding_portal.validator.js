@@ -46,7 +46,8 @@ const createVendorOnboardingPortalSchema = Joi.object({
       category_name: Joi.string().optional().allow('', null),
       pricing: Joi.number().optional().allow(null),
       pricing_currency: Joi.string().optional().allow('', null),
-      Price: Joi.number().optional().allow(null)
+      Price: Joi.number().optional().allow(null),
+      MinFee: Joi.number().optional().allow(null)
     })
   ).optional(),
   initial_payment_required: Joi.alternatives().try(
@@ -109,7 +110,8 @@ const updateVendorOnboardingPortalSchema = Joi.object({
       category_id: Joi.number().optional().allow(null),
       category_name: Joi.string().optional().allow('', null),
       pricing: Joi.number().optional().allow(null),
-      pricing_currency: Joi.string().optional().allow('', null)
+      pricing_currency: Joi.string().optional().allow('', null),
+      MinFee: Joi.number().optional().allow(null)
     })
   ).optional(),
   initial_payment_required: Joi.alternatives().try(
@@ -203,7 +205,8 @@ const createVendorPortalSchema = Joi.object({
       Price: Joi.number().required().messages({
         'any.required': 'Price is required',
         'number.base': 'Price must be a number'
-      })
+      }),
+      MinFee: Joi.number().optional().allow(null)
     })
   ).optional(),
   CancellationCharges: Joi.number().min(0).max(100).optional().allow(null),

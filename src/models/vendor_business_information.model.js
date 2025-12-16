@@ -40,8 +40,7 @@ const vendorBusinessInformationSchema = new mongoose.Schema({
   business_phone: {
     type: String,
     required: [true, 'Business phone is required'],
-    trim: true,
-    match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
+    trim: true
   },
   Basic_information_BusinessAddress: {
     type: String,

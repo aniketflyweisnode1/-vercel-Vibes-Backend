@@ -37,11 +37,9 @@ const commonValidations = {
     }),
 
   business_phone: Joi.string()
-    .pattern(/^[0-9]{10}$/)
     .required()
     .messages({
-      'string.empty': 'Business phone is required',
-      'string.pattern.base': 'Please enter a valid 10-digit phone number'
+      'string.empty': 'Business phone is required'
     }),
 
   business_website_url: Joi.string()
