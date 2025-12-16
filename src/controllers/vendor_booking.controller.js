@@ -1065,8 +1065,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
 
     // Step 5: Match vendor_booking.Vendor_Category_id with categories_fees.category_id
     const bookingCategoryIds = booking.Vendor_Category_id.map(id => Number(id));
-    let baseAmount = 0; // Base amount before platform fee
-    let totalVendorAmount = 0; // vendor_amount (what vendor gets)
+    let baseAmount = 0; // Base amount before platform fee (sum of Price from categories)
 
     const matchedCategories = [];
     const missingCategories = [];
@@ -1084,17 +1083,14 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
         const price = Number(matchingFee.Price) || 0;
 
         // Calculate amounts
-        const vendorAmount = MinFee; // vendor gets the MinFee
         const categoryBaseAmount = price; // base amount for this category
 
-        totalVendorAmount += vendorAmount;
         baseAmount += categoryBaseAmount;
 
         matchedCategories.push({
           category_id: categoryId,
           price: price,
           minFee: MinFee,
-          vendor_amount: vendorAmount,
           base_amount: categoryBaseAmount
         });
       } else {
@@ -1106,7 +1102,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       return sendError(res, `Categories not found in vendor pricing: ${missingCategories.join(', ')}. Please ensure the vendor has set pricing for all selected categories.`, 400);
     }
 
-    if (baseAmount <= 0 || totalVendorAmount <= 0) {
+    if (baseAmount <= 0) {
       return sendError(res, 'Invalid pricing calculation. Amount must be greater than 0.', 400);
     }
 
@@ -1114,6 +1110,9 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
     const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
     const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
+    
+    // Vendor receives baseAmount, Admin receives platformFeeAmount
+    const vendorAmount = baseAmount; // Vendor receives base amount only
 
     // Step 6: Get user information for Stripe customer creation
     const user = await User.findOne({ user_id: req.userId });
@@ -1166,11 +1165,12 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     }
 
     // Step 9: Update VendorBooking with amount, vendor_amount, and status
+    // Vendor receives full payment (totalAmount), admin receives only platform fee
     const updatedBooking = await VendorBooking.findOneAndUpdate(
       { Vendor_Booking_id: parseInt(vendor_booking_id, 10) },
       {
         amount: totalAmount,
-        vendor_amount: totalVendorAmount,
+        vendor_amount: vendorAmount, // Vendor gets full payment
         amount_status: 'confirmed',
         vendor_amount_status: 'confirmed',
         vender_booking_status: 'confirmed',
@@ -1180,7 +1180,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       { new: true }
     );
 
-    // Step 10: Create transaction for customer
+    // Step 10: Create transaction for customer (customer pays totalAmount)
     const transactionData = {
       user_id: req.userId,
       amount: totalAmount,
@@ -1197,30 +1197,65 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
         customer_id: customerId,
         vendor_booking_id: parseInt(vendor_booking_id, 10),
         vendor_id: vendorId,
-        vendor_amount: totalVendorAmount,
+        vendor_amount: vendorAmount, // Vendor receives full payment
         base_amount: baseAmount,
         platform_fee: platformFeeAmount,
         platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-        amount: totalAmount,
+        total_amount: totalAmount,
         billingDetails: billingDetails || null,
         matched_categories: matchedCategories
       }),
       created_by: req.userId
     };
 
-    const transaction = await Transaction.create(transactionData);
+    const customerTransaction = await Transaction.create(transactionData);
 
-    // Step 10.5: Create admin transaction for platform fee
+    // Step 10.5: Create vendor transaction - Vendor receives baseAmount only
+    const vendorUser = await User.findOne({ user_id: vendorId, status: true });
+    
+    if (vendorUser && vendorAmount > 0) {
+      const vendorTransactionData = {
+        user_id: vendorId, // Vendor user ID
+        amount: vendorAmount, // Vendor receives baseAmount only
+        status: paymentIntent.status, // Same status as customer transaction
+        payment_method_id: parseInt(payment_method_id, 10),
+        transactionType: 'VendorBooking',
+        vendor_booking_id: parseInt(vendor_booking_id, 10),
+        transaction_date: new Date(),
+        reference_number: `VENDOR_PAYMENT_${paymentIntent.paymentIntentId}`,
+        metadata: JSON.stringify({
+          payment_intent_id: paymentIntent.paymentIntentId,
+          stripe_payment_intent_id: paymentIntent.paymentIntentId,
+          customer_id: customerId,
+          vendor_booking_id: parseInt(vendor_booking_id, 10),
+          vendor_id: vendorId,
+          customer_user_id: req.userId,
+          base_amount: baseAmount,
+          platform_fee: platformFeeAmount,
+          platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+          vendor_amount: vendorAmount, // Vendor receives baseAmount
+          total_amount: totalAmount,
+          customer_transaction_id: customerTransaction.transaction_id,
+          description: 'Vendor receives base amount from vendor booking'
+        }),
+        created_by: req.userId
+      };
+
+      await Transaction.create(vendorTransactionData);
+    }
+
+    // Step 10.6: Create admin transaction for platform fee only
+    // Admin receives only the 7% platform fee
     // Find admin user (role_id = 1)
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
     
     if (adminUser && platformFeeAmount > 0) {
       const adminTransactionData = {
         user_id: adminUser.user_id,
-        amount: platformFeeAmount,
+        amount: platformFeeAmount, // Admin receives only platform fee (7%)
         status: paymentIntent.status, // Same status as customer transaction
         payment_method_id: parseInt(payment_method_id, 10),
-        transactionType: 'VendorBooking', // Or create a new type like 'PlatformFee' if needed
+        transactionType: 'VendorBooking',
         vendor_booking_id: parseInt(vendor_booking_id, 10),
         transaction_date: new Date(),
         reference_number: `PLATFORM_FEE_${paymentIntent.paymentIntentId}`,
@@ -1234,9 +1269,10 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
           base_amount: baseAmount,
           platform_fee: platformFeeAmount,
           platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-          vendor_amount: totalVendorAmount,
-          customer_transaction_id: transaction.transaction_id,
-          description: 'Platform fee from vendor booking payment'
+          vendor_amount: vendorAmount, // Vendor receives baseAmount
+          total_amount: totalAmount,
+          customer_transaction_id: customerTransaction.transaction_id,
+          description: 'Platform fee (7%) from vendor booking payment - Admin receives platform fee'
         }),
         created_by: req.userId
       };
@@ -1244,11 +1280,11 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       await Transaction.create(adminTransactionData);
     }
 
-    // Step 11: Update booking with transaction_id
+    // Step 11: Update booking with transaction_id (customer transaction)
     const finalBooking = await VendorBooking.findOneAndUpdate(
       { Vendor_Booking_id: parseInt(vendor_booking_id, 10) },
       {
-        transaction_id: transaction.transaction_id,
+        transaction_id: customerTransaction.transaction_id,
         UpdatedBy: req.userId,
         UpdatedAt: new Date()
       },
@@ -1268,13 +1304,33 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     bookingObj.event_details = await populateEventDetails(booking.Event_id);
 
     sendSuccess(res, {
-      transaction_id: transaction.transaction_id,
+      customer_transaction_id: customerTransaction.transaction_id,
       vendor_booking: bookingObj,
-      amount: totalAmount,
-      base_amount: baseAmount,
-      platform_fee: platformFeeAmount,
-      platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-      vendor_amount: totalVendorAmount,
+      payment_breakdown: {
+        total_amount: totalAmount, // Customer pays this (baseAmount + platformFeeAmount)
+        base_amount: baseAmount, // Vendor receives this
+        platform_fee: platformFeeAmount, // Admin receives this (7%)
+        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+        vendor_amount: vendorAmount // Vendor receives baseAmount only
+      },
+      transactions: {
+        customer: {
+          transaction_id: customerTransaction.transaction_id,
+          user_id: req.userId,
+          amount: totalAmount,
+          description: 'Customer payment for vendor booking (baseAmount + platformFee)'
+        },
+        vendor: {
+          user_id: vendorId,
+          amount: vendorAmount, // baseAmount
+          description: 'Vendor receives base amount'
+        },
+        admin: {
+          user_id: adminUser ? adminUser.user_id : null,
+          amount: platformFeeAmount,
+          description: 'Admin receives 7% platform fee'
+        }
+      },
       matched_categories: matchedCategories,
       vendor_portal: {
         Vendor_Onboarding_Portal_id: populatedPortal.Vendor_Onboarding_Portal_id,
@@ -1288,7 +1344,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
         currency: paymentIntent.currency,
         status: paymentIntent.status
       }
-    }, 'Vendor booking payment processed successfully');
+    }, 'Vendor booking payment processed successfully. Three transactions created: Customer pays total amount, Vendor receives base amount, Admin receives 7% platform fee.');
   } catch (error) {
     console.error('Vendor booking payment error:', error);
     throw error;
