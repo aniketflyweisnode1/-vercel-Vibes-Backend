@@ -160,46 +160,13 @@ const checkResourceOwnership = (resourceUserIdField = 'user_id') => {
 
 /**
  * Rate limiting middleware for authentication attempts
+ * Unlimited attempts - no rate limiting applied
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next function
  */
 const authRateLimit = (req, res, next) => {
-  // This is a simple in-memory rate limiter
-  // In production, use Redis or a proper rate limiting library
-  const clientIp = req.ip || req.connection.remoteAddress;
-  const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxAttempts = 5;
-
-  // Initialize rate limit store if it doesn't exist
-  if (!global.rateLimitStore) {
-    global.rateLimitStore = new Map();
-  }
-
-  const key = `auth_${clientIp}`;
-  const attempts = global.rateLimitStore.get(key) || { count: 0, resetTime: now + windowMs };
-
-  // Reset if window has passed
-  if (now > attempts.resetTime) {
-    attempts.count = 0;
-    attempts.resetTime = now + windowMs;
-  }
-
-  // Check if limit exceeded
-  if (attempts.count >= maxAttempts) {
-    const remainingTime = Math.ceil((attempts.resetTime - now) / 1000 / 60);
-    return res.status(429).json({
-      success: false,
-      message: `Too many authentication attempts. Try again in ${remainingTime} minutes.`,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  // Increment attempt count
-  attempts.count++;
-  global.rateLimitStore.set(key, attempts);
-
+  // No rate limiting - allow unlimited attempts
   next();
 };
 
