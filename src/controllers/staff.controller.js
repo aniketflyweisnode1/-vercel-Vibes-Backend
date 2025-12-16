@@ -325,10 +325,28 @@ const getAllStaff = asyncHandler(async (req, res) => {
     // Build filter object
     const filter = {};
 
+    // If search is provided, search by email in User table first, then filter by staff_id
+    let staffIdsToFilter = null;
     if (search) {
-      filter.$or = [
-        { staff_id: { $regex: search, $options: 'i' } }
-      ];
+      // Search for users by email
+      const users = await User.find({
+        email: { $regex: search, $options: 'i' }
+      }).select('user_id');
+      
+      const userIds = users.map(u => u.user_id);
+      
+      if (userIds.length > 0) {
+        // If users found by email, include them in staff_id search
+        filter.$or = [
+          { staff_id: { $regex: search, $options: 'i' } },
+          { staff_id: { $in: userIds } }
+        ];
+      } else {
+        // If no users found by email, just search by staff_id
+        filter.$or = [
+          { staff_id: { $regex: search, $options: 'i' } }
+        ];
+      }
     }
 
     if (staff_category_id) {
@@ -361,10 +379,10 @@ const getAllStaff = asyncHandler(async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
-    // Populate staff data
-    const populatedStaffList = await Promise.all(
+    // Populate staff data and filter out entries where user doesn't exist
+    const populatedStaffList = (await Promise.all(
       staffList.map(staff => populateStaffData(staff))
-    );
+    )).filter(staff => staff.staff_info !== null);
 
     // Calculate pagination info
     const totalPages = Math.ceil(total / parseInt(limit));

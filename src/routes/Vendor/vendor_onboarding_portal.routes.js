@@ -8,7 +8,8 @@ const {
   updateVendorOnboardingPortal,
   deleteVendorOnboardingPortal,
   getVendorFullDetailsPublic,
-  createVendorPortal
+  createVendorPortal,
+  findVendorbyCategoryfeePrice
 } = require('../../controllers/vendor_onboarding_portal.controller');
 
 // Import middleware
@@ -21,13 +22,17 @@ const {
   getVendorOnboardingPortalByIdSchema,
   querySchema,
   deleteVendorOnboardingPortalSchema,
-  createVendorPortalSchema
+  createVendorPortalSchema,
+  findVendorbyCategoryfeePriceSchema
 } = require('../../../validators/vendor_onboarding_portal.validator');
 // Create vendor portal (with auth)
 router.post('/create', auth, validateBody(createVendorPortalSchema), createVendorPortal);
 
 // Public vendor details (no auth)
 router.get('/public/vendors', getVendorFullDetailsPublic);
+
+// Find vendors by category fee price with location (no auth)
+router.get('/findVendorbyCategoryfeePrice', validateQuery(findVendorbyCategoryfeePriceSchema), findVendorbyCategoryfeePrice);
 
 // Get all vendor onboarding portals (with auth)
 router.get('/getAll', auth, validateQuery(querySchema), getAllVendorOnboardingPortals);
@@ -40,6 +45,7 @@ router.put('/update', auth, validateBody(updateVendorOnboardingPortalSchema), up
 
 // Delete vendor onboarding portal (with auth)
 router.delete('/delete/:id', auth, validateParams(deleteVendorOnboardingPortalSchema), deleteVendorOnboardingPortal);
+
 
 module.exports = router;
 

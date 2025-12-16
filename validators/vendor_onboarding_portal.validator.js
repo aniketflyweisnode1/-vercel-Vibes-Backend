@@ -152,6 +152,45 @@ const deleteVendorOnboardingPortalSchema = Joi.object({
   })
 });
 
+// Find vendors by category fee price schema
+const findVendorbyCategoryfeePriceSchema = Joi.object({
+  category_id: Joi.number().integer().positive().optional().messages({
+    'number.base': 'Category ID must be a number',
+    'number.integer': 'Category ID must be an integer',
+    'number.positive': 'Category ID must be a positive number'
+  }),
+  Price: Joi.number().min(0).optional().messages({
+    'number.base': 'Price must be a number',
+    'number.min': 'Price must be a positive number'
+  }),
+  city_id: Joi.number().integer().positive().optional().messages({
+    'number.base': 'City ID must be a number',
+    'number.integer': 'City ID must be an integer',
+    'number.positive': 'City ID must be a positive number'
+  }),
+  state_id: Joi.number().integer().positive().optional().messages({
+    'number.base': 'State ID must be a number',
+    'number.integer': 'State ID must be an integer',
+    'number.positive': 'State ID must be a positive number'
+  }),
+  country_id: Joi.number().integer().positive().optional().messages({
+    'number.base': 'Country ID must be a number',
+    'number.integer': 'Country ID must be an integer',
+    'number.positive': 'Country ID must be a positive number'
+  }),
+  page: Joi.number().integer().min(1).optional().default(1).messages({
+    'number.base': 'Page must be a number',
+    'number.integer': 'Page must be an integer',
+    'number.min': 'Page must be at least 1'
+  }),
+  limit: Joi.number().integer().min(1).max(100).optional().default(10).messages({
+    'number.base': 'Limit must be a number',
+    'number.integer': 'Limit must be an integer',
+    'number.min': 'Limit must be at least 1',
+    'number.max': 'Limit cannot exceed 100'
+  })
+});
+
 // Create vendor portal schema (comprehensive schema for createvendorportal endpoint)
 const createVendorPortalSchema = Joi.object({
   Basic_information_business_name: Joi.string().required().messages({
@@ -223,6 +262,7 @@ module.exports = {
   updateVendorOnboardingPortalSchema,
   getVendorOnboardingPortalByIdSchema,
   querySchema,
-  deleteVendorOnboardingPortalSchema
+  deleteVendorOnboardingPortalSchema,
+  findVendorbyCategoryfeePriceSchema
 };
 

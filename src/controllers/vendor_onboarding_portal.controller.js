@@ -988,6 +988,158 @@ const createVendorPortal = asyncHandler(async (req, res) => {
 
 });
 
+/**
+ * Find vendors by category fee price with location filtering
+ * Returns price and minimum amount by category
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const findVendorbyCategoryfeePrice = asyncHandler(async (req, res) => {
+  try {
+    const { 
+      category_id, 
+      Price, 
+      city_id, 
+      state_id, 
+      country_id,
+      page = 1, 
+      limit = 10 
+    } = req.query;
+
+    // Build filter for CategoriesFees
+    const categoriesFeesFilter = {
+      status: true
+    };
+
+    // Add category_id filter if provided
+    if (category_id) {
+      categoriesFeesFilter.category_id = Number(category_id);
+    }
+
+    // Add exact price filter if provided
+    if (Price !== undefined) {
+      categoriesFeesFilter.Price = parseFloat(Price);
+    }
+
+    // Find matching CategoriesFees
+    const matchingCategoriesFees = await CategoriesFees.find(categoriesFeesFilter)
+      .select('categories_fees_id category_id Price pricing_currency');
+
+    // If no categories match, return empty result
+    if (matchingCategoriesFees.length === 0) {
+      return sendPaginated(res, [], {
+        current_page: parseInt(page),
+        total_pages: 0,
+        total_items: 0,
+        items_per_page: parseInt(limit),
+        has_next_page: false,
+        has_prev_page: false
+      }, 'No vendors found matching the criteria');
+    }
+
+    // Get categories_fees_id array
+    const categoriesFeesIds = matchingCategoriesFees.map(fee => fee.categories_fees_id);
+
+    // Build filter for VendorOnboardingPortal
+    const vendorFilter = {
+      Status: true,
+      categories_fees_id: { $in: categoriesFeesIds }
+    };
+
+    // Get vendors first to filter by location
+    let portals = await VendorOnboardingPortal.find(vendorFilter)
+      .sort({ CreateAt: -1 });
+
+    // Filter by location if provided
+    if (city_id || state_id || country_id) {
+      const locationFilteredPortals = [];
+      
+      for (const portal of portals) {
+        // Get business information to check location
+        if (portal.business_information_id) {
+          const businessInfo = await VendorBusinessInformation.findOne({
+            business_information_id: portal.business_information_id
+          });
+
+          if (businessInfo) {
+            let matchesLocation = true;
+
+            if (city_id && businessInfo.Basic_information_City_id !== Number(city_id)) {
+              matchesLocation = false;
+            }
+            if (state_id && businessInfo.Basic_information_State_id !== Number(state_id)) {
+              matchesLocation = false;
+            }
+            if (country_id && businessInfo.Basic_information_Country_id !== Number(country_id)) {
+              matchesLocation = false;
+            }
+
+            if (matchesLocation) {
+              locationFilteredPortals.push(portal);
+            }
+          }
+        }
+      }
+
+      portals = locationFilteredPortals;
+    }
+
+    // Calculate pagination
+    const total = portals.length;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const paginatedPortals = portals.slice(skip, skip + parseInt(limit));
+
+    // Populate related data
+    const populatedPortals = await Promise.all(
+      paginatedPortals.map(portal => populateVendorOnboardingPortal(portal))
+    );
+
+    // Filter vendors with role_id = 3 (vendor role) and format response with price and minimum amount by category
+    const vendorsWithCategoryPricing = populatedPortals
+      .filter(portal => {
+        const roleId = portal.vendor_details?.role_id;
+        return roleId !== undefined && roleId !== null ? Number(roleId) === 3 : false;
+      })
+      .map(portal => {
+        const vendorData = { ...portal };
+        
+        // Add category pricing information
+        if (vendorData.categories_fees_details && Array.isArray(vendorData.categories_fees_details)) {
+          vendorData.category_pricing = vendorData.categories_fees_details.map(fee => ({
+            category_id: fee.category_id,
+            category_name: fee.category_details?.category_name || null,
+            price: fee.Price || 0,
+            minimum_amount: fee.Price || 0, // Using Price as minimum amount since MinFee was removed
+            pricing_currency: fee.pricing_currency || 'USD',
+            categories_fees_id: fee.categories_fees_id
+          }));
+        } else {
+          vendorData.category_pricing = [];
+        }
+
+        return vendorData;
+      });
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / parseInt(limit));
+    const hasNextPage = parseInt(page) < totalPages;
+    const hasPrevPage = parseInt(page) > 1;
+
+    const paginationInfo = {
+      current_page: parseInt(page),
+      total_pages: totalPages,
+      total_items: total,
+      items_per_page: parseInt(limit),
+      has_next_page: hasNextPage,
+      has_prev_page: hasPrevPage
+    };
+
+    sendPaginated(res, vendorsWithCategoryPricing, paginationInfo, 'Vendors retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+
 module.exports = {
   createVendorOnboardingPortal,
   getAllVendorOnboardingPortals,
@@ -995,6 +1147,7 @@ module.exports = {
   updateVendorOnboardingPortal,
   deleteVendorOnboardingPortal,
   getVendorFullDetailsPublic,
-  createVendorPortal
+  createVendorPortal,
+  findVendorbyCategoryfeePrice
 };
 

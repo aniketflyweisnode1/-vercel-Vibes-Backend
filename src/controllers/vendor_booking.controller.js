@@ -211,8 +211,11 @@ const createVendorBooking = asyncHandler(async (req, res) => {
     }
 
     // Calculate amount and vendor_amount from vendor categories if vendor_id and categories are provided
-    let calculatedAmount = 0;
-    let calculatedVendorAmount = 0;
+    let calculatedBaseAmount = 0; // Base amount (Price from categories)
+    let calculatedAmount = 0; // Customer pays: baseAmount + 7% platform fee
+    let calculatedVendorAmount = 0; // Vendor receives: baseAmount - 7% platform fee
+
+    const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
 
     let vendorPortal = null;
     try {
@@ -239,11 +242,9 @@ const createVendorBooking = asyncHandler(async (req, res) => {
       const invalidPricingCategories = [];
       const matchedCategories = [];
 
-
       bookingCategoryIds.forEach(categoryId => {
         const matchingFee = populatedPortal.categories_fees_details.find(
           fee => Number(fee.category_id) === Number(categoryId));
-
 
         if (!matchingFee) {
           missingCategories.push(categoryId);
@@ -251,18 +252,15 @@ const createVendorBooking = asyncHandler(async (req, res) => {
           const MinFee = Number(matchingFee.MinFee) || 0;
           const price = Number(matchingFee.Price) || 0;
 
-          if (price <= 0 || MinFee <= 0) {
+          if (price <= 0) {
             invalidPricingCategories.push({
               category_id: categoryId,
               price: price,
               minFee: MinFee
             });
           } else {
-            const vendorAmount = MinFee;
-            const customerAmount = price;
-
-            calculatedVendorAmount += vendorAmount;
-            calculatedAmount += customerAmount;
+            // Base amount is the Price from category
+            calculatedBaseAmount += price;
             matchedCategories.push({
               category_id: categoryId,
               price: price,
@@ -277,17 +275,25 @@ const createVendorBooking = asyncHandler(async (req, res) => {
       const manualVendorAmount = Number(req.body.vendor_amount || 0);
 
       if (manualAmount > 0 && manualVendorAmount > 0) {
-        // Manual amounts provided - use them directly
+        // Manual amounts provided - treat manualAmount as total (customer pays)
+        // Calculate base amount from total (reverse calculate: total = base + 7% => base = total / 1.07)
+        calculatedBaseAmount = manualAmount / (1 + PLATFORM_FEE_PERCENTAGE);
+        
+        // Customer pays: manualAmount (which includes platform fee)
         calculatedAmount = manualAmount;
-        calculatedVendorAmount = manualVendorAmount;
+        
+        // Vendor receives: baseAmount - 7% platform fee
+        const vendorPlatformFeeAmount = calculatedBaseAmount * PLATFORM_FEE_PERCENTAGE;
+        calculatedVendorAmount = calculatedBaseAmount - vendorPlatformFeeAmount;
       } else {
-        // No manual amounts - validate category pricing
+        // No manual amounts - validate category pricing and calculate with platform fees
         // Log for debugging
         console.log('Pricing calculation summary:', {
           bookingCategoryIds,
           matchedCategories: matchedCategories.length,
           missingCategories: missingCategories.length,
           invalidPricingCategories: invalidPricingCategories.length,
+          calculatedBaseAmount,
           calculatedAmount,
           calculatedVendorAmount
         });
@@ -302,28 +308,52 @@ const createVendorBooking = asyncHandler(async (req, res) => {
 
           if (invalidPricingCategories.length > 0) {
             const invalidIds = invalidPricingCategories.map(c => c.category_id).join(', ');
-            errorMessages.push(`Categories with invalid pricing (Price or MinFee must be > 0): ${invalidIds}`);
+            errorMessages.push(`Categories with invalid pricing (Price must be > 0): ${invalidIds}`);
           }
 
           return sendError(res, `${errorMessages.join('. ')}. Please ensure all selected categories have valid pricing, or provide manual amount and vendor_amount in the request body.`, 400);
         }
 
         // If no categories matched or all had invalid pricing
-        if (calculatedAmount <= 0 && calculatedVendorAmount <= 0) {
-          return sendError(res, `No valid pricing found for the selected categories (${bookingCategoryIds.join(', ')}). Please ensure all categories have valid pricing (Price and MinFee > 0), or provide manual amount and vendor_amount in the request body.`, 400);
+        if (calculatedBaseAmount <= 0) {
+          return sendError(res, `No valid pricing found for the selected categories (${bookingCategoryIds.join(', ')}). Please ensure all categories have valid pricing (Price > 0), or provide manual amount and vendor_amount in the request body.`, 400);
         }
+
+        // Calculate platform fees
+        // Customer pays: baseAmount + 7% platform fee
+        const customerPlatformFeeAmount = calculatedBaseAmount * PLATFORM_FEE_PERCENTAGE;
+        calculatedAmount = calculatedBaseAmount + customerPlatformFeeAmount;
+        
+        // Vendor also pays 7% platform fee (deducted from their payment)
+        const vendorPlatformFeeAmount = calculatedBaseAmount * PLATFORM_FEE_PERCENTAGE;
+        calculatedVendorAmount = calculatedBaseAmount - vendorPlatformFeeAmount;
       }
     } catch (pricingError) {
       console.error('Error calculating pricing from vendor portal:', pricingError);
       return sendError(res, 'Unable to calculate pricing from vendor portal. Please verify vendor pricing configuration.', 500);
     }
 
+    // Use calculated amounts or fallback to manual amounts
     const finalAmount = calculatedAmount > 0 ? calculatedAmount : Number(req.body.amount || 0);
     const finalVendorAmount = calculatedVendorAmount > 0 ? calculatedVendorAmount : Number(req.body.vendor_amount || 0);
 
+    // If using manual amounts, apply platform fee logic
+    let finalBaseAmount = calculatedBaseAmount;
+    if (finalAmount > 0 && finalVendorAmount > 0 && calculatedBaseAmount <= 0) {
+      // Manual amounts provided but no base calculated - reverse calculate base from total
+      finalBaseAmount = finalAmount / (1 + PLATFORM_FEE_PERCENTAGE);
+      const vendorPlatformFeeAmount = finalBaseAmount * PLATFORM_FEE_PERCENTAGE;
+      const recalculatedVendorAmount = finalBaseAmount - vendorPlatformFeeAmount;
+      
+      // Use recalculated vendor amount if it's different from manual
+      if (Math.abs(recalculatedVendorAmount - finalVendorAmount) > 0.01) {
+        finalVendorAmount = recalculatedVendorAmount;
+      }
+    }
+
     if (finalAmount <= 0 || finalVendorAmount <= 0) {
       const categoryList = bookingCategoryIds.join(', ');
-      return sendError(res, `Unable to determine booking pricing for categories: [${categoryList}]. Please ensure: 1) All categories exist in vendor pricing, 2) Each category has Price > 0 and MinFee > 0, OR 3) Provide manual 'amount' and 'vendor_amount' in the request body.`, 400);
+      return sendError(res, `Unable to determine booking pricing for categories: [${categoryList}]. Please ensure: 1) All categories exist in vendor pricing, 2) Each category has Price > 0, OR 3) Provide manual 'amount' and 'vendor_amount' in the request body.`, 400);
     }
 
     const bookingData = {
@@ -1108,11 +1138,17 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
 
     // Step 5.5: Calculate 7% platform fee and total amount
     const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
-    const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
-    const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
     
-    // Vendor receives baseAmount, Admin receives platformFeeAmount
-    const vendorAmount = baseAmount; // Vendor receives base amount only
+    // Customer pays: baseAmount + 7% platform fee
+    const customerPlatformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
+    const totalAmount = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
+    
+    // Vendor also pays 7% platform fee (deducted from their payment)
+    const vendorPlatformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
+    const vendorAmount = baseAmount - vendorPlatformFeeAmount; // Vendor receives: baseAmount - 7% platform fee
+    
+    // Total platform fee to admin: from customer + from vendor
+    const totalPlatformFeeAmount = customerPlatformFeeAmount + vendorPlatformFeeAmount;
 
     // Step 6: Get user information for Stripe customer creation
     const user = await User.findOne({ user_id: req.userId });
@@ -1197,9 +1233,11 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
         customer_id: customerId,
         vendor_booking_id: parseInt(vendor_booking_id, 10),
         vendor_id: vendorId,
-        vendor_amount: vendorAmount, // Vendor receives full payment
+        vendor_amount: vendorAmount, // Vendor receives: baseAmount - 7% platform fee
         base_amount: baseAmount,
-        platform_fee: platformFeeAmount,
+        customer_platform_fee: customerPlatformFeeAmount,
+        vendor_platform_fee: vendorPlatformFeeAmount,
+        total_platform_fee: totalPlatformFeeAmount,
         platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
         total_amount: totalAmount,
         billingDetails: billingDetails || null,
@@ -1210,13 +1248,13 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
 
     const customerTransaction = await Transaction.create(transactionData);
 
-    // Step 10.5: Create vendor transaction - Vendor receives baseAmount only
+    // Step 10.5: Create vendor transaction - Vendor receives baseAmount minus 7% platform fee
     const vendorUser = await User.findOne({ user_id: vendorId, status: true });
     
     if (vendorUser && vendorAmount > 0) {
       const vendorTransactionData = {
         user_id: vendorId, // Vendor user ID
-        amount: vendorAmount, // Vendor receives baseAmount only
+        amount: vendorAmount, // Vendor receives: baseAmount - 7% platform fee
         status: paymentIntent.status, // Same status as customer transaction
         payment_method_id: parseInt(payment_method_id, 10),
         transactionType: 'VendorBooking',
@@ -1231,12 +1269,14 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
           vendor_id: vendorId,
           customer_user_id: req.userId,
           base_amount: baseAmount,
-          platform_fee: platformFeeAmount,
+          customer_platform_fee: customerPlatformFeeAmount,
+          vendor_platform_fee: vendorPlatformFeeAmount,
+          total_platform_fee: totalPlatformFeeAmount,
           platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-          vendor_amount: vendorAmount, // Vendor receives baseAmount
+          vendor_amount: vendorAmount, // Vendor receives: baseAmount - 7% platform fee
           total_amount: totalAmount,
           customer_transaction_id: customerTransaction.transaction_id,
-          description: 'Vendor receives base amount from vendor booking'
+          description: 'Vendor receives base amount minus 7% platform fee from vendor booking'
         }),
         created_by: req.userId
       };
@@ -1244,15 +1284,15 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       await Transaction.create(vendorTransactionData);
     }
 
-    // Step 10.6: Create admin transaction for platform fee only
-    // Admin receives only the 7% platform fee
+    // Step 10.6: Create admin transaction for platform fees
+    // Admin receives: 7% from customer + 7% from vendor = total platform fee
     // Find admin user (role_id = 1)
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
     
-    if (adminUser && platformFeeAmount > 0) {
+    if (adminUser && totalPlatformFeeAmount > 0) {
       const adminTransactionData = {
         user_id: adminUser.user_id,
-        amount: platformFeeAmount, // Admin receives only platform fee (7%)
+        amount: totalPlatformFeeAmount, // Admin receives: platform fee from customer + platform fee from vendor
         status: paymentIntent.status, // Same status as customer transaction
         payment_method_id: parseInt(payment_method_id, 10),
         transactionType: 'VendorBooking',
@@ -1267,12 +1307,14 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
           vendor_id: vendorId,
           customer_user_id: req.userId,
           base_amount: baseAmount,
-          platform_fee: platformFeeAmount,
+          customer_platform_fee: customerPlatformFeeAmount,
+          vendor_platform_fee: vendorPlatformFeeAmount,
+          total_platform_fee: totalPlatformFeeAmount,
           platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-          vendor_amount: vendorAmount, // Vendor receives baseAmount
+          vendor_amount: vendorAmount, // Vendor receives: baseAmount - 7% platform fee
           total_amount: totalAmount,
           customer_transaction_id: customerTransaction.transaction_id,
-          description: 'Platform fee (7%) from vendor booking payment - Admin receives platform fee'
+          description: 'Platform fee (7% from customer + 7% from vendor) from vendor booking payment - Admin receives total platform fee'
         }),
         created_by: req.userId
       };
@@ -1307,28 +1349,30 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       customer_transaction_id: customerTransaction.transaction_id,
       vendor_booking: bookingObj,
       payment_breakdown: {
-        total_amount: totalAmount, // Customer pays this (baseAmount + platformFeeAmount)
-        base_amount: baseAmount, // Vendor receives this
-        platform_fee: platformFeeAmount, // Admin receives this (7%)
+        total_amount: totalAmount, // Customer pays this (baseAmount + 7% platform fee)
+        base_amount: baseAmount,
+        customer_platform_fee: customerPlatformFeeAmount, // 7% from customer
+        vendor_platform_fee: vendorPlatformFeeAmount, // 7% from vendor (deducted from vendor payment)
+        total_platform_fee: totalPlatformFeeAmount, // Admin receives this (7% from customer + 7% from vendor)
         platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-        vendor_amount: vendorAmount // Vendor receives baseAmount only
+        vendor_amount: vendorAmount // Vendor receives: baseAmount - 7% platform fee
       },
       transactions: {
         customer: {
           transaction_id: customerTransaction.transaction_id,
           user_id: req.userId,
           amount: totalAmount,
-          description: 'Customer payment for vendor booking (baseAmount + platformFee)'
+          description: 'Customer payment for vendor booking (baseAmount + 7% platform fee)'
         },
         vendor: {
           user_id: vendorId,
-          amount: vendorAmount, // baseAmount
-          description: 'Vendor receives base amount'
+          amount: vendorAmount, // baseAmount - 7% platform fee
+          description: 'Vendor receives base amount minus 7% platform fee'
         },
         admin: {
           user_id: adminUser ? adminUser.user_id : null,
-          amount: platformFeeAmount,
-          description: 'Admin receives 7% platform fee'
+          amount: totalPlatformFeeAmount,
+          description: 'Admin receives 7% platform fee from customer + 7% platform fee from vendor'
         }
       },
       matched_categories: matchedCategories,
