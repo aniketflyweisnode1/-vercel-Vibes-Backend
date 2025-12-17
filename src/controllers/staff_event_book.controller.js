@@ -355,8 +355,9 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
     if (!staffWorkingPrice) {
       return sendNotFound(res, 'Staff working price not found for this staff and category');
     }
-
-    const baseAmount = staffWorkingPrice.price * 0.10; // Base amount (what staff should receive)
+    const staffData = await User.findOne({ user_id: staffEventBook.staff_id });
+    let initial_payment1 = staffData.initial_payment ?? 0.10;
+    const baseAmount = (priceDoc.price * initial_payment1) / 100; // Base amount (what staff should receive)
     console.log(baseAmount);
 
     // Calculate 7% platform fee
