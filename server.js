@@ -30,10 +30,10 @@ const corsOptions = {
     'http://localhost:5173',
     'http://127.0.0.1:3000',
     'http://localhost:3000',
+    'https://vibes-mr.netlify.app',
     'https://vercel-vibes-frontend.vercel.app', // Add your production frontend URL
     'https://vercel-vibes.vercel.app',
     'https://vibes-webapp.vercel.app',
-    'https://vibes-mr.netlify.app/',
     'https://vibes-admin-panel.netlify.app' // Add your production frontend URL if different
   ],
   credentials: true,
