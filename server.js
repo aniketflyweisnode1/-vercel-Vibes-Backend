@@ -40,8 +40,8 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 };
-
-app.use(cors(corsOptions));
+app.use(cors());
+// app.use(cors(corsOptions));
 
 // Compression middleware
 app.use(compression());
