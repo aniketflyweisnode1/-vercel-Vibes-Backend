@@ -55,7 +55,7 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
     }
 
     // Try to fetch staff price based on staff_id and staff_category_id
-    let staffPrice = null;
+    let staffPrice = null, initial_payment = null;
     if (staffEventBook.staff_id) {
       const priceDoc = await StaffWorkingPrice.findOne({
         staff_id: staffEventBook.staff_id,
@@ -63,11 +63,16 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
       });
       console.log(priceDoc);
       staffPrice = priceDoc ? priceDoc.price : null;
+      const baseAmount = priceDoc.price * 0.10; // Base amount (what staff should receive)
+      const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
+      const customerPlatformFeeAmount = priceDoc.price * PLATFORM_FEE_PERCENTAGE;
+      initial_payment = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
     }
 
     const response = {
       ...staffEventBook.toObject(),
-      staff_price: staffPrice
+      staff_price: staffPrice,
+      initial_payment: initial_payment
     };
 
     sendSuccess(res, response, 'Staff event booking created successfully', 201);
