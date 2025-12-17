@@ -89,6 +89,17 @@ const commonValidations = {
       'number.positive': 'City ID must be a positive number'
     }),
 
+  initial_payment: Joi.number()
+    .integer()
+    .positive()
+    // .default(1)
+    .optional()
+    .messages({
+      'number.base': 'initial_payment must be a number',
+      'number.integer': 'initial_payment must be an integer',
+      'number.positive': 'initial_payment must be a positive number'
+    }),
+
   role_id: Joi.number()
     .integer()
     .positive()
