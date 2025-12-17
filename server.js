@@ -35,13 +35,13 @@ const corsOptions = {
     'https://vibes-webapp.vercel.app',
     'https://vibes-admin-panel.netlify.app' // Add your production frontend URL if different
   ],
-  credentials: true,
+  credentials: false,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 };
 
-app.use(cors(corsOptions));
+app.use(cors());
 
 // Compression middleware
 app.use(compression());
@@ -63,15 +63,15 @@ if ('development') {
 
 
 // Request logging middleware
-app.use((req, res, next) => {
-  logger.info('Request received', {
-    method: req.method,
-    url: req.originalUrl,
-    ip: req.ip,
-    userAgent: req.get('User-Agent')
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   logger.info('Request received', {
+//     method: req.method,
+//     url: req.originalUrl,
+//     ip: req.ip,
+//     userAgent: req.get('User-Agent')
+//   });
+//   next();
+// });
 
 // API routes
 app.use('/api', routes);
@@ -89,7 +89,7 @@ app.get('/', (req, res) => {
 });
 
 // 404 handler
-app.use(notFound);
+// app.use(notFound);
 
 // Global error handler
 app.use(errorHandler);
