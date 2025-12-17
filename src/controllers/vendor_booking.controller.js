@@ -1180,7 +1180,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     let paymentIntent = null;
     try {
       const paymentOptions = {
-        amount: Math.round(totalAmount),
+        amount: totalAmount,
         billingDetails: billingDetails,
         currency: 'usd',
         customerEmail: user.email,
