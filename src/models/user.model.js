@@ -174,6 +174,9 @@ const userSchema = new mongoose.Schema({
     type: Number,
     ref: 'BankName'
   },
+  initial_payment: {
+    type: Number,
+  },
   bank_account_no: {
     type: String,
     trim: true,

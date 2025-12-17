@@ -321,6 +321,7 @@ const updateUserSchema = Joi.object({
     }),
   name: commonValidations.name.optional(),
   mobile: commonValidations.mobile.optional(),
+  initial_payment: commonValidations.initial_payment.optional(),
   email: commonValidations.email.optional(),
   password: commonValidations.password.optional(),
   address: commonValidations.address.optional(),
