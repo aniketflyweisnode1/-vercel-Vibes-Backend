@@ -63,15 +63,15 @@ if ('development') {
 
 
 // Request logging middleware
-app.use((req, res, next) => {
-  logger.info('Request received', {
-    method: req.method,
-    url: req.originalUrl,
-    ip: req.ip,
-    userAgent: req.get('User-Agent')
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   logger.info('Request received', {
+//     method: req.method,
+//     url: req.originalUrl,
+//     ip: req.ip,
+//     userAgent: req.get('User-Agent')
+//   });
+//   next();
+// });
 
 // API routes
 app.use('/api', routes);
