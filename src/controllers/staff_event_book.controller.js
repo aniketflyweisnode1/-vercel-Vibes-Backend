@@ -396,7 +396,7 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
     let paymentIntent = null;
     try {
       const paymentOptions = {
-        amount: Math.round(totalAmount * 100), // Convert to cents (customer pays total)
+        amount: totalAmount * 100, // Convert to cents (customer pays total)
         billingDetails: billingDetails,
         currency: 'usd',
         customerEmail: user.email,

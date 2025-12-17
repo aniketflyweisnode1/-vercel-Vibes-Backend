@@ -543,12 +543,12 @@ const updateProfile = asyncHandler(async (req, res) => {
       updated_on: new Date()
     };
 
-    delete updateData.id;
+    // delete updateData.id;
 
     // Remove password from update data if present (use separate endpoint for password change)
-    delete updateData.password;
+    // delete updateData.password;
     // Remove Fixed_role_id from update data to prevent it from being changed
-    delete updateData.Fixed_role_id;
+    // delete updateData.Fixed_role_id;
 
     const user = await User.findOneAndUpdate(
       { user_id: normalizedId },
