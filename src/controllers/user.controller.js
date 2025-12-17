@@ -527,7 +527,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   try {
     const { id } = req.body;
     const targetId = id !== undefined && id !== null ? id : req.userId;
-
+    console.log("530------------------", req.body)
     if (!targetId) {
       return sendError(res, 'User ID is required to update profile', 400);
     }

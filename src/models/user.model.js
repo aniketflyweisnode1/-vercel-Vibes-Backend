@@ -14,8 +14,8 @@ const userSchema = new mongoose.Schema({
   },
   mobile: {
     type: String,
-    trim: true,
-    match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number']
+    // trim: true,
+    // match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number']
   },
   email: {
     type: String,
@@ -68,7 +68,6 @@ const userSchema = new mongoose.Schema({
   Fixed_role_id: {
     type: Number,
     ref: 'Role',
-    default: 1
   },
   online_status: {
     type: Boolean,

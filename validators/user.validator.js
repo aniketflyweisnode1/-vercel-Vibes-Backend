@@ -59,7 +59,7 @@ const commonValidations = {
   country_id: Joi.number()
     .integer()
     .positive()
-    .default(1)
+    // .default(1)
     .optional()
     .messages({
       'number.base': 'Country ID must be a number',
@@ -70,7 +70,7 @@ const commonValidations = {
   state_id: Joi.number()
     .integer()
     .positive()
-    .default(1)
+    // .default(1)
     .optional()
     .messages({
       'number.base': 'State ID must be a number',
@@ -81,7 +81,7 @@ const commonValidations = {
   city_id: Joi.number()
     .integer()
     .positive()
-    .default(1)
+    // .default(1)
     .optional()
     .messages({
       'number.base': 'City ID must be a number',
@@ -92,7 +92,7 @@ const commonValidations = {
   role_id: Joi.number()
     .integer()
     .positive()
-    .default(1)
+    // .default(1)
     .optional()
     .allow(null)
     .messages({
