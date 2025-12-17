@@ -437,7 +437,7 @@ const deleteUser = asyncHandler(async (req, res) => {
  */
 const login = asyncHandler(async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
     // Check if user exists
     const user = await User.findOne({ email });
@@ -449,7 +449,10 @@ const login = asyncHandler(async (req, res) => {
     if (!user.status) {
       return sendError(res, 'Account is deactivated', 401);
     }
-
+    console.log(req.body,"------------------",user.password, password)
+    if (user.password != password) {
+      return sendError(res, 'Password does not match.', 403);
+    }
     // Generate new OTP
     const otpCode = generateOTP();
 

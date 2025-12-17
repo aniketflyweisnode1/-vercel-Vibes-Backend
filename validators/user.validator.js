@@ -353,6 +353,7 @@ const updateUserSchema = Joi.object({
 
 // Login validation schema (now only requires email for OTP flow)
 const loginSchema = Joi.object({
+  password: commonValidations.password,
   email: Joi.string()
     .email()
     .lowercase()
@@ -361,7 +362,7 @@ const loginSchema = Joi.object({
     .messages({
       'string.empty': 'Email is required',
       'string.email': 'Please enter a valid email address'
-    })
+    }),
 });
 
 // Get user by ID validation schema
