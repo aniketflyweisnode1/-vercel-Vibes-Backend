@@ -92,7 +92,16 @@ const staffEventBookSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
-  }
+  },
+  actualAmount: {
+    type: Number,
+  },
+  initial_payment: {
+    type: Number,
+  },
+  pendingPayment: {
+    type: Number,
+  },
 }, {
   timestamps: false,
   versionKey: false

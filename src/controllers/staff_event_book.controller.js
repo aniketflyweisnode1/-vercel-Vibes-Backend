@@ -57,18 +57,20 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
     // Try to fetch staff price based on staff_id and staff_category_id
     let staffPrice = null, initial_payment = null;
     if (staffEventBook.staff_id) {
-      const priceDoc = await StaffWorkingPrice.findOne({
-        staff_id: staffEventBook.staff_id,
-        status: true
-      });
+      const priceDoc = await StaffWorkingPrice.findOne({ staff_id: staffEventBook.staff_id, status: true });
+      const staffData = await User.findOne({ user_id: staffEventBook.staff_id, status: true });
       console.log(priceDoc);
       staffPrice = priceDoc ? priceDoc.price : null;
-      const baseAmount = priceDoc.price * 0.10; // Base amount (what staff should receive)
+      let initial_payment = staffData.initial_payment ?? 0.10
+      const baseAmount = (priceDoc.price * initial_payment) / 100; // Base amount (what staff should receive)
       const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
       const customerPlatformFeeAmount = priceDoc.price * PLATFORM_FEE_PERCENTAGE;
       initial_payment = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
+      staffEventBook.actualAmount = priceDoc.price;
+      staffEventBook.initial_payment = initial_payment;
+      staffEventBook.pendingPayment = priceDoc.price - baseAmount;
+      await staffEventBook.save();
     }
-
     const response = {
       ...staffEventBook.toObject(),
       staff_price: staffPrice,
