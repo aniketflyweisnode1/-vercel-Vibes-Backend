@@ -505,7 +505,7 @@ const login = asyncHandler(async (req, res) => {
  */
 const getProfile = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findById(req.userId)
+    const user = await User.findById(req.user._id)
       .select('-password');
 
     if (!user) {
