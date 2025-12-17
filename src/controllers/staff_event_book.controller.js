@@ -349,14 +349,14 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Staff working price not found for this staff and category');
     }
 
-    const baseAmount = staffWorkingPrice.price; // Base amount (what staff should receive)
+    const baseAmount = staffWorkingPrice.price * 0.10; // Base amount (what staff should receive)
     console.log(baseAmount);
 
     // Calculate 7% platform fee
     const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
 
     // Customer pays: baseAmount + 7% platform fee
-    const customerPlatformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
+    const customerPlatformFeeAmount = staffWorkingPrice.price * PLATFORM_FEE_PERCENTAGE;
     const totalAmount = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
 
     // Staff also pays 7% platform fee (deducted from their payment)
