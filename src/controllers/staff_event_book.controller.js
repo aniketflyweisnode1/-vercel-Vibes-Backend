@@ -351,18 +351,18 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
 
     const baseAmount = staffWorkingPrice.price; // Base amount (what staff should receive)
     console.log(baseAmount);
-    
+
     // Calculate 7% platform fee
     const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
-    
+
     // Customer pays: baseAmount + 7% platform fee
     const customerPlatformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
     const totalAmount = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
-    
+
     // Staff also pays 7% platform fee (deducted from their payment)
     const staffPlatformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
     const staffAmount = baseAmount - staffPlatformFeeAmount; // Staff receives: baseAmount - 7% platform fee
-    
+
     // Total platform fee to admin: from customer + from staff
     const totalPlatformFeeAmount = customerPlatformFeeAmount + staffPlatformFeeAmount;
 
@@ -396,7 +396,8 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
     let paymentIntent = null;
     try {
       const paymentOptions = {
-        amount: totalAmount * 100, // Convert to cents (customer pays total)
+        // amount: totalAmount * 100, // Convert to cents (customer pays total)
+        amount: totalAmount, // Convert to cents (customer pays total)
         billingDetails: billingDetails,
         currency: 'usd',
         customerEmail: user.email,
@@ -450,10 +451,10 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
 
     // Create customer transaction
     const customerTransaction = await Transaction.create(transactionData);
-    
+
     // Create staff transaction - Staff receives baseAmount minus 7% platform fee
     const staffUser = await User.findOne({ user_id: staffEventBook.staff_id, status: true });
-    
+
     if (staffUser && staffAmount > 0) {
       const staffTransactionData = {
         user_id: staffEventBook.staff_id, // Staff user ID
@@ -490,11 +491,11 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
 
       await Transaction.create(staffTransactionData);
     }
-    
+
     // Create admin transaction for platform fees
     // Admin receives: 7% from customer + 7% from staff = total platform fee
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
-    
+
     if (adminUser && totalPlatformFeeAmount > 0) {
       const adminTransactionData = {
         user_id: adminUser.user_id,
