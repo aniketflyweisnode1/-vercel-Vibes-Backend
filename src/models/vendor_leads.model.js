@@ -39,7 +39,7 @@ const vendorLeadsSchema = new mongoose.Schema({
   ContactPhone: {
     type: String,
     trim: true,
-    match: [/^[0-9+\-\s()]{10,15}$/, 'Please enter a valid phone number']
+    // match: [/^[0-9+\-\s()]{10,15}$/, 'Please enter a valid phone number']
   },
   DiscoverySource: {
     type: String,
