@@ -5,153 +5,102 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
+
 const app = express();
-// Import database connection
+
+// Database
 const connectDB = require('./config/database');
 
-// Import routes
+// Routes
 const routes = require('./src');
 
-// Import middleware
+// Middleware
 const { errorHandler, notFound } = require('./middleware/errorHandler');
-
-// Import logger
 const logger = require('./utils/logger');
 
-// Connect to database
+// Connect DB
 connectDB();
 
-
-// CORS configuration
-const corsOptions = {
-  origin: [
-    'http://127.0.0.1:5173',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'http://localhost:3000',
-    'https://vercel-vibes-frontend.vercel.app', // Add your production frontend URL
-    'https://vercel-vibes.vercel.app',
-    'https://vibes-webapp.vercel.app',
-    'https://vibes-admin-panel.netlify.app' // Add your production frontend URL if different
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200,
+app.use(cors({
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-};
-app.use(cors());
-// app.use(cors(corsOptions));
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ]
+}));
 
-// Compression middleware
+// Security
+app.use(helmet());
+
+// Compression
 app.use(compression());
 
-// Body parsing middleware
+// Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Logging middleware
-if ('development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined', {
-    stream: {
-      write: (message) => logger.info(message.trim())
-    }
-  }));
-}
+// Logging
+app.use(morgan('dev'));
 
-
-// Request logging middleware
-// app.use((req, res, next) => {
-//   logger.info('Request received', {
-//     method: req.method,
-//     url: req.originalUrl,
-//     ip: req.ip,
-//     userAgent: req.get('User-Agent')
-//   });
-//   next();
-// });
-
-// API routes
+// Routes
 app.use('/api', routes);
 
-// Root route
+// Root
 app.get('/', (req, res) => {
-  res.json({
+  res.status(200).json({
     success: true,
-    message: 'Welcome to Node.js API Structure',
+    message: 'Welcome to Node.js API',
     version: '1.0.0',
-    documentation: '/api',
-    health: '/api/health',
     timestamp: new Date().toISOString()
   });
 });
 
-// 404 handler
+// 404
 app.use(notFound);
 
-// Global error handler
+// Error handler
 app.use(errorHandler);
 
 // Graceful shutdown
-process.on(3009, () => {
-  logger.info('SIGTERM received. Shutting down gracefully...');
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  logger.info('SIGINT received. Shutting down gracefully...');
+  logger.info('SIGINT received');
   process.exit(0);
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  logger.error('Unhandled Promise Rejection', {
-    error: err.message,
-    stack: err.stack,
-    promise: promise
-  });
+// Unhandled promise rejection
+process.on('unhandledRejection', (err) => {
+  logger.error('Unhandled Rejection', err);
   process.exit(1);
 });
 
-// Handle uncaught exceptions
+// Uncaught exception
 process.on('uncaughtException', (err) => {
-  logger.error('Uncaught Exception', {
-    error: err.message,
-    stack: err.stack
-  });
+  logger.error('Uncaught Exception', err);
   process.exit(1);
 });
 
-// Start server
+// Server
 const PORT = 3009;
 const server = app.listen(PORT, () => {
-  logger.info(`Server running in ${'development'} mode on port ${PORT}`);
-  logger.info(`API Documentation: http://localhost:${PORT}/api`);
-  logger.info(`Health Check: http://localhost:${PORT}/api/health`);
+  logger.info(`Server running on port ${PORT}`);
 });
 
-// Handle server errors
+// Server errors
 server.on('error', (error) => {
-  if (error.syscall !== 'listen') {
-    throw error;
+  if (error.code === 'EADDRINUSE') {
+    logger.error(`Port ${PORT} already in use`);
+    process.exit(1);
   }
-
-  const bind = typeof PORT === 'string' ? 'Pipe ' + PORT : 'Port ' + PORT;
-
-  switch (error.code) {
-    case 'EACCES':
-      logger.error(`${bind} requires elevated privileges`);
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      logger.error(`${bind} is already in use`);
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
+  throw error;
 });
 
 module.exports = app;
