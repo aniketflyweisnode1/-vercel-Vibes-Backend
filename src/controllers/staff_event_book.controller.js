@@ -141,6 +141,7 @@ const getStaffEventBooksByAuth = asyncHandler(async (req, res) => {
 
 const getStaffEventBooksByVendorAuth = asyncHandler(async (req, res) => {
   try {
+    console.log("144=====================",req.user.user_id)
     const vendorId = req.userId;
 
     if (!vendorId) {
@@ -162,7 +163,7 @@ const getStaffEventBooksByVendorAuth = asyncHandler(async (req, res) => {
 
     // Fetch bookings linked to vendor's staff members
     const staffEventBooks = await StaffEventBook.find({
-      staff_id: { $in: staffIds }
+      created_by: req.user.user_id
     }).sort({ created_at: -1 }).lean();
 
     const staffMap = staffUsers.reduce((acc, staff) => {
