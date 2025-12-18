@@ -58,7 +58,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     for (const ticket of usergetTicket.tickets) {
       // Auto-populate event_entry_tickets_id if not provided
       let eventEntryTicketsId = ticket.event_entry_tickets_id;
-      
+
       if (!eventEntryTicketsId || eventEntryTicketsId === null || eventEntryTicketsId === undefined) {
         // Try to find the first active event entry ticket for this event
         try {
@@ -245,7 +245,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       for (const ticketUpdate of ticketsToUpdate) {
         await EventEntryTickets.findOneAndUpdate(
           { event_entry_tickets_id: ticketUpdate.event_entry_tickets_id },
-          { 
+          {
             $inc: { total_seats: -ticketUpdate.quantity },
             updatedBy: req.userId,
             updatedAt: new Date()
@@ -313,7 +313,7 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
     // Populate related fields
     const populatedOrders = await Promise.all(orders.map(async (order) => {
       const orderObj = order.toObject();
-      
+
       // Populate createdBy
       if (order.createdBy) {
         try {
@@ -323,7 +323,7 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
           console.log('User not found for createdBy ID:', order.createdBy);
         }
       }
-      
+
       // Populate updatedBy
       if (order.updatedBy) {
         try {
@@ -333,7 +333,7 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
           console.log('User not found for updatedBy ID:', order.updatedBy);
         }
       }
-      
+
       // Populate event
       if (order.event_id) {
         try {
@@ -343,29 +343,29 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
           console.log('Event not found for ID:', order.event_id);
         }
       }
-      
+
       // Populate event_entry_userget_tickets
       if (order.event_entry_userget_tickets_id) {
         try {
-          const usergetTicket = await EventEntryUsergetTickets.findOne({ 
-            event_entry_userget_tickets_id: order.event_entry_userget_tickets_id 
+          const usergetTicket = await EventEntryUsergetTickets.findOne({
+            event_entry_userget_tickets_id: order.event_entry_userget_tickets_id
           });
           orderObj.event_entry_userget_tickets = usergetTicket;
         } catch (error) {
           console.log('EventEntryUsergetTickets not found for ID:', order.event_entry_userget_tickets_id);
         }
       }
-      
+
       // Check payment status
       try {
         const transactions = await Transaction.find({
           transactionType: 'TicketBooking',
           status: 'completed'
         });
-        
+
         let paymentStatus = 'pending';
         let transaction = null;
-        
+
         for (const txn of transactions) {
           if (txn.metadata) {
             try {
@@ -380,7 +380,7 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
             }
           }
         }
-        
+
         orderObj.payment_status = paymentStatus;
         orderObj.transaction = transaction ? {
           transaction_id: transaction.transaction_id,
@@ -393,7 +393,7 @@ const getAllEventEntryTicketsOrders = asyncHandler(async (req, res) => {
         orderObj.payment_status = 'unknown';
         orderObj.transaction = null;
       }
-      
+
       return orderObj;
     }));
 
@@ -426,7 +426,7 @@ const getEventEntryTicketsOrderById = asyncHandler(async (req, res) => {
     }
 
     const orderObj = order.toObject();
-    
+
     // Populate createdBy
     if (order.createdBy) {
       try {
@@ -436,7 +436,7 @@ const getEventEntryTicketsOrderById = asyncHandler(async (req, res) => {
         console.log('User not found for createdBy ID:', order.createdBy);
       }
     }
-    
+
     // Populate updatedBy
     if (order.updatedBy) {
       try {
@@ -446,7 +446,7 @@ const getEventEntryTicketsOrderById = asyncHandler(async (req, res) => {
         console.log('User not found for updatedBy ID:', order.updatedBy);
       }
     }
-    
+
     // Populate event
     if (order.event_id) {
       try {
@@ -456,29 +456,29 @@ const getEventEntryTicketsOrderById = asyncHandler(async (req, res) => {
         console.log('Event not found for ID:', order.event_id);
       }
     }
-    
+
     // Populate event_entry_userget_tickets
     if (order.event_entry_userget_tickets_id) {
       try {
-        const usergetTicket = await EventEntryUsergetTickets.findOne({ 
-          event_entry_userget_tickets_id: order.event_entry_userget_tickets_id 
+        const usergetTicket = await EventEntryUsergetTickets.findOne({
+          event_entry_userget_tickets_id: order.event_entry_userget_tickets_id
         });
         orderObj.event_entry_userget_tickets = usergetTicket;
       } catch (error) {
         console.log('EventEntryUsergetTickets not found for ID:', order.event_entry_userget_tickets_id);
       }
     }
-    
+
     // Check payment status
     try {
       const transactions = await Transaction.find({
         transactionType: 'TicketBooking',
         status: 'completed'
       });
-      
+
       let paymentStatus = 'pending';
       let transaction = null;
-      
+
       for (const txn of transactions) {
         if (txn.metadata) {
           try {
@@ -493,7 +493,7 @@ const getEventEntryTicketsOrderById = asyncHandler(async (req, res) => {
           }
         }
       }
-      
+
       orderObj.payment_status = paymentStatus;
       orderObj.transaction = transaction ? {
         transaction_id: transaction.transaction_id,
@@ -543,7 +543,7 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
     // Populate related fields
     const populatedOrders = await Promise.all(orders.map(async (order) => {
       const orderObj = order.toObject();
-      
+
       // Populate event
       if (order.event_id) {
         try {
@@ -553,19 +553,19 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
           console.log('Event not found for ID:', order.event_id);
         }
       }
-      
+
       // Populate event_entry_userget_tickets
       if (order.event_entry_userget_tickets_id) {
         try {
-          const usergetTicket = await EventEntryUsergetTickets.findOne({ 
-            event_entry_userget_tickets_id: order.event_entry_userget_tickets_id 
+          const usergetTicket = await EventEntryUsergetTickets.findOne({
+            event_entry_userget_tickets_id: order.event_entry_userget_tickets_id
           });
           orderObj.event_entry_userget_tickets = usergetTicket;
         } catch (error) {
           console.log('EventEntryUsergetTickets not found for ID:', order.event_entry_userget_tickets_id);
         }
       }
-      
+
       // Check payment status
       try {
         const transactions = await Transaction.find({
@@ -573,10 +573,10 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
           status: 'completed',
           user_id: req.userId
         });
-        
+
         let paymentStatus = 'pending';
         let transaction = null;
-        
+
         for (const txn of transactions) {
           if (txn.metadata) {
             try {
@@ -591,7 +591,7 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
             }
           }
         }
-        
+
         orderObj.payment_status = paymentStatus;
         orderObj.transaction = transaction ? {
           transaction_id: transaction.transaction_id,
@@ -604,7 +604,7 @@ const getEventEntryTicketsOrdersByAuth = asyncHandler(async (req, res) => {
         orderObj.payment_status = 'unknown';
         orderObj.transaction = null;
       }
-      
+
       return orderObj;
     }));
 
@@ -631,8 +631,8 @@ const updateEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     const { id, seats, ...updateFields } = req.body;
 
     // Find existing order
-    const existingOrder = await EventEntryTicketsOrder.findOne({ 
-      event_entry_tickets_order_id: parseInt(id) 
+    const existingOrder = await EventEntryTicketsOrder.findOne({
+      event_entry_tickets_order_id: parseInt(id)
     });
 
     if (!existingOrder) {
@@ -661,10 +661,10 @@ const updateEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       };
 
       updateFields.seats = processSeatsField(seats);
-      
+
       // Validate seats count matches quantity if both are provided
-      if (updateFields.seats.length > 0 && updateFields.quantity && 
-          updateFields.seats.length !== updateFields.quantity) {
+      if (updateFields.seats.length > 0 && updateFields.quantity &&
+        updateFields.seats.length !== updateFields.quantity) {
         console.warn(`Warning: Seats count (${updateFields.seats.length}) does not match quantity (${updateFields.quantity})`);
       }
     }
@@ -680,7 +680,7 @@ const updateEventEntryTicketsOrder = asyncHandler(async (req, res) => {
 
     // Populate related fields for response
     const orderObj = order.toObject();
-    
+
     if (order.createdBy) {
       try {
         const createdByUser = await User.findOne({ user_id: order.createdBy });
@@ -689,7 +689,7 @@ const updateEventEntryTicketsOrder = asyncHandler(async (req, res) => {
         console.log('User not found for createdBy ID:', order.createdBy);
       }
     }
-    
+
     if (order.updatedBy) {
       try {
         const updatedByUser = await User.findOne({ user_id: order.updatedBy });
@@ -716,8 +716,8 @@ const deleteEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     // Find the order first to get details for seat restoration
-    const order = await EventEntryTicketsOrder.findOne({ 
-      event_entry_tickets_order_id: parseInt(id) 
+    const order = await EventEntryTicketsOrder.findOne({
+      event_entry_tickets_order_id: parseInt(id)
     });
 
     if (!order) {
@@ -760,7 +760,7 @@ const deleteEventEntryTicketsOrder = asyncHandler(async (req, res) => {
             try {
               await EventEntryTickets.findOneAndUpdate(
                 { event_entry_tickets_id: ticket.event_entry_tickets_id },
-                { 
+                {
                   $inc: { total_seats: ticket.quantity },
                   updatedBy: req.userId,
                   updatedAt: new Date()
@@ -870,10 +870,10 @@ const processPayment = asyncHandler(async (req, res) => {
     const baseAmount = order.final_amount; // Base amount (total amount customer pays)
     const platformFeeAmount = Number(order.Platform) || 0; // Platform fee from order (deducted from event host)
     const totalAmount = baseAmount; // Customer pays: final_amount (no extra)
-    
+
     // Event host receives: baseAmount - platformFeeAmount (deducted from their payment)
     const eventHostAmount = baseAmount - platformFeeAmount; // Event host receives: final_amount - Platform fee
-    
+
     // Get event to find event host (created_by)
     const event = await Event.findOne({ event_id: order.event_id });
     const eventHostId = event ? event.created_by : null;
@@ -903,7 +903,7 @@ const processPayment = asyncHandler(async (req, res) => {
     }
 
     console.log(order);
-    
+
     // Create transaction data for customer
     const transactionData = {
       user_id: req.userId,
@@ -935,11 +935,11 @@ const processPayment = asyncHandler(async (req, res) => {
 
     // Create customer transaction
     const customerTransaction = await Transaction.create(transactionData);
-    
+
     // Create event host transaction - Event host receives baseAmount minus platform fee
     if (eventHostId && eventHostAmount > 0) {
       const eventHostUser = await User.findOne({ user_id: eventHostId, status: true });
-      
+
       if (eventHostUser) {
         const eventHostTransactionData = {
           user_id: eventHostId, // Event host user ID
@@ -975,11 +975,11 @@ const processPayment = asyncHandler(async (req, res) => {
         await Transaction.create(eventHostTransactionData);
       }
     }
-    
+
     // Create admin transaction for platform fee only
     // Admin receives the platform fee (from order.Platform field)
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
-    
+
     if (adminUser && platformFeeAmount > 0) {
       const adminTransactionData = {
         user_id: adminUser.user_id,
@@ -1257,6 +1257,15 @@ const confirmPayment = asyncHandler(async (req, res) => {
       },
       { new: true }
     );
+    const updatedTransaction1 = await Transaction.findOneAndUpdate(
+      { reference_number: `STAFF_PAYMENT_${payment_intent_id}` },
+      {
+        status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed',
+        updated_by: req.userId,
+        updated_at: new Date()
+      },
+      { new: true }
+    );
 
     // Populate payment_method_id
     let populatedTransaction = updatedTransaction.toObject();
@@ -1280,7 +1289,7 @@ const confirmPayment = asyncHandler(async (req, res) => {
           const metadata = JSON.parse(transaction.metadata);
           orderId = metadata.order_id;
         }
-        
+
         if (orderId) {
           await EventEntryTicketsOrder.findOneAndUpdate(
             { event_entry_tickets_order_id: orderId },
