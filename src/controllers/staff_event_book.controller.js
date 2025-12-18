@@ -737,7 +737,7 @@ const StaffBookingPaymentByVendor = asyncHandler(async (req, res) => {
       { staff_event_book_id: parseInt(staff_event_book_id) },
       {
         transaction_id: customerTransaction.transaction_id,
-        transaction_status: 'Pe',
+        transaction_status: 'Completed',
         updated_by: req.userId,
         updated_at: new Date()
       },
