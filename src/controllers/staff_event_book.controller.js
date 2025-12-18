@@ -69,6 +69,8 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
       staffEventBook.actualAmount = priceDoc.price;
       staffEventBook.initial_payment = initial_payment;
       staffEventBook.pendingPayment = priceDoc.price - baseAmount;
+      staffEventBook.platform_fee = customerPlatformFeeAmount;
+      staffEventBook.initialPerPayment = baseAmount;
       await staffEventBook.save();
     }
     const response = {

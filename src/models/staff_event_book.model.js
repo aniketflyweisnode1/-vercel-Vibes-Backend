@@ -112,6 +112,12 @@ const staffEventBookSchema = new mongoose.Schema({
   pendingPayment: {
     type: Number,
   },
+  platform_fee: {
+    type: Number,
+  },
+  initialPerPayment: {
+    type: Number,
+  },
 }, {
   timestamps: false,
   versionKey: false
