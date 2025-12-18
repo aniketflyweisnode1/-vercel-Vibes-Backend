@@ -1228,7 +1228,29 @@ const confirmPayment = asyncHandler(async (req, res) => {
       // Check if the error is because payment is already confirmed
       if (confirmError.message.includes('already succeeded') ||
         confirmError.message.includes('already confirmed')) {
+        const updatedTransaction = await Transaction.findOneAndUpdate(
+          { reference_number: payment_intent_id },
+          {
+            status: 'completed',
+            updated_by: req.userId,
+            updated_at: new Date()
+          },
+          { new: true }
+        );
+        console.log("1260//////////////////////////////////////////////", updatedTransaction)
+        if (updatedTransaction) {
+          const updatedTransaction1 = await Transaction.findOneAndUpdate(
+            { reference_number: `STAFF_PAYMENT_${payment_intent_id}` },
+            {
+              status: 'completed',
+              updated_by: req.userId,
+              updated_at: new Date()
+            },
+            { new: true }
+          );
+          console.log("1271//////////////////////////////////////////////", updatedTransaction1)
 
+        }
         // Return success with status information instead of error
         return sendSuccess(res, {
           payment_status: 'already_confirmed',
@@ -1257,6 +1279,7 @@ const confirmPayment = asyncHandler(async (req, res) => {
       },
       { new: true }
     );
+    console.log("1260//////////////////////////////////////////////", updatedTransaction)
     if (updatedTransaction) {
       const updatedTransaction1 = await Transaction.findOneAndUpdate(
         { reference_number: `STAFF_PAYMENT_${payment_intent_id}` },
@@ -1267,6 +1290,8 @@ const confirmPayment = asyncHandler(async (req, res) => {
         },
         { new: true }
       );
+      console.log("1271//////////////////////////////////////////////", updatedTransaction1)
+
     }
 
     // Populate payment_method_id
