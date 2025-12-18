@@ -1257,15 +1257,17 @@ const confirmPayment = asyncHandler(async (req, res) => {
       },
       { new: true }
     );
-    const updatedTransaction1 = await Transaction.findOneAndUpdate(
-      { reference_number: `STAFF_PAYMENT_${payment_intent_id}` },
-      {
-        status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed',
-        updated_by: req.userId,
-        updated_at: new Date()
-      },
-      { new: true }
-    );
+    if (updatedTransaction) {
+      const updatedTransaction1 = await Transaction.findOneAndUpdate(
+        { reference_number: `STAFF_PAYMENT_${payment_intent_id}` },
+        {
+          status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed',
+          updated_by: req.userId,
+          updated_at: new Date()
+        },
+        { new: true }
+      );
+    }
 
     // Populate payment_method_id
     let populatedTransaction = updatedTransaction.toObject();
