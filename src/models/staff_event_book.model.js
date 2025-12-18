@@ -66,7 +66,17 @@ const staffEventBookSchema = new mongoose.Schema({
     enum: ['Pending', 'Completed', 'Failed'],
     default: 'Pending'
   },
+  initialTransaction_status: {
+    type: String,
+    enum: ['Pending', 'Completed', 'Failed'],
+    default: 'Pending'
+  },
   transaction_id: {
+    type: Number,
+    ref: 'Transaction',
+    default: null
+  },
+  initialTransaction_id: {
     type: Number,
     ref: 'Transaction',
     default: null

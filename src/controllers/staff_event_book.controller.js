@@ -330,7 +330,7 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
       staff_event_book_id,
       payment_method_id,
       billingDetails,
-      description = 'Staff booking payment'
+      description = 'Staff initial booking payment'
     } = req.body;
 
     // Validate required fields
@@ -546,8 +546,8 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
     const updatedStaffEventBook = await StaffEventBook.findOneAndUpdate(
       { staff_event_book_id: parseInt(staff_event_book_id) },
       {
-        transaction_id: customerTransaction.transaction_id,
-        transaction_status: 'Completed',
+        initialTransaction_id: customerTransaction.transaction_id,
+        initialTransaction_status: 'Completed',
         updated_by: req.userId,
         updated_at: new Date()
       },
@@ -612,7 +612,7 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
 });
 const StaffBookingPaymentByVendor = asyncHandler(async (req, res) => {
   try {
-    const { staff_event_book_id, payment_method_id, billingDetails, description = 'Staff booking payment' } = req.body;
+    const { staff_event_book_id, payment_method_id, billingDetails, description = 'Staff final booking payment' } = req.body;
     if (!staff_event_book_id || !payment_method_id) {
       return sendError(res, 'staff_event_book_id and payment_method_id are required', 400);
     }
