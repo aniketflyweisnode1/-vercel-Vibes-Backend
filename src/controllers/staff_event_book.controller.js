@@ -152,13 +152,12 @@ const getStaffEventBooksByVendorAuth = asyncHandler(async (req, res) => {
 
     // Fetch all staff members created by this vendor (role_id: 4 = staff)
     const staffUsers = await User.find({
-      created_by: vendorId,
-      role_id: 4,
+      user_id: vendorId,
+      // role_id: 4,
       status: true
     }).select('user_id name email mobile role_id');
 
     const staffIds = staffUsers.map((staff) => staff.user_id);
-
     if (staffIds.length === 0) {
       return sendSuccess(res, [], 'No staff event bookings found for this vendor');
     }
