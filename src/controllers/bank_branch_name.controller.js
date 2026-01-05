@@ -36,6 +36,7 @@ const getAllBankBranchNames = asyncHandler(async (req, res) => {
       search = '',
       status,
       bank_name_id,
+      userId,
       sortBy = 'created_at',
       sortOrder = 'desc'
     } = req.query;
@@ -65,7 +66,9 @@ const getAllBankBranchNames = asyncHandler(async (req, res) => {
     if (bank_name_id) {
       filter.bank_name_id = parseInt(bank_name_id);
     }
-
+    if (userId) {
+      filter.created_by = userId;
+    }
     // Build sort object
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -140,8 +143,8 @@ const updateBankBranchName = asyncHandler(async (req, res) => {
     const bankBranchName = await BankBranchName.findOneAndUpdate(
       { bank_branch_name_id: parseInt(id) },
       updateData,
-      { 
-        new: true, 
+      {
+        new: true,
         runValidators: true
       }
     );
@@ -174,8 +177,8 @@ const updateBankBranchNameByIdBody = asyncHandler(async (req, res) => {
     const bankBranchName = await BankBranchName.findOneAndUpdate(
       { bank_branch_name_id: parseInt(id) },
       finalUpdateData,
-      { 
-        new: true, 
+      {
+        new: true,
         runValidators: true
       }
     );
@@ -200,7 +203,7 @@ const deleteBankBranchName = asyncHandler(async (req, res) => {
 
     const bankBranchName = await BankBranchName.findOneAndUpdate(
       { bank_branch_name_id: parseInt(id) },
-      { 
+      {
         status: false,
         updated_by: req.userId,
         updated_at: new Date()
