@@ -449,7 +449,7 @@ const login = asyncHandler(async (req, res) => {
     if (!user.status) {
       return sendError(res, 'Account is deactivated', 401);
     }
-    console.log(req.body,"------------------",user.password, password)
+    console.log(req.body, "------------------", user.password, password)
     if (user.password != password) {
       return sendError(res, 'Password does not match.', 403);
     }
@@ -508,19 +508,30 @@ const login = asyncHandler(async (req, res) => {
  */
 const getProfile = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .select('-password');
-
+    const user = await User.findById(req.user._id).select('-password');
     if (!user) {
       return sendNotFound(res, 'User not found');
     }
-
-    sendSuccess(res, user, 'Profile retrieved successfully');
+    sendSuccess(res, user,staffWorkingPrices, 'Profile retrieved successfully');
   } catch (error) {
     throw error;
   }
 });
+const getStaffWorkingPrice = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return sendNotFound(res, 'User not found');
+    }
+    const staffWorkingPrices = await StaffWorkingPrice.find({ staff_id: user.user_id, status: true }).sort({ created_at: -1 });
 
+
+
+    sendSuccess(res, staffWorkingPrices, 'Profile retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
 /**
  * Update current user profile
  * @param {Object} req - Express request object
@@ -1516,6 +1527,7 @@ module.exports = {
   login,
   logout,
   getProfile,
+  getStaffWorkingPrice,
   updateProfile,
   changePassword,
   sendOTP,

@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 // Import controllers
-const { createUser, getAllUsers, getUserById, updateUser, updateUserByIdBody, deleteUser, login, logout, getProfile, updateProfile, changePassword, sendOTP, verifyOTP, getUsersByRoleId, forgotPassword, resetPassword, PlatFormFeePayment, updateStaffProfile, testSendForgotPasswordOTPEmail } = require('../../controllers/user.controller'); 
-  // Import middleware
+const { createUser, getAllUsers, getUserById, updateUser, updateUserByIdBody, deleteUser, login, logout, getProfile, getStaffWorkingPrice, updateProfile, changePassword, sendOTP, verifyOTP, getUsersByRoleId, forgotPassword, resetPassword, PlatFormFeePayment, updateStaffProfile, testSendForgotPasswordOTPEmail } = require('../../controllers/user.controller');
+// Import middleware
 const { auth, authRateLimit } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
 // Import validators
@@ -21,25 +21,27 @@ router.post('/reset-password', authRateLimit, validateBody(resetPasswordSchema),
 // Test email sending endpoint
 router.post('/test-email-send', testSendForgotPasswordOTPEmail);
 
-router.post('/create',  validateBody(createUserSchema), createUser);
+router.post('/create', validateBody(createUserSchema), createUser);
 
-router.get('/getAll',  getAllUsers);
+router.get('/getAll', getAllUsers);
 
 router.get('/getByRoleId/:role_id', auth, validateParams(getUsersByRoleIdSchema), validateQuery(getUsersByRoleIdQuerySchema), getUsersByRoleId);
 
 router.get('/getProfile', auth, getProfile);
 
-router.put('/updateProfile', auth, validateBody(updateUserSchema), updateProfile);    
+router.get('/getStaffWorkingPrice', auth, getStaffWorkingPrice);
+
+router.put('/updateProfile', auth, validateBody(updateUserSchema), updateProfile);
 
 router.put('/updateStaffProfile', auth, updateStaffProfile);
 
-router.put('/changePassword', auth, validateBody(changePasswordSchema), changePassword);   
+router.put('/changePassword', auth, validateBody(changePasswordSchema), changePassword);
 
 router.get('/getUserById/:id', auth, validateParams(getUserByIdSchema), getUserById);
 
 router.put('/updateUserById', auth, validateBody(updateUserByIdBodySchema), updateUserByIdBody);
 
-router.delete('/deleteUserById/:id',  auth, validateParams(getUserByIdSchema), deleteUser);
+router.delete('/deleteUserById/:id', auth, validateParams(getUserByIdSchema), deleteUser);
 
 // Process platform fee payment (with auth) - Creates PlatformFee transaction and updates user
 router.post('/PlatFormFeePayment', auth, PlatFormFeePayment);
