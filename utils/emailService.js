@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
 const logger = require('./logger');
-const User = require('../models/user.model');
 
 /**
  * Email service utility for sending emails
