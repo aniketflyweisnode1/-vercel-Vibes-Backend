@@ -231,7 +231,9 @@ const getAllBankBranchNamesSchema = Joi.object({
     .default('desc')
     .messages({
       'any.only': 'Sort order must be either asc or desc'
-    })
+    }),
+     userId: Joi.string()
+    .optional()
 });
 
 // Update bank branch name by ID with ID in body validation schema

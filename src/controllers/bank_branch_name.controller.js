@@ -40,7 +40,6 @@ const getAllBankBranchNames = asyncHandler(async (req, res) => {
       sortBy = 'created_at',
       sortOrder = 'desc'
     } = req.query;
-
     // Build filter object
     const filter = {};
 
@@ -75,7 +74,6 @@ const getAllBankBranchNames = asyncHandler(async (req, res) => {
 
     // Calculate pagination
     const skip = (page - 1) * limit;
-
     // Execute query
     const [bankBranchNames, total] = await Promise.all([
       BankBranchName.find(filter)
