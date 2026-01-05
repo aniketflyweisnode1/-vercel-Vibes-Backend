@@ -512,7 +512,7 @@ const getProfile = asyncHandler(async (req, res) => {
     if (!user) {
       return sendNotFound(res, 'User not found');
     }
-    sendSuccess(res, user,staffWorkingPrices, 'Profile retrieved successfully');
+    sendSuccess(res, user, 'Profile retrieved successfully');
   } catch (error) {
     throw error;
   }
