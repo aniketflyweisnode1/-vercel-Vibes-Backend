@@ -11,8 +11,8 @@ class EmailService {
     this.transporterCreated = false;
     // Email credentials configuration
     this.emailCredentials = {
-      user: "node1@flyweis.technology",
-      pass: "mkpvafpjcnnvtblm"
+      user: "node4@flyweis.technology",
+      pass: "ellscxkummaftpev"
     };
     this.initializeTransporter();
   }
