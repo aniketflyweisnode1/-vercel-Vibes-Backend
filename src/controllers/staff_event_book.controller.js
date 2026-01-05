@@ -6,6 +6,8 @@ const AvailabilityCalender = require('../models/availability_calender.model');
 const { sendSuccess, sendError, sendNotFound } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
+const Event = require('../models/event.model');
+const emailService = require('../../utils/emailService');
 
 /**
  * Create a new staff event booking
@@ -14,18 +16,11 @@ const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
  */
 const createStaffEventBook = asyncHandler(async (req, res) => {
   try {
-    const staffEventBookData = {
-      ...req.body,
-      created_by: req.userId
-    };
-
+    const staffEventBookData = { ...req.body, created_by: req.userId };
     const staffEventBook = await StaffEventBook.create(staffEventBookData);
-
-    // Create availability calendar entry for the booked slot
     try {
       const startDate = staffEventBook.dateFrom ? new Date(staffEventBook.dateFrom) : null;
       const endDate = staffEventBook.dateTo ? new Date(staffEventBook.dateTo) : null;
-
       if (startDate && !Number.isNaN(startDate.getTime())) {
         const availabilityPayload = {
           Year: startDate.getFullYear(),
@@ -53,12 +48,11 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
       console.error('Failed to create availability calendar entry:', availabilityError);
       // Do not fail booking if availability log fails; continue
     }
-
-    // Try to fetch staff price based on staff_id and staff_category_id
+    let staffData = await User.findOne({ user_id: staffEventBook.staff_id });
+    let created_byData = await User.findOne({ user_id: staffEventBook.created_by });
     let staffPrice = null, initial_payment = null;
     if (staffEventBook.staff_id) {
       const priceDoc = await StaffWorkingPrice.findOne({ staff_id: staffEventBook.staff_id, status: true });
-      const staffData = await User.findOne({ user_id: staffEventBook.staff_id });
       console.log(priceDoc);
       staffPrice = priceDoc ? priceDoc.price : null;
       let initial_payment1 = staffData.initial_payment ?? 0.10
@@ -73,6 +67,19 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
       staffEventBook.initialPerPayment = baseAmount;
       await staffEventBook.save();
     }
+    let event = await Event.findOne({ event_id: staffEventBook.event_id });
+    if (event) {
+      const emailEventData = {
+        title: event.name_title || 'Event',
+        date: event.date,
+        time: event.time,
+        location: event.street_address || 'Location TBD',
+        description: event.description || ''
+      };
+      await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
+      await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
+    }
+
     const response = {
       ...staffEventBook.toObject(),
       staff_price: staffPrice,

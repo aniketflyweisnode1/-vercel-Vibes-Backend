@@ -191,81 +191,49 @@ const createVendorBooking = asyncHandler(async (req, res) => {
     if (!startDate) {
       return sendError(res, 'Date_start is required', 400);
     }
-
     const endDate = parseDateOrNull(req.body.End_date, 'End_date');
-
-    const vendorId = req.body.vendor_id !== undefined && req.body.vendor_id !== null
-      ? Number(req.body.vendor_id)
-      : null;
-
+    const vendorId = req.body.vendor_id !== undefined && req.body.vendor_id !== null ? Number(req.body.vendor_id) : null;
     if (!vendorId || Number.isNaN(vendorId)) {
       return sendError(res, 'vendor_id is required and must be a valid number', 400);
     }
-
-    const bookingCategoryIds = Array.isArray(req.body.Vendor_Category_id)
-      ? req.body.Vendor_Category_id.map(id => Number(id)).filter(id => !Number.isNaN(id))
-      : [];
-
+    const bookingCategoryIds = Array.isArray(req.body.Vendor_Category_id) ? req.body.Vendor_Category_id.map(id => Number(id)).filter(id => !Number.isNaN(id)) : [];
     if (bookingCategoryIds.length === 0) {
       return sendError(res, 'Vendor_Category_id must include at least one category id', 400);
     }
-
-    // Calculate amount and vendor_amount from vendor categories if vendor_id and categories are provided
     let calculatedBaseAmount = 0; // Base amount (Price from categories)
     let calculatedAmount = 0; // Customer pays: baseAmount + 7% platform fee
     let calculatedVendorAmount = 0; // Vendor receives: baseAmount - 7% platform fee
-
     const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
-
     let vendorPortal = null;
     try {
-      vendorPortal = await VendorOnboardingPortal.findOne({
-        Vendor_id: Number(vendorId),
-        Status: true
-      });
+      vendorPortal = await VendorOnboardingPortal.findOne({ Vendor_id: Number(vendorId), Status: true });
     } catch (error) {
       console.error('Error fetching vendor onboarding portal:', error);
     }
-
     if (!vendorPortal) {
       return sendError(res, `Active vendor onboarding portal not found for vendor_id ${vendorId}`, 404);
     }
-
     try {
       const populatedPortal = await populateVendorOnboardingPortal(vendorPortal);
-
       if (!populatedPortal.categories_fees_details || populatedPortal.categories_fees_details.length === 0) {
         return sendError(res, 'Vendor has not configured any categories fees. Please ensure the vendor has set up pricing for selected categories.', 400);
       }
-
       const missingCategories = [];
       const invalidPricingCategories = [];
       const matchedCategories = [];
-
       bookingCategoryIds.forEach(categoryId => {
-        const matchingFee = populatedPortal.categories_fees_details.find(
-          fee => Number(fee.category_id) === Number(categoryId));
-
+        const matchingFee = populatedPortal.categories_fees_details.find(fee => Number(fee.category_id) === Number(categoryId));
         if (!matchingFee) {
           missingCategories.push(categoryId);
         } else {
           const MinFee = Number(matchingFee.MinFee) || 0;
           const price = Number(matchingFee.Price) || 0;
-
           if (price <= 0) {
-            invalidPricingCategories.push({
-              category_id: categoryId,
-              price: price,
-              minFee: MinFee
-            });
+            invalidPricingCategories.push({ category_id: categoryId, price: price, minFee: MinFee });
           } else {
             // Base amount is the Price from category
             calculatedBaseAmount += price;
-            matchedCategories.push({
-              category_id: categoryId,
-              price: price,
-              minFee: MinFee
-            });
+            matchedCategories.push({ category_id: categoryId, price: price, minFee: MinFee });
           }
         }
       });
@@ -278,10 +246,10 @@ const createVendorBooking = asyncHandler(async (req, res) => {
         // Manual amounts provided - treat manualAmount as total (customer pays)
         // Calculate base amount from total (reverse calculate: total = base + 7% => base = total / 1.07)
         calculatedBaseAmount = manualAmount / (1 + PLATFORM_FEE_PERCENTAGE);
-        
+
         // Customer pays: manualAmount (which includes platform fee)
         calculatedAmount = manualAmount;
-        
+
         // Vendor receives: baseAmount - 7% platform fee
         const vendorPlatformFeeAmount = calculatedBaseAmount * PLATFORM_FEE_PERCENTAGE;
         calculatedVendorAmount = calculatedBaseAmount - vendorPlatformFeeAmount;
@@ -323,7 +291,7 @@ const createVendorBooking = asyncHandler(async (req, res) => {
         // Customer pays: baseAmount + 7% platform fee
         const customerPlatformFeeAmount = calculatedBaseAmount * PLATFORM_FEE_PERCENTAGE;
         calculatedAmount = calculatedBaseAmount + customerPlatformFeeAmount;
-        
+
         // Vendor also pays 7% platform fee (deducted from their payment)
         const vendorPlatformFeeAmount = calculatedBaseAmount * PLATFORM_FEE_PERCENTAGE;
         calculatedVendorAmount = calculatedBaseAmount - vendorPlatformFeeAmount;
@@ -344,7 +312,7 @@ const createVendorBooking = asyncHandler(async (req, res) => {
       finalBaseAmount = finalAmount / (1 + PLATFORM_FEE_PERCENTAGE);
       const vendorPlatformFeeAmount = finalBaseAmount * PLATFORM_FEE_PERCENTAGE;
       const recalculatedVendorAmount = finalBaseAmount - vendorPlatformFeeAmount;
-      
+
       // Use recalculated vendor amount if it's different from manual
       if (Math.abs(recalculatedVendorAmount - finalVendorAmount) > 0.01) {
         finalVendorAmount = recalculatedVendorAmount;
@@ -390,6 +358,20 @@ const createVendorBooking = asyncHandler(async (req, res) => {
     delete bookingData.vendor_booking_status;
 
     const booking = await VendorBooking.create(bookingData);
+    let event = await Event.findOne({ event_id: booking.Event_id });
+    if (event) {
+      let staffData = await User.findOne({ user_id: booking.vendor_id });
+      let created_byData = await User.findOne({ user_id: booking.user_id });
+      const emailEventData = {
+        title: event.name_title || 'Event',
+        date: event.date,
+        time: event.time,
+        location: event.street_address || 'Location TBD',
+        description: event.description || ''
+      };
+      await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
+      await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
+    }
     sendSuccess(res, booking, 'Vendor booking created successfully', 201);
   } catch (error) {
     if (error.message.startsWith('Invalid')) {
@@ -1138,15 +1120,15 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
 
     // Step 5.5: Calculate 7% platform fee and total amount
     const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
-    
+
     // Customer pays: baseAmount + 7% platform fee
     const customerPlatformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
     const totalAmount = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
-    
+
     // Vendor also pays 7% platform fee (deducted from their payment)
     const vendorPlatformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
     const vendorAmount = baseAmount - vendorPlatformFeeAmount; // Vendor receives: baseAmount - 7% platform fee
-    
+
     // Total platform fee to admin: from customer + from vendor
     const totalPlatformFeeAmount = customerPlatformFeeAmount + vendorPlatformFeeAmount;
 
@@ -1250,7 +1232,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
 
     // Step 10.5: Create vendor transaction - Vendor receives baseAmount minus 7% platform fee
     const vendorUser = await User.findOne({ user_id: vendorId, status: true });
-    
+
     if (vendorUser && vendorAmount > 0) {
       const vendorTransactionData = {
         user_id: vendorId, // Vendor user ID
@@ -1288,7 +1270,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
     // Admin receives: 7% from customer + 7% from vendor = total platform fee
     // Find admin user (role_id = 1)
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
-    
+
     if (adminUser && totalPlatformFeeAmount > 0) {
       const adminTransactionData = {
         user_id: adminUser.user_id,
