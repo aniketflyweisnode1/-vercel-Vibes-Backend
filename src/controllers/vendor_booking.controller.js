@@ -1301,20 +1301,7 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       bookingObj.vendor_details = vendor || null;
     }
     bookingObj.event_details = await populateEventDetails(booking.Event_id);
-    let event = await Event.findOne({ event_id: finalBooking.Event_id });
-    if (event) {
-      let staffData = await User.findOne({ user_id: finalBooking.vendor_id });
-      let created_byData = await User.findOne({ user_id: finalBooking.user_id });
-      const emailEventData = {
-        title: event.name_title || 'Event',
-        date: event.date,
-        time: event.time,
-        location: event.street_address || 'Location TBD',
-        description: event.description || ''
-      };
-      await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
-      await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
-    }
+
 
     sendSuccess(res, {
       customer_transaction_id: customerTransaction.transaction_id,

@@ -16,6 +16,7 @@ const { createPaymentIntent, createCustomer, confirmPaymentIntent, verifyPayment
 const PaymentMethods = require('../models/payment_methods.model');
 const emailService = require('../../utils/emailService');
 const logger = require('../../utils/logger');
+const VendorBooking = require('../models/vendor_booking.model');
 /**
  * Create a new event entry tickets order
  * Automatically finds purchase by event_id and authenticated user
@@ -1384,15 +1385,26 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
       }
 
       // Update transaction status to completed
-      const updatedTransaction = await Transaction.findOneAndUpdate(
-        { reference_number: paymentIntent.id },
-        {
-          status: 'completed',
-          updated_by: req.userId,
-          updated_at: new Date()
-        },
-        { new: true }
-      );
+      const updatedTransaction = await Transaction.findOneAndUpdate({ reference_number: paymentIntent.id }, { status: 'completed', updated_by: req.userId, updated_at: new Date() }, { new: true });
+      if (updatedTransaction.vendor_booking_id) {
+        const finalBooking = await VendorBooking.findOne({ Vendor_Booking_id: updatedTransaction.vendor_booking_id, Status: true });
+        if (finalBooking) {
+          let event = await Event.findOne({ event_id: finalBooking.Event_id });
+          if (event) {
+            let staffData = await User.findOne({ user_id: finalBooking.vendor_id });
+            let created_byData = await User.findOne({ user_id: finalBooking.user_id });
+            const emailEventData = {
+              title: event.name_title || 'Event',
+              date: event.date,
+              time: event.time,
+              location: event.street_address || 'Location TBD',
+              description: event.description || ''
+            };
+            await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
+            await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
+          }
+        }
+      }
 
       // Populate payment_method_id
       let populatedTransaction = updatedTransaction.toObject();
