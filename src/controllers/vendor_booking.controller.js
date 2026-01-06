@@ -12,6 +12,7 @@ const City = require('../models/city.model');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
+const emailService = require('../../utils/emailService');
 
 const ALLOWED_VENDOR_BOOKING_STATUS = ['pending', 'confirmed', 'cancelled', 'rescheduled'];
 
