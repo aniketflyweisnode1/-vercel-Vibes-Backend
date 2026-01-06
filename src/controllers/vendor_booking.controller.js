@@ -359,20 +359,6 @@ const createVendorBooking = asyncHandler(async (req, res) => {
     delete bookingData.vendor_booking_status;
 
     const booking = await VendorBooking.create(bookingData);
-    let event = await Event.findOne({ event_id: booking.Event_id });
-    if (event) {
-      let staffData = await User.findOne({ user_id: booking.vendor_id });
-      let created_byData = await User.findOne({ user_id: booking.user_id });
-      const emailEventData = {
-        title: event.name_title || 'Event',
-        date: event.date,
-        time: event.time,
-        location: event.street_address || 'Location TBD',
-        description: event.description || ''
-      };
-      await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
-      await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
-    }
     sendSuccess(res, booking, 'Vendor booking created successfully', 201);
   } catch (error) {
     if (error.message.startsWith('Invalid')) {
@@ -1034,27 +1020,15 @@ const getVendorBookingsByUserId = asyncHandler(async (req, res) => {
  */
 const VendorBookingPayment = asyncHandler(async (req, res) => {
   try {
-    const {
-      vendor_booking_id,
-      payment_method_id,
-      billingDetails
-    } = req.body;
-
+    const {vendor_booking_id,payment_method_id,billingDetails} = req.body;
     if (!vendor_booking_id || !payment_method_id) {
       return sendError(res, 'vendor_booking_id and payment_method_id are required', 400);
     }
-
     // Step 1: Get vendor booking
-    const booking = await VendorBooking.findOne({
-      Vendor_Booking_id: parseInt(vendor_booking_id, 10),
-      Status: true
-    });
-
+    const booking = await VendorBooking.findOne({Vendor_Booking_id: parseInt(vendor_booking_id, 10),Status: true});
     if (!booking) {
       return sendNotFound(res, 'Vendor booking not found or inactive');
     }
-
-    // Step 2: Get vendor onboarding portal using vendor_id from booking
     const vendorId = booking.vendor_id;
     if (!vendorId) {
       return sendError(res, 'Vendor ID is missing from booking', 400);
@@ -1327,6 +1301,20 @@ const VendorBookingPayment = asyncHandler(async (req, res) => {
       bookingObj.vendor_details = vendor || null;
     }
     bookingObj.event_details = await populateEventDetails(booking.Event_id);
+    let event = await Event.findOne({ event_id: finalBooking.Event_id });
+    if (event) {
+      let staffData = await User.findOne({ user_id: finalBooking.vendor_id });
+      let created_byData = await User.findOne({ user_id: finalBooking.user_id });
+      const emailEventData = {
+        title: event.name_title || 'Event',
+        date: event.date,
+        time: event.time,
+        location: event.street_address || 'Location TBD',
+        description: event.description || ''
+      };
+      await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
+      await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
+    }
 
     sendSuccess(res, {
       customer_transaction_id: customerTransaction.transaction_id,
