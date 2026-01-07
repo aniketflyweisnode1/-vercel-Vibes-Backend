@@ -17,6 +17,8 @@ const PaymentMethods = require('../models/payment_methods.model');
 const emailService = require('../../utils/emailService');
 const logger = require('../../utils/logger');
 const VendorBooking = require('../models/vendor_booking.model');
+const QRCode = require('qrcode');
+
 /**
  * Create a new event entry tickets order
  * Automatically finds purchase by event_id and authenticated user
@@ -1065,6 +1067,13 @@ const processPayment = asyncHandler(async (req, res) => {
         city_id: city
       };
     }
+    const qrPayload = {
+      order_id: populatedEvent?.name_title,
+      transaction_id: order.event_entry_tickets_order_id,
+      user_id: req.userId
+    };
+    const qrString = JSON.stringify(qrPayload);
+    const qrCodeBase64 = await QRCode.toDataURL(qrString);
 
     // Send confirmation emails to customer, admin, and event host
     const emailData = {
@@ -1077,7 +1086,8 @@ const processPayment = asyncHandler(async (req, res) => {
         platform_fee_percentage: platformFeeAmount > 0 ? ((platformFeeAmount / baseAmount) * 100).toFixed(2) : 0,
         event_host_amount: eventHostAmount
       },
-      transaction: customerTransaction.toObject()
+      transaction: customerTransaction.toObject(),
+      qrCode: qrCodeBase64
     };
 
     // Send email to customer
@@ -1393,12 +1403,21 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
           if (event) {
             let staffData = await User.findOne({ user_id: finalBooking.vendor_id });
             let created_byData = await User.findOne({ user_id: finalBooking.user_id });
+            const qrPayload = {
+              event_id: event.event_id,
+              vendorName: created_byData.name,
+              staffName: staffData.name
+            };
+            const qrString = JSON.stringify(qrPayload);
+            const qrCodeBase64 = await QRCode.toDataURL(qrString);
+
             const emailEventData = {
               title: event.name_title || 'Event',
               date: event.date,
               time: event.time,
               location: event.street_address || 'Location TBD',
-              description: event.description || ''
+              description: event.description || '',
+              qrCode: qrCodeBase64
             };
             await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
             await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);

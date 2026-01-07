@@ -53,7 +53,7 @@ class EmailService {
           this.initialized = true;
         }
       });
-      
+
       // Set a temporary flag to indicate transporter was created
       this.transporterCreated = true;
     } catch (error) {
@@ -410,18 +410,18 @@ class EmailService {
       if (!this.initialized) {
         await this.waitForInitialization();
       }
-      
+
       if (!this.transporter) {
         throw new Error('Email transporter not initialized');
       }
 
-       const mailOptions = {
-         from: emailUser,
-         to: to,
-         subject: 'Welcome to Mr. Vibes!',
-         html: this.generateWelcomeEmailTemplate(userName),
-         text: `Welcome to Mr. Vibes, ${userName}! We're excited to have you on board.`
-       };
+      const mailOptions = {
+        from: emailUser,
+        to: to,
+        subject: 'Welcome to Mr. Vibes!',
+        html: this.generateWelcomeEmailTemplate(userName),
+        text: `Welcome to Mr. Vibes, ${userName}! We're excited to have you on board.`
+      };
 
       const result = await this.transporter.sendMail(mailOptions);
       logger.info('Welcome email sent successfully', {
@@ -526,16 +526,16 @@ class EmailService {
    */
   generateICSFile(eventData) {
     const { title, startDate, startTime, description, location, organizerEmail, organizerName } = eventData;
-    
+
     // Parse time and combine with date
     const [hours, minutes] = startTime.split(':');
     const eventDateTime = new Date(startDate);
     eventDateTime.setHours(parseInt(hours), parseInt(minutes || 0), 0, 0);
-    
+
     // Event duration (default 2 hours)
     const endDateTime = new Date(eventDateTime);
     endDateTime.setHours(endDateTime.getHours() + 2);
-    
+
     // Format date for ICS (YYYYMMDDTHHmmssZ)
     const formatICSDate = (date) => {
       const year = date.getUTCFullYear();
@@ -546,11 +546,11 @@ class EmailService {
       const second = String(date.getUTCSeconds()).padStart(2, '0');
       return `${year}${month}${day}T${hour}${minute}${second}Z`;
     };
-    
+
     const dtstart = formatICSDate(eventDateTime);
     const dtend = formatICSDate(endDateTime);
     const dtstamp = formatICSDate(new Date());
-    
+
     // Escape special characters in text fields
     const escapeICS = (text) => {
       if (!text) return '';
@@ -560,7 +560,7 @@ class EmailService {
         .replace(/,/g, '\\,')
         .replace(/\n/g, '\\n');
     };
-    
+
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Mr. Vibes//Event Calendar//EN
@@ -584,7 +584,7 @@ DESCRIPTION:Reminder
 END:VALARM
 END:VEVENT
 END:VCALENDAR`;
-    
+
     return icsContent;
   }
 
@@ -733,8 +733,8 @@ END:VCALENDAR`;
    * @returns {string} HTML email template
    */
   generateTicketBookingPaymentEmailTemplate(bookingData, userName) {
-    const { order, event, paymentBreakdown, transaction } = bookingData;
-    
+    const { order, event, paymentBreakdown, transaction, qrCode } = bookingData;
+
     // Format currency
     const formatCurrency = (amount) => {
       return new Intl.NumberFormat('en-US', {
@@ -747,11 +747,11 @@ END:VCALENDAR`;
     const formatDate = (date) => {
       if (!date) return 'Not specified';
       const d = new Date(date);
-      return d.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
     };
 
@@ -925,6 +925,15 @@ END:VCALENDAR`;
               ${transaction?.transaction_id ? `<br><span style="font-size: 14px; color: #666;">Transaction ID: ${transaction.transaction_id}</span>` : ''}
             </div>
             
+            ${qrCode ? `
+            <div style="text-align:center; margin:30px 0;">
+            <h3 style="color:#4CAF50;">🎟 Your Entry QR Code</h3>
+            <p>Show this QR code at the venue for entry</p>
+            <img src="${qrCode}" alt="Ticket QR Code" style="width:220px; height:220px; border:1px solid #ddd; padding:10px; background:#fff;"/>
+            </div>
+            ` : ''}
+
+
             ${event ? `
             <div class="event-details">
               <h2>${event.name_title || 'Event'}</h2>
@@ -1055,11 +1064,11 @@ END:VCALENDAR`;
     const formatDate = (date) => {
       if (!date) return 'Not specified';
       const d = new Date(date);
-      return d.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
     };
 
@@ -1211,6 +1220,14 @@ END:VCALENDAR`;
               ` : ''}
             </div>
             
+              ${eventData.qrCode ? `
+            <div style="text-align:center; margin:30px 0;">
+            <h3 style="color:#4CAF50;">🎟 Your Entry QR Code</h3>
+            <p>Show this QR code at the venue for entry</p>
+            <img src="${eventData.qrCode}" alt="Ticket QR Code" style="width:220px; height:220px; border:1px solid #ddd; padding:10px; background:#fff;"/>
+            </div>
+            ` : ''}
+
             <div class="calendar-note">
               <p><strong>📅 Add to Calendar:</strong></p>
               <p>We've attached a calendar file (event.ics) to this email. Simply open the attachment to add this event to your calendar application.</p>

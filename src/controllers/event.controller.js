@@ -8,7 +8,7 @@ const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const { createNotificationHendlar } = require('../../utils/notificationHandler');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-
+const QRCode = require('qrcode');
 /**
  * Create a new event
  * @param {Object} req - Express request object
@@ -31,7 +31,7 @@ const createEvent = asyncHandler(async (req, res) => {
       }
       return [];
     };
-    
+
     console.log('Creating event: \n', req.body);
     // Create event data
     const eventData = {
@@ -67,34 +67,34 @@ const createEvent = asyncHandler(async (req, res) => {
     if (event.Event_type === 'Public') {
       try {
         console.log('Creating automatic ticket for public event: \n', event.event_id, req.body.ticketData);
-        
+
         // Check if ticketData exists and is a valid array with required fields
-        if (req.body.ticketData && 
-            Array.isArray(req.body.ticketData) && 
-            req.body.ticketData.length > 0) {
-          
+        if (req.body.ticketData &&
+          Array.isArray(req.body.ticketData) &&
+          req.body.ticketData.length > 0) {
+
           // Validate that at least one ticket has required fields
-          const isValidTicketData = req.body.ticketData.some(ticket => 
-            ticket.ticket_type_id !== undefined && 
-            ticket.ticket_query && 
+          const isValidTicketData = req.body.ticketData.some(ticket =>
+            ticket.ticket_type_id !== undefined &&
+            ticket.ticket_query &&
             ticket.price !== undefined
           );
-          
+
           if (isValidTicketData) {
             // Prepare ticket details array - ensure all items have required fields
             const ticketData = req.body.ticketData.map(ticket => ({
               ticket_type_id: ticket.ticket_type_id,
               ticket_query: ticket.ticket_query,
               price: ticket.price
-            })).filter(ticket => 
-              ticket.ticket_type_id !== undefined && 
-              ticket.ticket_query && 
+            })).filter(ticket =>
+              ticket.ticket_type_id !== undefined &&
+              ticket.ticket_query &&
               ticket.price !== undefined
             );
-            
+
             if (ticketData.length > 0) {
               console.log('Ticket details:', ticketData);
-              
+
               // Create ticket
               const ticket = await Ticket.create({
                 event_id: event.event_id,
@@ -103,7 +103,7 @@ const createEvent = asyncHandler(async (req, res) => {
                 status: true,
                 created_by: req.userId || event.created_by
               });
-              
+
               console.log('Ticket created successfully:', ticket.ticket_id);
             } else {
               console.log('Skipping automatic ticket creation: No valid ticket data found');
@@ -128,12 +128,19 @@ const createEvent = asyncHandler(async (req, res) => {
 
         if (user && user.email) {
           // Prepare event data for email
+          const qrPayload = {
+            event_id: event.event_id,
+            vendorName: user.name,
+          };
+          const qrString = JSON.stringify(qrPayload);
+          const qrCodeBase64 = await QRCode.toDataURL(qrString);
           const emailEventData = {
             title: event.name_title || 'Event',
             date: event.date,
             time: event.time,
             location: event.street_address || 'Location TBD',
-            description: event.description || ''
+            description: event.description || '',
+            qrCode: qrCodeBase64
           };
 
           // Send email with calendar attachment
@@ -221,7 +228,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
       filter.event_type_id = event_type_id;
     }
 
-   
+
     // Add country_id filter
     if (country_id) {
       filter.country_id = country_id;
@@ -307,9 +314,9 @@ const getAllEvents = asyncHandler(async (req, res) => {
     if (DateRange) {
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Start of today
-      
+
       let endDate = new Date();
-      
+
       switch (DateRange.toLowerCase()) {
         case 'day':
           endDate.setHours(23, 59, 59, 999); // End of today
@@ -330,11 +337,11 @@ const getAllEvents = asyncHandler(async (req, res) => {
           // Invalid DateRange, skip filter
           break;
       }
-      
-      if (DateRange.toLowerCase() === 'day' || 
-          DateRange.toLowerCase() === 'week' || 
-          DateRange.toLowerCase() === 'month' || 
-          DateRange.toLowerCase() === '3month') {
+
+      if (DateRange.toLowerCase() === 'day' ||
+        DateRange.toLowerCase() === 'week' ||
+        DateRange.toLowerCase() === 'month' ||
+        DateRange.toLowerCase() === '3month') {
         filter.date = {
           $gte: today,
           $lte: endDate
@@ -648,11 +655,11 @@ const getEventById = asyncHandler(async (req, res) => {
           event_id: event.event_id,
           status: true
         }).select('event_entry_tickets_id title price total_seats facility tag status createdBy updatedBy createdAt updatedAt');
-        
+
         // Populate createdBy and updatedBy for each ticket
         const ticketsWithPopulatedIds = await Promise.all(tickets.map(async (ticket) => {
           const ticketObj = ticket.toObject();
-          
+
           // Populate createdBy
           if (ticket.createdBy) {
             try {
@@ -662,7 +669,7 @@ const getEventById = asyncHandler(async (req, res) => {
               console.log('User not found for createdBy ID:', ticket.createdBy);
             }
           }
-          
+
           // Populate updatedBy
           if (ticket.updatedBy) {
             try {
@@ -672,10 +679,10 @@ const getEventById = asyncHandler(async (req, res) => {
               console.log('User not found for updatedBy ID:', ticket.updatedBy);
             }
           }
-          
+
           return ticketObj;
         }));
-        
+
         eventObj.ticket_details = ticketsWithPopulatedIds || [];
       } catch (error) {
         console.log('Error fetching ticket details for event ID:', event.event_id, error);
@@ -691,7 +698,7 @@ const getEventById = asyncHandler(async (req, res) => {
         const EventEntryTicketsOrder = require('../models/event_entry_tickets_order.model');
         const Transaction = require('../models/transaction.model');
         const User = require('../models/user.model');
-        
+
         const ticketOrders = await EventEntryTicketsOrder.find({
           event_id: event.event_id,
           status: true
@@ -707,17 +714,17 @@ const getEventById = asyncHandler(async (req, res) => {
         // Get seats booking details with payment status
         const seatsBookingDetails = await Promise.all(ticketOrders.map(async (order) => {
           const orderObj = order.toObject();
-          
+
           // Check if payment is completed for this order
           let paymentStatus = 'pending';
           let transaction = null;
-          
+
           try {
             const transactions = await Transaction.find({
               transactionType: 'TicketBooking',
               status: 'completed'
             });
-            
+
             // Find transaction for this order by checking metadata
             for (const txn of transactions) {
               if (txn.metadata) {
@@ -736,7 +743,7 @@ const getEventById = asyncHandler(async (req, res) => {
           } catch (error) {
             console.log('Error checking payment status for order:', order.event_entry_tickets_order_id, error);
           }
-          
+
           // Populate createdBy
           if (order.createdBy) {
             try {
@@ -746,7 +753,7 @@ const getEventById = asyncHandler(async (req, res) => {
               console.log('User not found for createdBy ID:', order.createdBy);
             }
           }
-          
+
           // Populate updatedBy
           if (order.updatedBy) {
             try {
@@ -756,7 +763,7 @@ const getEventById = asyncHandler(async (req, res) => {
               console.log('User not found for updatedBy ID:', order.updatedBy);
             }
           }
-          
+
           return {
             ...orderObj,
             payment_status: paymentStatus,
@@ -769,7 +776,7 @@ const getEventById = asyncHandler(async (req, res) => {
             } : null
           };
         }));
-        
+
         eventObj.seats_booking_details = seatsBookingDetails || [];
       } catch (error) {
         console.log('Error calculating total tickets booked for event ID:', event.event_id, error);
@@ -791,11 +798,11 @@ const getEventById = asyncHandler(async (req, res) => {
           event_id: event.event_id,
           status: true
         });
-        
+
         // Populate all IDs within tickets
         const ticketsWithPopulatedIds = await Promise.all(tickets.map(async (ticket) => {
           const ticketObj = ticket.toObject();
-          
+
           // Populate ticket_type_id within ticketDateils array
           if (ticketObj.ticketDateils && Array.isArray(ticketObj.ticketDateils)) {
             ticketObj.ticketDateils = await Promise.all(ticketObj.ticketDateils.map(async (ticketDetail) => {
@@ -814,7 +821,7 @@ const getEventById = asyncHandler(async (req, res) => {
               return ticketDetail;
             }));
           }
-          
+
           // Populate created_by
           if (ticket.created_by) {
             try {
@@ -824,7 +831,7 @@ const getEventById = asyncHandler(async (req, res) => {
               console.log('User not found for created_by ID:', ticket.created_by);
             }
           }
-          
+
           // Populate updated_by
           if (ticket.updated_by) {
             try {
@@ -834,10 +841,10 @@ const getEventById = asyncHandler(async (req, res) => {
               console.log('User not found for updated_by ID:', ticket.updated_by);
             }
           }
-          
+
           return ticketObj;
         }));
-        
+
         eventObj.EventTicketsData = ticketsWithPopulatedIds || [];
       } catch (error) {
         console.log('Error fetching Ticket model details for event ID:', event.event_id, error);
@@ -982,7 +989,7 @@ const eventPayment = asyncHandler(async (req, res) => {
     const baseAmount = normalizedAmount; // Base amount (what event host should receive)
     const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
     const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
-    
+
     // Event host receives baseAmount, Admin receives platformFeeAmount
     const eventHostAmount = baseAmount; // Event host receives base amount only
 
@@ -1051,11 +1058,11 @@ const eventPayment = asyncHandler(async (req, res) => {
     };
 
     const customerTransaction = await Transaction.create(transactionData);
-    
+
     // Create event host transaction - Event host receives baseAmount only
     if (eventHostId && eventHostAmount > 0) {
       const eventHostUser = await User.findOne({ user_id: eventHostId, status: true });
-      
+
       if (eventHostUser) {
         const eventHostTransactionData = {
           user_id: eventHostId, // Event host user ID
@@ -1089,11 +1096,11 @@ const eventPayment = asyncHandler(async (req, res) => {
         await Transaction.create(eventHostTransactionData);
       }
     }
-    
+
     // Create admin transaction for platform fee only
     // Admin receives only the 7% platform fee
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
-    
+
     if (adminUser && platformFeeAmount > 0) {
       const adminTransactionData = {
         user_id: adminUser.user_id,

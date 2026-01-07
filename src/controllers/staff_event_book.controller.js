@@ -8,7 +8,7 @@ const { asyncHandler } = require('../../middleware/errorHandler');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const Event = require('../models/event.model');
 const emailService = require('../../utils/emailService');
-
+const QRCode = require('qrcode');
 /**
  * Create a new staff event booking
  * @param {Object} req - Express request object
@@ -69,12 +69,20 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
     }
     let event = await Event.findOne({ event_id: staffEventBook.event_id });
     if (event) {
+      const qrPayload = {
+        event_id: staffEventBook.event_id,
+        vendorName: created_byData.name,
+        staffName: staffData.name
+      };
+      const qrString = JSON.stringify(qrPayload);
+      const qrCodeBase64 = await QRCode.toDataURL(qrString);
       const emailEventData = {
         title: event.name_title || 'Event',
         date: event.date,
         time: event.time,
         location: event.street_address || 'Location TBD',
-        description: event.description || ''
+        description: event.description || '',
+        qrCode: qrCodeBase64
       };
       await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
       await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
