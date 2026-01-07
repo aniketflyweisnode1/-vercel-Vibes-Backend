@@ -475,7 +475,7 @@ const login = asyncHandler(async (req, res) => {
       email: email.toLowerCase(),
       otp_type: 1, // Login OTP type
       status: true,
-      expires_at: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      expires_at: new Date(Date.now() + 2 * 60 * 1000), // 10 minutes
       created_by: null // No user created this OTP
     };
 
