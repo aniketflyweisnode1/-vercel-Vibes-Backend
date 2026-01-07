@@ -75,7 +75,11 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
         staffName: staffData.name
       };
       const qrString = JSON.stringify(qrPayload);
-      const qrCodeBase64 = await QRCode.toDataURL(qrString);
+      const qrCodeBase64 = await QRCode.toDataURL(qrString, {
+        width: 200,
+        margin: 1,
+        errorCorrectionLevel: 'M'
+      });
       const emailEventData = {
         title: event.name_title || 'Event',
         date: event.date,

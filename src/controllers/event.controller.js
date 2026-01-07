@@ -133,8 +133,11 @@ const createEvent = asyncHandler(async (req, res) => {
             vendorName: user.name,
           };
           const qrString = JSON.stringify(qrPayload);
-          const qrCodeBase64 = await QRCode.toDataURL(qrString);
-          const emailEventData = {
+          const qrCodeBase64 = await QRCode.toDataURL(qrString, {
+            width: 200,
+            margin: 1,
+            errorCorrectionLevel: 'M'
+          }); const emailEventData = {
             title: event.name_title || 'Event',
             date: event.date,
             time: event.time,

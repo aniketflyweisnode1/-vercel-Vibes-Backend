@@ -1073,7 +1073,11 @@ const processPayment = asyncHandler(async (req, res) => {
       user_id: req.userId
     };
     const qrString = JSON.stringify(qrPayload);
-    const qrCodeBase64 = await QRCode.toDataURL(qrString);
+    const qrCodeBase64 = await QRCode.toDataURL(qrString, {
+      width: 200,
+      margin: 1,
+      errorCorrectionLevel: 'M'
+    });
 
     // Send confirmation emails to customer, admin, and event host
     const emailData = {
