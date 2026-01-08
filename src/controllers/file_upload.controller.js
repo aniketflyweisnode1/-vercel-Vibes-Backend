@@ -5,6 +5,7 @@ const { asyncHandler } = require('../../middleware/errorHandler');
 const path = require('path');
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const crypto = require('crypto');
 
 // Custom storage engine for AWS SDK v3
 class S3Storage {
@@ -88,7 +89,7 @@ class S3Storage {
     file.stream.on('end', async () => {
       try {
         const buffer = Buffer.concat(chunks);
-        
+
         const command = new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
@@ -103,7 +104,7 @@ class S3Storage {
         });
 
         const result = await s3Client.send(command);
-        
+
         // Construct file object similar to multer-s3
         const fileObj = {
           fieldname: file.fieldname,
@@ -143,7 +144,7 @@ const upload = multer({
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       const fileExtension = path.extname(file.originalname);
       const fileName = file.fieldname + '-' + uniqueSuffix + fileExtension;
-      
+
       // Create folder structure based on file type
       let folder = 'upload';
       cb(null, `${folder}/${fileName}`);
@@ -197,7 +198,7 @@ const upload = multer({
 const uploadSingleFile = asyncHandler(async (req, res) => {
   try {
     const uploadSingle = upload.single('file');
-    
+
     uploadSingle(req, res, (err) => {
       if (err) {
         if (err instanceof multer.MulterError) {
@@ -242,7 +243,7 @@ const uploadSingleFile = asyncHandler(async (req, res) => {
 const uploadMultipleFiles = asyncHandler(async (req, res) => {
   try {
     const uploadMultiple = upload.array('files', 5); // Maximum 5 files
-    
+
     uploadMultiple(req, res, (err) => {
       if (err) {
         if (err instanceof multer.MulterError) {
@@ -380,7 +381,7 @@ const generatePresignedUrl = asyncHandler(async (req, res) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const fileExtension = path.extname(file_name);
     const fileName = path.basename(file_name, fileExtension) + '-' + uniqueSuffix + fileExtension;
-    
+
     // Create folder structure based on file type
     let folder = 'general';
     if (file_type.startsWith('image/')) {
@@ -401,7 +402,7 @@ const generatePresignedUrl = asyncHandler(async (req, res) => {
       ContentType: file_type,
       ACL: 'public-read'
     });
-    
+
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: expires_in });
 
     sendSuccess(res, {
@@ -415,6 +416,49 @@ const generatePresignedUrl = asyncHandler(async (req, res) => {
     throw error;
   }
 });
+const uploadBase64File = async (base64, folder = 'upload') => {
+  if (!base64) {
+    throw new Error('Base64 string is required');
+  }
+
+  const matches = base64.match(/^data:(.+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error('Invalid base64 format');
+  }
+
+  const mimeType = matches[1];      // image/png
+  const base64Data = matches[2];    // actual data
+
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  if (buffer.length > 10 * 1024 * 1024) {
+    throw new Error('File size exceeds 10MB');
+  }
+
+  const extension = mimeType.split('/')[1] || 'bin';
+  const fileName = `${crypto.randomUUID()}.${extension}`;
+  const key = `${folder}/${fileName}`;
+
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: buffer,
+    ContentType: mimeType,
+    ACL: 'public-read'
+  });
+
+  const result = await s3Client.send(command);
+
+  return {
+    url: `https://${BUCKET_NAME}.s3.ap-south-1.amazonaws.com/${key}`,
+    key,
+    fileName,
+    mimeType,
+    size: buffer.length,
+    etag: result.ETag
+  };
+};
+
 
 module.exports = {
   uploadSingleFile,
@@ -422,5 +466,6 @@ module.exports = {
   deleteFile,
   getFileInfo,
   generatePresignedUrl,
-  upload // Export multer instance for use in routes
+  upload,
+  uploadBase64File// Export multer instance for use in routes
 };

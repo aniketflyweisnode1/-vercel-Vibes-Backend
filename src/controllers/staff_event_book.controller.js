@@ -8,6 +8,7 @@ const { asyncHandler } = require('../../middleware/errorHandler');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 const Event = require('../models/event.model');
 const emailService = require('../../utils/emailService');
+const file_upload = require('../controllers/file_upload.controller');
 const QRCode = require('qrcode');
 /**
  * Create a new staff event booking
@@ -17,56 +18,60 @@ const QRCode = require('qrcode');
 const createStaffEventBook = asyncHandler(async (req, res) => {
   try {
     const staffEventBookData = { ...req.body, created_by: req.userId };
-    const staffEventBook = await StaffEventBook.create(staffEventBookData);
-    try {
-      const startDate = staffEventBook.dateFrom ? new Date(staffEventBook.dateFrom) : null;
-      const endDate = staffEventBook.dateTo ? new Date(staffEventBook.dateTo) : null;
-      if (startDate && !Number.isNaN(startDate.getTime())) {
-        const availabilityPayload = {
-          Year: startDate.getFullYear(),
-          Month: startDate.getMonth() + 1,
-          Date_start: startDate,
-          End_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
-          Start_time: staffEventBook.timeFrom || null,
-          End_time: staffEventBook.timeTo || null,
-          user_id: staffEventBook.staff_id,
-          Event_id: staffEventBook.event_id,
-          User_availabil: 'Book',
-          Status: true,
-          CreateBy: req.userId,
-          UpdatedBy: null
-        };
+    // const staffEventBook = await StaffEventBook.create(staffEventBookData);
+    // try {
+    //   const startDate = staffEventBook.dateFrom ? new Date(staffEventBook.dateFrom) : null;
+    //   const endDate = staffEventBook.dateTo ? new Date(staffEventBook.dateTo) : null;
+    //   if (startDate && !Number.isNaN(startDate.getTime())) {
+    //     const availabilityPayload = {
+    //       Year: startDate.getFullYear(),
+    //       Month: startDate.getMonth() + 1,
+    //       Date_start: startDate,
+    //       End_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
+    //       Start_time: staffEventBook.timeFrom || null,
+    //       End_time: staffEventBook.timeTo || null,
+    //       user_id: staffEventBook.staff_id,
+    //       Event_id: staffEventBook.event_id,
+    //       User_availabil: 'Book',
+    //       Status: true,
+    //       CreateBy: req.userId,
+    //       UpdatedBy: null
+    //     };
 
-        // Ensure Month within range in case of invalid dates
-        if (availabilityPayload.Month < 1 || availabilityPayload.Month > 12) {
-          availabilityPayload.Month = Math.min(Math.max(availabilityPayload.Month, 1), 12);
-        }
+    //     // Ensure Month within range in case of invalid dates
+    //     if (availabilityPayload.Month < 1 || availabilityPayload.Month > 12) {
+    //       availabilityPayload.Month = Math.min(Math.max(availabilityPayload.Month, 1), 12);
+    //     }
 
-        await AvailabilityCalender.create(availabilityPayload);
-      }
-    } catch (availabilityError) {
-      console.error('Failed to create availability calendar entry:', availabilityError);
-      // Do not fail booking if availability log fails; continue
-    }
+    //     await AvailabilityCalender.create(availabilityPayload);
+    //   }
+    // } catch (availabilityError) {
+    //   console.error('Failed to create availability calendar entry:', availabilityError);
+    //   // Do not fail booking if availability log fails; continue
+    // }
+    const staffEventBook = await StaffEventBook.findOne({ event_id: req.body.event_id });
+
+
+
     let staffData = await User.findOne({ user_id: staffEventBook.staff_id });
     let created_byData = await User.findOne({ user_id: staffEventBook.created_by });
     let staffPrice = null, initial_payment = null;
-    if (staffEventBook.staff_id) {
-      const priceDoc = await StaffWorkingPrice.findOne({ staff_id: staffEventBook.staff_id, status: true });
-      console.log(priceDoc);
-      staffPrice = priceDoc ? priceDoc.price : null;
-      let initial_payment1 = staffData.initial_payment ?? 0.10
-      const baseAmount = (priceDoc.price * initial_payment1) / 100; // Base amount (what staff should receive)
-      const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
-      const customerPlatformFeeAmount = priceDoc.price * PLATFORM_FEE_PERCENTAGE;
-      initial_payment = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
-      staffEventBook.actualAmount = priceDoc.price;
-      staffEventBook.initial_payment = initial_payment;
-      staffEventBook.pendingPayment = priceDoc.price - baseAmount;
-      staffEventBook.platform_fee = customerPlatformFeeAmount;
-      staffEventBook.initialPerPayment = baseAmount;
-      await staffEventBook.save();
-    }
+    // if (staffEventBook.staff_id) {
+    //   const priceDoc = await StaffWorkingPrice.findOne({ staff_id: staffEventBook.staff_id, status: true });
+    //   console.log(priceDoc);
+    //   staffPrice = priceDoc ? priceDoc.price : null;
+    //   let initial_payment1 = staffData.initial_payment ?? 0.10
+    //   const baseAmount = (priceDoc.price * initial_payment1) / 100; // Base amount (what staff should receive)
+    //   const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
+    //   const customerPlatformFeeAmount = priceDoc.price * PLATFORM_FEE_PERCENTAGE;
+    //   initial_payment = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
+    //   staffEventBook.actualAmount = priceDoc.price;
+    //   staffEventBook.initial_payment = initial_payment;
+    //   staffEventBook.pendingPayment = priceDoc.price - baseAmount;
+    //   staffEventBook.platform_fee = customerPlatformFeeAmount;
+    //   staffEventBook.initialPerPayment = baseAmount;
+    //   await staffEventBook.save();
+    // }
     let event = await Event.findOne({ event_id: staffEventBook.event_id });
     if (event) {
       const qrPayload = {
@@ -80,16 +85,19 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
         margin: 1,
         errorCorrectionLevel: 'M'
       });
-      const emailEventData = {
-        title: event.name_title || 'Event',
-        date: event.date,
-        time: event.time,
-        location: event.street_address || 'Location TBD',
-        description: event.description || '',
-        qrCode: qrCodeBase64
-      };
-      await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
-      await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
+      const imageData = await file_upload.uploadBase64File(qrCodeBase64);
+      if(imageData){
+        const emailEventData = {
+          title: event.name_title || 'Event',
+          date: event.date,
+          time: event.time,
+          location: event.street_address || 'Location TBD',
+          description: event.description || '',
+          qrCode: imageData.url
+        };
+        await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
+        await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
+      }
     }
 
     const response = {

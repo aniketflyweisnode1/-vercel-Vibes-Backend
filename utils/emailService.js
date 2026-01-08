@@ -1082,8 +1082,7 @@ END:VCALENDAR`;
       const hour12 = hour % 12 || 12;
       return `${hour12}:${minutes || '00'} ${ampm}`;
     };
-
-    return `
+    let xy = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -1245,7 +1244,9 @@ END:VCALENDAR`;
         </div>
       </body>
       </html>
-    `;
+    `
+    console.log(xy)
+    return xy;
   }
 }
 

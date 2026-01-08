@@ -9,6 +9,7 @@ const { createNotificationHendlar } = require('../../utils/notificationHandler')
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const QRCode = require('qrcode');
+const file_upload = require('../controllers/file_upload.controller');
 /**
  * Create a new event
  * @param {Object} req - Express request object
@@ -137,22 +138,20 @@ const createEvent = asyncHandler(async (req, res) => {
             width: 200,
             margin: 1,
             errorCorrectionLevel: 'M'
-          }); const emailEventData = {
-            title: event.name_title || 'Event',
-            date: event.date,
-            time: event.time,
-            location: event.street_address || 'Location TBD',
-            description: event.description || '',
-            qrCode: qrCodeBase64
-          };
-
-          // Send email with calendar attachment
-          await emailService.sendEventCreatedEmail(
-            user.email,
-            emailEventData,
-            user.name || 'User',
-            user.email
-          );
+          });
+          const imageData = await file_upload.uploadBase64File(qrCodeBase64);
+          if (imageData) {
+            const emailEventData = {
+              title: event.name_title || 'Event',
+              date: event.date,
+              time: event.time,
+              location: event.street_address || 'Location TBD',
+              description: event.description || '',
+              qrCode: imageData.url
+            };
+            // Send email with calendar attachment
+            await emailService.sendEventCreatedEmail(user.email, emailEventData, user.name || 'User', user.email);
+          }
         }
       }
     } catch (emailError) {

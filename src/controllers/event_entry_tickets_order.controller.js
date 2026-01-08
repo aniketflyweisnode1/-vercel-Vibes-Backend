@@ -18,7 +18,7 @@ const emailService = require('../../utils/emailService');
 const logger = require('../../utils/logger');
 const VendorBooking = require('../models/vendor_booking.model');
 const QRCode = require('qrcode');
-
+const file_upload = require('../controllers/file_upload.controller');
 /**
  * Create a new event entry tickets order
  * Automatically finds purchase by event_id and authenticated user
@@ -1414,17 +1414,19 @@ const checkPaymentStatus = asyncHandler(async (req, res) => {
             };
             const qrString = JSON.stringify(qrPayload);
             const qrCodeBase64 = await QRCode.toDataURL(qrString);
-
-            const emailEventData = {
-              title: event.name_title || 'Event',
-              date: event.date,
-              time: event.time,
-              location: event.street_address || 'Location TBD',
-              description: event.description || '',
-              qrCode: qrCodeBase64
-            };
-            await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
-            await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
+            const imageData = await file_upload.uploadBase64File(qrCodeBase64);
+            if (imageData) {
+              const emailEventData = {
+                title: event.name_title || 'Event',
+                date: event.date,
+                time: event.time,
+                location: event.street_address || 'Location TBD',
+                description: event.description || '',
+                qrCode: imageData.url
+              };
+              await emailService.sendEventCreatedEmail(created_byData.email, emailEventData, created_byData.name || 'User', created_byData.email);
+              await emailService.sendEventCreatedEmail(staffData.email, emailEventData, staffData.name || 'User', staffData.email);
+            }
           }
         }
       }
