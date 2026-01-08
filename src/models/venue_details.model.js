@@ -7,22 +7,26 @@ const venueDetailsSchema = new mongoose.Schema({
   },
   name: {
     type: String,
-   
+
     trim: true
   },
   address: {
     type: String,
-   
+
     trim: true
   },
   capacity: {
     type: Number,
-   
+
+    min: 1
+  },
+  price: {
+    type: Number,
     min: 1
   },
   type: {
     type: String,
-   
+
     trim: true
   },
   map: {
@@ -36,7 +40,7 @@ const venueDetailsSchema = new mongoose.Schema({
   createdBy: {
     type: Number,
     ref: 'User',
-   
+
   },
   createdAt: {
     type: Date,

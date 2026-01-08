@@ -19,6 +19,11 @@ const createVenueDetailsSchema = Joi.object({
     'number.integer': 'Capacity must be an integer',
     'any.required': 'Capacity is required'
   }),
+  price: Joi.number().required().integer().min(1).messages({
+    'number.min': 'Price must be at least 1',
+    'number.integer': 'Price must be an integer',
+    'any.required': 'Price is required'
+  }),
   type: Joi.string().required().trim().min(1).max(100).messages({
     'string.empty': 'Venue type is required',
     'string.min': 'Venue type must be at least 1 character long',
@@ -50,6 +55,11 @@ const updateVenueDetailsSchema = Joi.object({
   capacity: Joi.number().integer().min(1).messages({
     'number.min': 'Capacity must be at least 1',
     'number.integer': 'Capacity must be an integer'
+  }),
+  price: Joi.number().integer().min(1).messages({
+    'number.min': 'Price must be at least 1',
+    'number.integer': 'Price must be an integer',
+    'any.required': 'Price is required'
   }),
   type: Joi.string().trim().min(1).max(100).messages({
     'string.min': 'Venue type must be at least 1 character long',
