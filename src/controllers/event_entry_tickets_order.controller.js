@@ -1221,7 +1221,6 @@ const confirmPayment = asyncHandler(async (req, res) => {
     // Find the transaction by payment intent ID
     const transaction = await Transaction.findOne({
       reference_number: payment_intent_id,
-      user_id: req.userId
     });
 
     if (!transaction) {
