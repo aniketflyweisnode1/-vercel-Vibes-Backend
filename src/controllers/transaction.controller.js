@@ -3,7 +3,11 @@ const Wallet = require('../models/wallet.model');
 const StaffEventBook = require('../models/staff_event_book.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-
+const VendorBooking = require('../models/vendor_booking.model');
+const Event = require('../models/event.model');
+const User = require('../models/user.model');
+const VenueDetails = require('../models/venue_details.model');
+const PaymentMethods = require('../models/payment_methods.model');
 /**
  * Create a new transaction
  * @param {Object} req - Express request object
@@ -41,7 +45,7 @@ const createTransaction = asyncHandler(async (req, res) => {
 const updateWalletForTransaction = async (transaction) => {
   try {
     const wallet = await Wallet.findOne({ user_id: transaction.user_id });
-    
+
     if (!wallet) {
       return;
     }
@@ -82,7 +86,7 @@ const updateWalletForTransaction = async (transaction) => {
     if (newAmount !== wallet.amount) {
       await Wallet.findOneAndUpdate(
         { user_id: transaction.user_id },
-        { 
+        {
           amount: newAmount,
           updated_by: transaction.created_by,
           updated_at: new Date()
@@ -111,7 +115,7 @@ const updateStaffEventBookTransaction = async (transaction) => {
     // Update the staff_event_book record
     await StaffEventBook.findOneAndUpdate(
       { staff_event_book_id: transaction.staff_event_book_id },
-      { 
+      {
         transaction_status: transactionStatus,
         transaction_id: transaction.transaction_id,
         updated_by: transaction.created_by,
@@ -217,8 +221,8 @@ const getTransactionById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const transaction = await Transaction.findOne({ 
-      transaction_id: parseInt(id) 
+    const transaction = await Transaction.findOne({
+      transaction_id: parseInt(id)
     });
 
     if (!transaction) {
@@ -235,15 +239,97 @@ const getTransactionById = asyncHandler(async (req, res) => {
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-const getTransactionByAuth = asyncHandler(async (req, res) => {
+const getTransactionByAuth1 = asyncHandler(async (req, res) => {
   try {
     const userId = req.userId;
 
     // Get transactions for the authenticated user
-    const transactions = await Transaction.find({ 
-      user_id: userId 
+    const transactions = await Transaction.find({
+      user_id: userId
     }).sort({ created_at: -1 });
     sendSuccess(res, transactions, 'Transactions retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+const getTransactionByAuth = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const transactions = await Transaction.find({ user_id: userId }).sort({ created_at: -1 });
+
+    const populatedTransactions = await Promise.all(
+      transactions.map(async (txn) => {
+        const t = txn.toObject();
+
+        /* ---------------- USER ---------------- */
+        if (t.user_id) {
+          t.user_details = await User.findOne(
+            { user_id: t.user_id }
+          );
+        }
+
+        /* ---------------- PAYMENT METHOD ---------------- */
+        if (t.payment_method_id) {
+          t.payment_method_details = await PaymentMethods.findOne(
+            { payment_method_id: t.payment_method_id }
+          );
+        }
+
+        /* ---------------- EVENT ---------------- */
+        if (t.event_id) {
+          t.event_details = await Event.findOne(
+            { event_id: t.event_id }
+          );
+        }
+
+        /* ---------------- VENUE ---------------- */
+        if (t.venue_details_id) {
+          t.venue_details = await VenueDetails.findOne(
+            { venue_details_id: t.venue_details_id }
+          );
+        }
+
+        /* ---------------- VENDOR BOOKING ---------------- */
+        if (t.vendor_booking_id) {
+          t.vendor_booking_details = await VendorBooking.findOne(
+            { vendor_booking_id: t.vendor_booking_id }
+          );
+        }
+
+        /* ---------------- STAFF BOOKING ---------------- */
+        if (t.staff_event_book_id) {
+          t.staff_booking_details = await StaffEventBook.findOne(
+            { staff_event_book_id: t.staff_event_book_id }
+          ) || null;
+        }
+
+        /* ---------------- ORIGINAL TRANSACTION (REFUND) ---------------- */
+        if (t.original_transaction_id) {
+          t.original_transaction_details = await Transaction.findOne(
+            { transaction_id: t.original_transaction_id }
+          );
+        }
+
+        /* ---------------- CREATED BY ---------------- */
+        if (t.created_by) {
+          t.created_by_details = await User.findOne(
+            { user_id: t.created_by }
+          );
+        }
+
+        /* ---------------- UPDATED BY ---------------- */
+        if (t.updated_by) {
+          t.updated_by_details = await User.findOne(
+            { user_id: t.updated_by }
+          );
+        }
+
+        return t;
+      })
+    );
+
+    sendSuccess(res, populatedTransactions, 'Transactions retrieved successfully');
   } catch (error) {
     throw error;
   }
@@ -259,8 +345,8 @@ const getTransactionByTransactionType = asyncHandler(async (req, res) => {
     const { transactionType } = req.params;
 
     // Get transactions by transaction type
-    const transactions = await Transaction.find({ 
-      transactionType: transactionType 
+    const transactions = await Transaction.find({
+      transactionType: transactionType
     }).sort({ created_at: -1 });
     sendSuccess(res, transactions, 'Transactions retrieved successfully');
   } catch (error) {
@@ -278,8 +364,8 @@ const updateTransaction = asyncHandler(async (req, res) => {
     const { transaction_id, ...updateFields } = req.body;
 
     // Get the original transaction to check if status changed
-    const originalTransaction = await Transaction.findOne({ 
-      transaction_id: parseInt(transaction_id) 
+    const originalTransaction = await Transaction.findOne({
+      transaction_id: parseInt(transaction_id)
     });
 
     if (!originalTransaction) {
@@ -296,8 +382,8 @@ const updateTransaction = asyncHandler(async (req, res) => {
     const transaction = await Transaction.findOneAndUpdate(
       { transaction_id: parseInt(transaction_id) },
       updateData,
-      { 
-        new: true, 
+      {
+        new: true,
         runValidators: true
       }
     );
@@ -305,7 +391,7 @@ const updateTransaction = asyncHandler(async (req, res) => {
     // If status changed to completed, update wallet
     if (originalTransaction.status !== 'completed' && transaction.status === 'completed') {
       await updateWalletForTransaction(transaction);
-      
+
       // Update staff_event_book if transactionType is StaffBooking
       if (transaction.transactionType === 'StaffBooking' && transaction.staff_event_book_id) {
         await updateStaffEventBookTransaction(transaction);
@@ -313,8 +399,8 @@ const updateTransaction = asyncHandler(async (req, res) => {
     }
 
     // If status changed to failed, update staff_event_book
-    if (transaction.transactionType === 'StaffBooking' && transaction.staff_event_book_id && 
-        originalTransaction.status !== 'failed' && transaction.status === 'failed') {
+    if (transaction.transactionType === 'StaffBooking' && transaction.staff_event_book_id &&
+      originalTransaction.status !== 'failed' && transaction.status === 'failed') {
       await updateStaffEventBookTransaction(transaction);
     }
 
@@ -366,7 +452,7 @@ const deleteTransaction = asyncHandler(async (req, res) => {
 
     const transaction = await Transaction.findOneAndUpdate(
       { transaction_id: parseInt(id) },
-      { 
+      {
         status: false,
         updated_by: req.userId,
         updated_at: new Date()
