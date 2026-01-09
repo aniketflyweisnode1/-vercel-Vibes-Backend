@@ -112,7 +112,7 @@ const getAllVenueDetailsByAuth = asyncHandler(async (req, res) => {
 });
 const getAllVendorVenueDetails = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, status, type } = req.query;
+    const { page = 1, limit = 10, search, status, type, price } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Build filter object
@@ -128,7 +128,9 @@ const getAllVendorVenueDetails = asyncHandler(async (req, res) => {
     if (type) {
       filter.type = { $regex: type, $options: 'i' };
     }
-
+    if (price) {
+      filter.price = { $lte: price };
+    }
     // Get venue details with pagination
     const [venueDetails, total] = await Promise.all([
       VenueDetails.find(filter)
