@@ -3,7 +3,7 @@ const router = express.Router();
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
 const { createEventEntryTicketsOrderSchema, updateEventEntryTicketsOrderSchema, querySchema, idSchema, processPaymentSchema, checkPaymentStatusSchema } = require('../../../validators/event_entry_tickets_order.validator');
-const { createEventEntryTicketsOrder, getAllEventEntryTicketsOrders, getEventEntryTicketsOrderById, getEventEntryTicketsOrdersByAuth, updateEventEntryTicketsOrder, deleteEventEntryTicketsOrder, processPayment, confirmPayment, checkPaymentStatus } = require('../../controllers/event_entry_tickets_order.controller');
+const { createEventEntryTicketsOrder, getAllEventEntryTicketsOrders, getEventEntryTicketsOrderById, getEventEntryTicketsOrdersByAuth, getEventEntryTicketsOrderByIdForQr, updateEventEntryTicketsOrder, deleteEventEntryTicketsOrder, processPayment, confirmPayment, checkPaymentStatus } = require('../../controllers/event_entry_tickets_order.controller');
 
 // Create event entry tickets order (with auth)
 router.post('/create', auth, validateBody(createEventEntryTicketsOrderSchema), createEventEntryTicketsOrder);
@@ -16,6 +16,8 @@ router.get('/my-orders', auth, validateQuery(querySchema), getEventEntryTicketsO
 
 // Get event entry tickets order by ID (with auth)
 router.get('/get/:id', auth, validateParams(idSchema), getEventEntryTicketsOrderById);
+
+router.get('/getForQr/:id', getEventEntryTicketsOrderByIdForQr);
 
 // Update event entry tickets order (with auth)
 router.put('/update', auth, validateBody(updateEventEntryTicketsOrderSchema), updateEventEntryTicketsOrder);

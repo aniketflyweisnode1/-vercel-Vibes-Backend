@@ -515,7 +515,57 @@ const getEventEntryTicketsOrderById = asyncHandler(async (req, res) => {
     throw error;
   }
 });
-
+const getEventEntryTicketsOrderByIdForQr = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await EventEntryTicketsOrder.findOne({ event_entry_tickets_order_id: parseInt(id) });
+    if (!order) {
+      return sendNotFound(res, 'Event entry tickets order not found');
+    }
+    const orderObj = order.toObject();
+    // Populate createdBy
+    if (order.createdBy) {
+      try {
+        const createdByUser = await User.findOne({ user_id: order.createdBy });
+        orderObj.createdBy = createdByUser;
+      } catch (error) {
+        console.log('User not found for createdBy ID:', order.createdBy);
+      }
+    }
+    // Populate updatedBy
+    if (order.updatedBy) {
+      try {
+        const updatedByUser = await User.findOne({ user_id: order.updatedBy });
+        orderObj.updatedBy = updatedByUser;
+      } catch (error) {
+        console.log('User not found for updatedBy ID:', order.updatedBy);
+      }
+    }
+    // Populate event
+    if (order.event_id) {
+      try {
+        const event = await Event.findOne({ event_id: order.event_id });
+        orderObj.event = event;
+      } catch (error) {
+        console.log('Event not found for ID:', order.event_id);
+      }
+    }
+    // Populate event_entry_userget_tickets
+    if (order.event_entry_userget_tickets_id) {
+      try {
+        const usergetTicket = await EventEntryUsergetTickets.findOne({
+          event_entry_userget_tickets_id: order.event_entry_userget_tickets_id
+        });
+        orderObj.event_entry_userget_tickets = usergetTicket;
+      } catch (error) {
+        console.log('EventEntryUsergetTickets not found for ID:', order.event_entry_userget_tickets_id);
+      }
+    }
+    sendSuccess(res, orderObj, 'Event entry tickets order retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
 /**
  * Get event entry tickets orders by authenticated user
  * @param {Object} req - Express request object
@@ -1067,10 +1117,12 @@ const processPayment = asyncHandler(async (req, res) => {
         city_id: city
       };
     }
+
     const qrPayload = {
       order_id: populatedEvent?.name_title,
       transaction_id: order.event_entry_tickets_order_id,
-      user_id: req.userId
+      user_id: req.userId,
+      orderId: `https://vibes-mr.netlify.app/qr-details/${order_id}`
     };
     const qrString = JSON.stringify(qrPayload);
     const qrCodeBase64 = await QRCode.toDataURL(qrString, {
@@ -1497,6 +1549,7 @@ module.exports = {
   deleteEventEntryTicketsOrder,
   processPayment,
   confirmPayment,
-  checkPaymentStatus
+  checkPaymentStatus,
+  getEventEntryTicketsOrderByIdForQr
 };
 
