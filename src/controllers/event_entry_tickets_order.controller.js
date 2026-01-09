@@ -1130,127 +1130,128 @@ const processPayment = asyncHandler(async (req, res) => {
       margin: 1,
       errorCorrectionLevel: 'M'
     });
+    const imageData = await file_upload.uploadBase64File(qrCodeBase64);
+    if (imageData) {
+      const emailData = {
+        order: order.toObject(),
+        event: populatedEvent,
+        paymentBreakdown: {
+          total_amount: totalAmount,
+          base_amount: baseAmount,
+          platform_fee: platformFeeAmount,
+          platform_fee_percentage: platformFeeAmount > 0 ? ((platformFeeAmount / baseAmount) * 100).toFixed(2) : 0,
+          event_host_amount: eventHostAmount
+        },
+        transaction: customerTransaction.toObject(),
+        qrCode: qrCodeBase64
+      };
 
-    // Send confirmation emails to customer, admin, and event host
-    const emailData = {
-      order: order.toObject(),
-      event: populatedEvent,
-      paymentBreakdown: {
-        total_amount: totalAmount,
-        base_amount: baseAmount,
-        platform_fee: platformFeeAmount,
-        platform_fee_percentage: platformFeeAmount > 0 ? ((platformFeeAmount / baseAmount) * 100).toFixed(2) : 0,
-        event_host_amount: eventHostAmount
-      },
-      transaction: customerTransaction.toObject(),
-      qrCode: qrCodeBase64
-    };
-
-    // Send email to customer
-    try {
-      await emailService.sendTicketBookingPaymentEmail(
-        user.email,
-        emailData,
-        user.name || 'User'
-      );
-    } catch (emailError) {
-      logger.error('Failed to send ticket booking confirmation email to customer', {
-        error: emailError.message,
-        userEmail: user.email
-      });
-    }
-
-    // Send email to admin
-    try {
-      if (adminUser && adminUser.email) {
+      // Send email to customer
+      try {
         await emailService.sendTicketBookingPaymentEmail(
-          adminUser.email,
+          user.email,
           emailData,
-          adminUser.name || 'Admin'
+          user.name || 'User'
         );
+      } catch (emailError) {
+        logger.error('Failed to send ticket booking confirmation email to customer', {
+          error: emailError.message,
+          userEmail: user.email
+        });
       }
-    } catch (emailError) {
-      logger.error('Failed to send ticket booking confirmation email to admin', {
-        error: emailError.message,
-        adminEmail: adminUser?.email
-      });
-    }
 
-    // Send email to event host (created_by)
-    try {
-      if (eventHostId) {
-        const eventHostUser = await User.findOne({ user_id: eventHostId, status: true });
-        if (eventHostUser && eventHostUser.email) {
+      // Send email to admin
+      try {
+        if (adminUser && adminUser.email) {
           await emailService.sendTicketBookingPaymentEmail(
-            eventHostUser.email,
+            adminUser.email,
             emailData,
-            eventHostUser.name || 'Event Host'
+            adminUser.name || 'Admin'
           );
         }
+      } catch (emailError) {
+        logger.error('Failed to send ticket booking confirmation email to admin', {
+          error: emailError.message,
+          adminEmail: adminUser?.email
+        });
       }
-    } catch (emailError) {
-      logger.error('Failed to send ticket booking confirmation email to event host', {
-        error: emailError.message,
-        eventHostId: eventHostId
-      });
-    }
 
-    sendSuccess(res, {
-      paymentIntent: {
-        id: paymentIntent.paymentIntentId,
-        clientSecret: paymentIntent.clientSecret,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        status: paymentIntent.status
-      },
-      transaction: populatedTransaction,
-      order: order,
-      customer_id: customerId,
-      customer_transaction_id: customerTransaction.transaction_id,
-      payment_breakdown: {
-        total_amount: totalAmount, // Customer pays this (final_amount, no extra)
-        base_amount: baseAmount, // Full amount (final_amount)
-        platform_fee: platformFeeAmount, // Platform fee from order.Platform (deducted from event host)
-        platform_fee_percentage: platformFeeAmount > 0 ? ((platformFeeAmount / baseAmount) * 100).toFixed(2) : 0, // Calculate actual percentage
-        event_host_amount: eventHostAmount // Event host receives: baseAmount - platformFeeAmount
-      },
-      transactions: {
-        customer: {
-          transaction_id: customerTransaction.transaction_id,
-          user_id: req.userId,
-          amount: totalAmount,
-          description: 'Customer payment for ticket booking (final_amount, no extra)'
-        },
-        event_host: {
-          user_id: eventHostId,
-          amount: eventHostAmount, // baseAmount - platformFeeAmount
-          description: 'Event host receives base amount minus platform fee'
-        },
-        admin: {
-          user_id: adminUser ? adminUser.user_id : null,
-          amount: platformFeeAmount,
-          description: 'Admin receives platform fee (from order.Platform, deducted from event host payment)'
+      // Send email to event host (created_by)
+      try {
+        if (eventHostId) {
+          const eventHostUser = await User.findOne({ user_id: eventHostId, status: true });
+          if (eventHostUser && eventHostUser.email) {
+            await emailService.sendTicketBookingPaymentEmail(
+              eventHostUser.email,
+              emailData,
+              eventHostUser.name || 'Event Host'
+            );
+          }
         }
-      },
-      payment_summary: {
-        order_id: order.event_entry_tickets_order_id,
-        subtotal: order.subtotal,
-        tax: order.tax,
-        total_before_discount: order.total,
-        discount_amount: order.discount_amount,
-        base_amount: baseAmount,
-        platform_fee: platformFeeAmount,
-        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-        final_amount: order.final_amount,
-        amount_paid: customerTransaction.amount,
-        event_host_amount: eventHostAmount,
-        transaction_id: customerTransaction.transaction_id,
-        transaction_type: 'TicketBooking',
-        payment_status: customerTransaction.status,
-        reference_number: customerTransaction.reference_number,
-        stripe_payment_intent_id: paymentIntent.paymentIntentId
+      } catch (emailError) {
+        logger.error('Failed to send ticket booking confirmation email to event host', {
+          error: emailError.message,
+          eventHostId: eventHostId
+        });
       }
-    }, 'Ticket booking payment processed successfully. Three transactions created: Customer pays total amount, Event host receives base amount, Admin receives 7% platform fee.', 201);
+
+      sendSuccess(res, {
+        paymentIntent: {
+          id: paymentIntent.paymentIntentId,
+          clientSecret: paymentIntent.clientSecret,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+          status: paymentIntent.status
+        },
+        transaction: populatedTransaction,
+        order: order,
+        customer_id: customerId,
+        customer_transaction_id: customerTransaction.transaction_id,
+        payment_breakdown: {
+          total_amount: totalAmount, // Customer pays this (final_amount, no extra)
+          base_amount: baseAmount, // Full amount (final_amount)
+          platform_fee: platformFeeAmount, // Platform fee from order.Platform (deducted from event host)
+          platform_fee_percentage: platformFeeAmount > 0 ? ((platformFeeAmount / baseAmount) * 100).toFixed(2) : 0, // Calculate actual percentage
+          event_host_amount: eventHostAmount // Event host receives: baseAmount - platformFeeAmount
+        },
+        transactions: {
+          customer: {
+            transaction_id: customerTransaction.transaction_id,
+            user_id: req.userId,
+            amount: totalAmount,
+            description: 'Customer payment for ticket booking (final_amount, no extra)'
+          },
+          event_host: {
+            user_id: eventHostId,
+            amount: eventHostAmount, // baseAmount - platformFeeAmount
+            description: 'Event host receives base amount minus platform fee'
+          },
+          admin: {
+            user_id: adminUser ? adminUser.user_id : null,
+            amount: platformFeeAmount,
+            description: 'Admin receives platform fee (from order.Platform, deducted from event host payment)'
+          }
+        },
+        payment_summary: {
+          order_id: order.event_entry_tickets_order_id,
+          subtotal: order.subtotal,
+          tax: order.tax,
+          total_before_discount: order.total,
+          discount_amount: order.discount_amount,
+          base_amount: baseAmount,
+          platform_fee: platformFeeAmount,
+          platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+          final_amount: order.final_amount,
+          amount_paid: customerTransaction.amount,
+          event_host_amount: eventHostAmount,
+          transaction_id: customerTransaction.transaction_id,
+          transaction_type: 'TicketBooking',
+          payment_status: customerTransaction.status,
+          reference_number: customerTransaction.reference_number,
+          stripe_payment_intent_id: paymentIntent.paymentIntentId
+        }
+      }, 'Ticket booking payment processed successfully. Three transactions created: Customer pays total amount, Event host receives base amount, Admin receives 7% platform fee.', 201);
+    }
   } catch (error) {
     throw error;
   }
