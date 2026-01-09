@@ -46,6 +46,11 @@ const transactionSchema = new mongoose.Schema({
     ref: 'Event',
     default: null
   },
+  venue_details_id: {
+    type: Number,
+    ref: 'VenueDetails',
+    default: null
+  },
   vendor_booking_id: {
     type: Number,
     ref: 'Vendor_Booking',

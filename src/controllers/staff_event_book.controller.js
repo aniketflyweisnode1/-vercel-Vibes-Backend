@@ -783,7 +783,7 @@ const venueBookingPaymentByUser = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'VenueDetails not found');
     }
     const totalAmount = findVenueDetails.price; // Customer pays: base + 7% platform fee
-    const user = await User.findOne({ user_id: staffEventBook.staff_id });
+    const user = await User.findOne({ user_id: req.userId });
     if (!user) {
       return sendError(res, 'User not found', 404);
     }
@@ -855,7 +855,8 @@ const venueBookingPaymentByUser = asyncHandler(async (req, res) => {
         total_amount: totalAmount,
         description: description
       }),
-      created_by: req.userId
+      created_by: req.userId,
+      venue_details_id: venue_details_id
     };
 
     // Create customer transaction
@@ -889,7 +890,8 @@ const venueBookingPaymentByUser = asyncHandler(async (req, res) => {
           customer_transaction_id: customerTransaction.transaction_id,
           description: 'Staff receives base amount minus 7% platform fee from staff booking'
         }),
-        created_by: findVenueDetails.createdBy
+        created_by: findVenueDetails.createdBy,
+        venue_details_id: venue_details_id
       };
 
       await Transaction.create(staffTransactionData);
