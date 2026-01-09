@@ -13,7 +13,8 @@ const createVenueDetails = asyncHandler(async (req, res) => {
     // Create venue details data
     const venueDetailsData = {
       ...req.body,
-      createdBy: req.userId
+      createdBy: req.userId,
+      roleId: req.roleId
     };
 
     // Create venue details
@@ -24,7 +25,6 @@ const createVenueDetails = asyncHandler(async (req, res) => {
     throw error;
   }
 });
-
 /**
  * Get all venue details with pagination and filtering
  * @param {Object} req - Express request object
@@ -44,7 +44,87 @@ const getAllVenueDetails = asyncHandler(async (req, res) => {
         { type: { $regex: search, $options: 'i' } }
       ];
     }
-  
+
+    if (type) {
+      filter.type = { $regex: type, $options: 'i' };
+    }
+
+    // Get venue details with pagination
+    const [venueDetails, total] = await Promise.all([
+      VenueDetails.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      VenueDetails.countDocuments(filter)
+    ]);
+
+    const pagination = {
+      current: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      total,
+      limit: parseInt(limit)
+    };
+
+    sendPaginated(res, venueDetails, pagination, 'Venue details retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+const getAllVenueDetailsByAuth = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search, status, type } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build filter object
+    const filter = { createdBy: req.userId, };
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } },
+        { type: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (type) {
+      filter.type = { $regex: type, $options: 'i' };
+    }
+
+    // Get venue details with pagination
+    const [venueDetails, total] = await Promise.all([
+      VenueDetails.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      VenueDetails.countDocuments(filter)
+    ]);
+
+    const pagination = {
+      current: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+      total,
+      limit: parseInt(limit)
+    };
+
+    sendPaginated(res, venueDetails, pagination, 'Venue details retrieved successfully');
+  } catch (error) {
+    throw error;
+  }
+});
+const getAllVendorVenueDetails = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search, status, type } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build filter object
+    const filter = { roleId: 3 };
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { address: { $regex: search, $options: 'i' } },
+        { type: { $regex: search, $options: 'i' } }
+      ];
+    }
+
     if (type) {
       filter.type = { $regex: type, $options: 'i' };
     }
@@ -181,5 +261,7 @@ module.exports = {
   getVenueDetailsById,
   updateVenueDetails,
   deleteVenueDetails,
-  getVenueDetailsByEventId
+  getVenueDetailsByEventId,
+  getAllVenueDetailsByAuth,
+  getAllVendorVenueDetails
 };

@@ -40,7 +40,10 @@ const venueDetailsSchema = new mongoose.Schema({
   createdBy: {
     type: Number,
     ref: 'User',
-
+  },
+  roleId: {
+    type: Number,
+    ref: 'User',
   },
   createdAt: {
     type: Date,

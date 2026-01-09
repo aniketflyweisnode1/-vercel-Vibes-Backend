@@ -3,13 +3,15 @@ const router = express.Router();
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
 const { createVenueDetailsSchema, updateVenueDetailsSchema, querySchema, idSchema, eventIdSchema } = require('../../../validators/venue_details.validator');
-const { createVenueDetails, getAllVenueDetails, getVenueDetailsById, updateVenueDetails, deleteVenueDetails, getVenueDetailsByEventId } = require('../../controllers/venue_details.controller');
+const { createVenueDetails, getAllVenueDetails, getVenueDetailsById, updateVenueDetails, deleteVenueDetails, getVenueDetailsByEventId, getAllVenueDetailsByAuth, getAllVendorVenueDetails } = require('../../controllers/venue_details.controller');
 
 // Create venue details (with auth)
 router.post('/create', auth, validateBody(createVenueDetailsSchema), createVenueDetails);
 
 // Get all venue details (with auth)
 router.get('/all', auth, validateQuery(querySchema), getAllVenueDetails);
+router.get('/getAllVenueDetailsByAuth', auth, validateQuery(querySchema), getAllVenueDetailsByAuth);
+router.get('/getAllVendorVenueDetails', auth, validateQuery(querySchema), getAllVendorVenueDetails);
 
 // Get venue details by ID (with auth)
 router.get('/get/:id', auth, validateParams(idSchema), getVenueDetailsById);
