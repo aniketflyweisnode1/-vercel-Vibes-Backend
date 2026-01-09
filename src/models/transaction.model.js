@@ -28,7 +28,7 @@ const transactionSchema = new mongoose.Schema({
   },
   transactionType: {
     type: String,
-    enum: ['Registration_fee', 'deposit', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking', 'CateringBooking', 'VendorBooking', 'Refund', 'Cancellation', 'EscrowPayment', 'EscrowCancellation'],
+    enum: ['Registration_fee', 'deposit',  'Venue payment', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking', 'CateringBooking', 'VendorBooking', 'Refund', 'Cancellation', 'EscrowPayment', 'EscrowCancellation'],
     required: [true, 'Transaction type is required']
   },
   escrow_transaction_id: {
