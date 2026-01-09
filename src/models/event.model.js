@@ -167,7 +167,15 @@ const eventSchema = new mongoose.Schema({
   updated_at: {
     type: Date,
     default: Date.now
-  }
+  },
+  transaction_id: {
+    type: Number,
+    ref: 'Transaction',
+    default: null
+  },
+  transaction_status: {
+    type: String,
+  },
 }, {
   timestamps: false, // We're using custom timestamp fields
   versionKey: false

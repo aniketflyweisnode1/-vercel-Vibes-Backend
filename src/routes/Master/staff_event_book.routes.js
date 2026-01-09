@@ -12,7 +12,8 @@ const {
   deleteStaffEventBook,
   getStaffEventBooksByVendorAuth,
   StaffBookingPayment,
-  StaffBookingPaymentByVendor
+  StaffBookingPaymentByVendor,
+  venueBookingPaymentByUser
 } = require('../../controllers/staff_event_book.controller');
 
 // Import transaction controller
@@ -60,6 +61,7 @@ router.post('/create-transaction', auth, validateBody(createStaffBookingTransact
 // Process staff booking payment (with auth) - Creates StaffBooking transaction with Stripe
 router.post('/StaffBookingPayment', auth, StaffBookingPayment);
 router.post('/StaffBookingPaymentByVendor', auth, StaffBookingPaymentByVendor);
+router.post('/venueBookingPaymentByUser', auth, venueBookingPaymentByUser);
 
 module.exports = router;
 

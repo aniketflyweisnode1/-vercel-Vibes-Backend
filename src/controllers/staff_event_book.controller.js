@@ -1,6 +1,7 @@
 const StaffEventBook = require('../models/staff_event_book.model');
 const Transaction = require('../models/transaction.model');
 const User = require('../models/user.model');
+const VenueDetails = require('../models/venue_details.model');
 const StaffWorkingPrice = require('../models/staff_working_price.model');
 const AvailabilityCalender = require('../models/availability_calender.model');
 const { sendSuccess, sendError, sendNotFound } = require('../../utils/response');
@@ -86,7 +87,7 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
         errorCorrectionLevel: 'M'
       });
       const imageData = await file_upload.uploadBase64File(qrCodeBase64);
-      if(imageData){
+      if (imageData) {
         const emailEventData = {
           title: event.name_title || 'Event',
           date: event.date,
@@ -354,62 +355,33 @@ const deleteStaffEventBook = asyncHandler(async (req, res) => {
  */
 const StaffBookingPayment = asyncHandler(async (req, res) => {
   try {
-    const {
-      staff_event_book_id,
-      payment_method_id,
-      billingDetails,
-      description = 'Staff initial booking payment'
-    } = req.body;
-
-    // Validate required fields
+    const { staff_event_book_id, payment_method_id, billingDetails, description = 'Staff initial booking payment' } = req.body;
     if (!staff_event_book_id || !payment_method_id) {
       return sendError(res, 'staff_event_book_id and payment_method_id are required', 400);
     }
-
-    // Get the staff event booking to find staff details
     const staffEventBook = await StaffEventBook.findOne({
       staff_event_book_id: parseInt(staff_event_book_id)
     });
-
     if (!staffEventBook) {
       return sendNotFound(res, 'Staff event booking not found');
     }
-    // console.log(staffEventBook);
-    // Get the staff working price for the staff and category
-    const staffWorkingPrice = await StaffWorkingPrice.findOne({
-      staff_id: staffEventBook.staff_id,
-      status: true
-    });
-    // console.log(staffWorkingPrice);
+    const staffWorkingPrice = await StaffWorkingPrice.findOne({ staff_id: staffEventBook.staff_id, status: true });
     if (!staffWorkingPrice) {
       return sendNotFound(res, 'Staff working price not found for this staff and category');
     }
     const staffData = await User.findOne({ user_id: staffEventBook.staff_id });
     let initial_payment1 = staffData.initial_payment ?? 0.10;
-    const baseAmount = (staffWorkingPrice.price * initial_payment1) / 100; // Base amount (what staff should receive)
-    console.log(baseAmount);
-
-    // Calculate 7% platform fee
-    const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
-
-    // Customer pays: baseAmount + 7% platform fee
+    const baseAmount = (staffWorkingPrice.price * initial_payment1) / 100;
+    const PLATFORM_FEE_PERCENTAGE = 0.07;
     const customerPlatformFeeAmount = staffWorkingPrice.price * PLATFORM_FEE_PERCENTAGE;
-    const totalAmount = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
-
-    // Staff also pays 7% platform fee (deducted from their payment)
+    const totalAmount = baseAmount + customerPlatformFeeAmount;
     const staffPlatformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
-    const staffAmount = baseAmount - staffPlatformFeeAmount; // Staff receives: baseAmount - 7% platform fee
-
-    // Total platform fee to admin: from customer + from staff
+    const staffAmount = baseAmount - staffPlatformFeeAmount;
     const totalPlatformFeeAmount = customerPlatformFeeAmount + staffPlatformFeeAmount;
-
-    // Get user information for Stripe customer creation
     const user = await User.findOne({ user_id: req.userId });
     if (!user) {
       return sendError(res, 'User not found', 404);
     }
-
-    // Create or get Stripe customer
     let customerId = null;
     try {
       const customerData = {
@@ -428,13 +400,11 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
       console.error('Customer creation error:', customerError);
       // Continue without customer if creation fails
     }
-
-    // Create Stripe payment intent
     let paymentIntent = null;
     try {
       const paymentOptions = {
-        // amount: totalAmount * 100, // Convert to cents (customer pays total)
-        amount: totalAmount, // Convert to cents (customer pays total)
+        // amount: totalAmount * 100,
+        amount: totalAmount,
         billingDetails: billingDetails,
         currency: 'usd',
         customerEmail: user.email,
@@ -446,17 +416,14 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
           description: description
         }
       };
-
       paymentIntent = await createPaymentIntent(paymentOptions);
     } catch (paymentError) {
       console.error('Payment intent creation error:', paymentError);
       return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
     }
-
-    // Create transaction data for customer
     const transactionData = {
       user_id: req.userId,
-      amount: totalAmount, // Customer pays: baseAmount + 7% platform fee
+      amount: totalAmount,
       currency: 'USD',
       status: paymentIntent.status,
       payment_method_id: payment_method_id,
@@ -485,13 +452,8 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
       }),
       created_by: req.userId
     };
-
-    // Create customer transaction
     const customerTransaction = await Transaction.create(transactionData);
-
-    // Create staff transaction - Staff receives baseAmount minus 7% platform fee
     const staffUser = await User.findOne({ user_id: staffEventBook.staff_id, status: true });
-
     if (staffUser && staffAmount > 0) {
       const staffTransactionData = {
         user_id: staffEventBook.staff_id, // Staff user ID
@@ -528,11 +490,7 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
 
       await Transaction.create(staffTransactionData);
     }
-
-    // Create admin transaction for platform fees
-    // Admin receives: 7% from customer + 7% from staff = total platform fee
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
-
     if (adminUser && totalPlatformFeeAmount > 0) {
       const adminTransactionData = {
         user_id: adminUser.user_id,
@@ -569,8 +527,6 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
 
       await Transaction.create(adminTransactionData);
     }
-
-    // Update the staff event booking with transaction details
     const updatedStaffEventBook = await StaffEventBook.findOneAndUpdate(
       { staff_event_book_id: parseInt(staff_event_book_id) },
       {
@@ -812,7 +768,176 @@ const StaffBookingPaymentByVendor = asyncHandler(async (req, res) => {
     throw error;
   }
 });
+const venueBookingPaymentByUser = asyncHandler(async (req, res) => {
+  try {
+    const { event_id, venue_details_id, payment_method_id, billingDetails, description = 'Final Venue payment' } = req.body;
+    if (!event_id || !payment_method_id) {
+      return sendError(res, 'event_ids and payment_method_id are required', 400);
+    }
+    const staffEventBook = await Event.findOne({ event_id: parseInt(event_id) });
+    if (!staffEventBook) {
+      return sendNotFound(res, 'Staff event booking not found');
+    }
+    const findVenueDetails = await VenueDetails.findOne({ venue_details_id: parseInt(venue_details_id) });
+    if (!findVenueDetails) {
+      return sendNotFound(res, 'VenueDetails not found');
+    }
+    const totalAmount = findVenueDetails.price; // Customer pays: base + 7% platform fee
+    const user = await User.findOne({ user_id: staffEventBook.staff_id });
+    if (!user) {
+      return sendError(res, 'User not found', 404);
+    }
+    let customerId = null;
+    try {
+      const customerData = {
+        email: user.email,
+        name: user.name,
+        phone: user.mobile,
+        metadata: {
+          user_id: findVenueDetails.createdBy,
+          event_id: event_id,
+          venue_details_id: venue_details_id
+        }
+      };
 
+      const customer = await createCustomer(customerData);
+      customerId = customer.customerId;
+    } catch (customerError) {
+      console.error('Customer creation error:', customerError);
+      // Continue without customer if creation fails
+    }
+
+    // Create Stripe payment intent
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        // amount: totalAmount * 100, // Convert to cents (customer pays total)
+        amount: totalAmount, // Convert to cents (customer pays total)
+        billingDetails: billingDetails,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: user.user_id,
+          customer_id: customerId,
+          event_id: event_id,
+          payment_type: billingDetails,
+          description: description
+        }
+      };
+
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      console.error('Payment intent creation error:', paymentError);
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
+
+    // Create transaction data for customer
+    const transactionData = {
+      user_id: findVenueDetails.createdBy,
+      amount: totalAmount, // Customer pays: baseAmount + 7% platform fee
+      currency: 'USD',
+      status: paymentIntent.status,
+      payment_method_id: payment_method_id,
+      transactionType: 'Venue payment',
+      event_id: parseInt(event_id),
+      transaction_date: new Date(),
+      reference_number: paymentIntent.paymentIntentId,
+      coupon_code_id: null,
+      CGST: 0,
+      SGST: 0,
+      TotalGST: 0,
+      metadata: JSON.stringify({
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        customer_id: customerId,
+        event_id: event_id,
+        staff_id: user.user_id,
+        total_amount: totalAmount,
+        description: description
+      }),
+      created_by: req.userId
+    };
+
+    // Create customer transaction
+    const customerTransaction = await Transaction.create(transactionData);
+
+    // Create staff transaction - Staff receives baseAmount minus 7% platform fee
+    const staffUser = await User.findOne({ user_id: staffEventBook.staff_id, status: true });
+
+    if (totalAmount > 0) {
+      const staffTransactionData = {
+        user_id: req.userId, // Staff user ID
+        amount: totalAmount, // Staff receives: baseAmount - 7% platform fee
+        status: paymentIntent.status,
+        payment_method_id: parseInt(payment_method_id, 10),
+        transactionType: 'StaffBooking',
+        event_id: parseInt(event_id),
+        transaction_date: new Date(),
+        reference_number: `STAFF_PAYMENT_${paymentIntent.paymentIntentId}`,
+        coupon_code_id: null,
+        CGST: 0,
+        SGST: 0,
+        TotalGST: 0,
+        metadata: JSON.stringify({
+          payment_intent_id: paymentIntent.paymentIntentId,
+          stripe_payment_intent_id: paymentIntent.paymentIntentId,
+          customer_id: customerId,
+          event_id: parseInt(event_id),
+          staff_id: staffEventBook.staff_id,
+          customer_user_id: req.userId,
+          total_amount: totalAmount,
+          customer_transaction_id: customerTransaction.transaction_id,
+          description: 'Staff receives base amount minus 7% platform fee from staff booking'
+        }),
+        created_by: findVenueDetails.createdBy
+      };
+
+      await Transaction.create(staffTransactionData);
+    }
+    const updatedStaffEventBook = await Event.findOneAndUpdate(
+      { event_id: parseInt(event_id) },
+      {
+        transaction_id: customerTransaction.transaction_id,
+        transaction_status: 'Completed',
+        updated_by: req.userId,
+        updated_at: new Date()
+      },
+      { new: true }
+    );
+
+    sendSuccess(res, {
+      customer_transaction_id: customerTransaction.transaction_id,
+      payment_intent_id: paymentIntent.paymentIntentId,
+      client_secret: paymentIntent.clientSecret,
+      payment_breakdown: {
+        total_amount: totalAmount, // Customer pays this (baseAmount + 7% platform fee)
+      },
+      transactions: {
+        customer: {
+          transaction_id: customerTransaction.transaction_id,
+          user_id: req.userId,
+          amount: totalAmount,
+          description: 'Customer payment for staff booking (baseAmount + 7% platform fee)'
+        },
+      },
+      currency: 'USD',
+      status: paymentIntent.status,
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
+      },
+      customer_id: customerId,
+      event_id: event_id,
+    }, 'Staff booking payment processed successfully. Three transactions created: Customer pays total amount, Staff receives base amount, Admin receives 7% platform fee.');
+
+  } catch (error) {
+    console.error('Staff booking payment error:', error);
+    throw error;
+  }
+});
 module.exports = {
   createStaffEventBook,
   getAllStaffEventBooks,
@@ -823,6 +948,7 @@ module.exports = {
   deleteStaffEventBook,
   StaffBookingPayment,
   getStaffEventBooksByVendorAuth,
-  StaffBookingPaymentByVendor
+  StaffBookingPaymentByVendor,
+  venueBookingPaymentByUser
 };
 
