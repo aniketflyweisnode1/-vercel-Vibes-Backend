@@ -39,7 +39,6 @@ const eventSchema = new mongoose.Schema({
   venue_details_id: {
     type: Number,
     ref: 'VenueDetails',
-    required: [true, 'Venue details ID is required']
   },
   street_address: {
     type: String,
