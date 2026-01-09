@@ -1119,9 +1119,9 @@ const processPayment = asyncHandler(async (req, res) => {
     }
 
     const qrPayload = {
-      order_id: populatedEvent?.name_title,
-      transaction_id: order.event_entry_tickets_order_id,
-      user_id: req.userId,
+      // order_id: populatedEvent?.name_title,
+      // transaction_id: order.event_entry_tickets_order_id,
+      // user_id: req.userId,
       orderId: `https://vibes-mr.netlify.app/qr-details/${order_id}`
     };
     const qrString = JSON.stringify(qrPayload);
