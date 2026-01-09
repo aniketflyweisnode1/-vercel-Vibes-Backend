@@ -1119,9 +1119,9 @@ const processPayment = asyncHandler(async (req, res) => {
     }
 
     const qrPayload = {
-      // order_id: populatedEvent?.name_title,
-      // transaction_id: order.event_entry_tickets_order_id,
-      // user_id: req.userId,
+      order_id: populatedEvent?.name_title,
+      transaction_id: order.event_entry_tickets_order_id,
+      user_id: req.userId,
       orderId: `https://vibes-mr.netlify.app/qr-details/${order_id}`
     };
     const qrString = JSON.stringify(qrPayload);
@@ -1143,7 +1143,7 @@ const processPayment = asyncHandler(async (req, res) => {
           event_host_amount: eventHostAmount
         },
         transaction: customerTransaction.toObject(),
-        qrCode: qrCodeBase64
+        qrCode: imageData.url
       };
 
       // Send email to customer
@@ -1251,6 +1251,7 @@ const processPayment = asyncHandler(async (req, res) => {
           stripe_payment_intent_id: paymentIntent.paymentIntentId
         }
       }, 'Ticket booking payment processed successfully. Three transactions created: Customer pays total amount, Event host receives base amount, Admin receives 7% platform fee.', 201);
+
     }
   } catch (error) {
     throw error;
