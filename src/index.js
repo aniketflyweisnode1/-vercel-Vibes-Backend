@@ -13,6 +13,7 @@ const stateRoutes = require('./routes/Admin/state.routes.js');
 const cityRoutes = require('./routes/Admin/city.routes.js');
 const eventRoutes = require('./routes/User/event.routes.js');
 
+const packageRoutes = require('./routes/Admin/package.js');
 // Import Admin route modules
 const adminRoutes = require('./routes/Admin/admin.routes.js');
 const otpTypeRoutes = require('./routes/Admin/otp_type.routes.js');
@@ -249,5 +250,6 @@ router.use('/vendor/corporate-dashboard', corporateDashboardRoutes);
 router.use('/vendor/premium-dashboard', premiumDashboardRoutes);
 router.use('/vendor/bookings', vendorBookingRoutes);
 router.use('/vendor/bookingsCancellation', vendorBookingCancellationRoutes);
+router.use('/static/package', packageRoutes);
 
 module.exports = router;

@@ -1248,6 +1248,150 @@ END:VCALENDAR`;
     console.log(xy)
     return xy;
   }
+
+  /**
+ * Send guest invitation / guest created email
+ * @param {string} to - Guest email
+ * @param {Object} guestData - Guest details
+ * @param {Object} eventData - Event details
+ * @returns {Promise<boolean>}
+ */
+  async sendGuestInvitationEmail(to, guestData, eventData) {
+    try {
+      const { user: emailUser, pass: emailPass } = this.emailCredentials;
+
+      if (!emailUser || !emailPass) {
+        logger.warn('Email credentials not configured. Cannot send guest email.');
+        return false;
+      }
+
+      if (!this.transporter) {
+        this.transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: emailUser,
+            pass: emailPass
+          }
+        });
+      }
+
+      const mailOptions = {
+        from: emailUser,
+        to,
+        subject: `You're Invited to ${eventData?.title || 'an Event'} - Mr. Vibes`,
+        html: this.generateGuestInvitationEmailTemplate(guestData, eventData),
+        text: `Hello ${guestData.name}, you have been invited to ${eventData?.title || 'an event'}.`
+      };
+
+      await this.transporter.sendMail(mailOptions);
+
+      logger.info('Guest invitation email sent successfully', { to });
+      return true;
+    } catch (error) {
+      logger.error('Failed to send guest invitation email', {
+        to,
+        error: error.message
+      });
+      return false;
+    }
+  }
+  /**
+   * Generate HTML email template for guest invitation
+   */
+  generateGuestInvitationEmailTemplate(guest, event) {
+    const formatDate = (date) => {
+      if (!date) return 'TBD';
+      return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
+
+    return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>You're Invited - Mr. Vibes</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        padding: 20px;
+      }
+      .container {
+        max-width: 600px;
+        background: #fff;
+        margin: auto;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .header {
+        background: #ff6b35;
+        color: #fff;
+        text-align: center;
+        padding: 25px;
+      }
+      .content {
+        padding: 30px;
+        color: #333;
+      }
+      .event-box {
+        background: #f9f9f9;
+        padding: 20px;
+        border-left: 4px solid #ff6b35;
+        margin: 20px 0;
+      }
+      .footer {
+        text-align: center;
+        padding: 15px;
+        font-size: 13px;
+        color: #777;
+        background: #f1f1f1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🎉 You're Invited!</h1>
+      </div>
+
+      <div class="content">
+        <h2>Hello ${guest.name || 'Guest'},</h2>
+
+        <p>You have been added as a guest for an upcoming event on <strong>Mr. Vibes</strong>.</p>
+
+        <div class="event-box">
+          <p><strong>📌 Event:</strong> ${event?.title || 'Event'}</p>
+          <p><strong>📅 Date:</strong> ${formatDate(event?.date)}</p>
+          <p><strong>⏰ Time:</strong> ${event?.time || 'TBD'}</p>
+          <p><strong>📍 Location:</strong> ${event?.location || 'TBD'}</p>
+        </div>
+
+        ${guest.specialnote
+        ? `<p><strong>📝 Special Note:</strong> ${guest.specialnote}</p>`
+        : ''
+      }
+
+        <p>Please keep this email for your reference.</p>
+
+        <p>Best regards,<br/><strong>Mr. Vibes Team</strong></p>
+      </div>
+
+      <div class="footer">
+        <p>This is an automated email. Please do not reply.</p>
+        <p>&copy; 2024 Mr. Vibes</p>
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+  }
+
 }
 
 module.exports = new EmailService();

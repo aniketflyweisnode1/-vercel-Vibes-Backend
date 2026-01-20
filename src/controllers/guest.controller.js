@@ -1,24 +1,44 @@
 const Guest = require('../models/guest.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
-
+const emailService = require('../../utils/emailService');
 /**
  * Create a new guest
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-const createGuest = asyncHandler(async (req, res) => {
+const createGuest1 = asyncHandler(async (req, res) => {
   try {
-    // Create guest data
     const guestData = {
       ...req.body,
       createdBy: req.userId
     };
-
-    // Create guest
     const guest = await Guest.create(guestData);
-
     sendSuccess(res, guest, 'Guest created successfully', 201);
+  } catch (error) {
+    throw error;
+  }
+});
+const createGuest = asyncHandler(async (req, res) => {
+  try {
+    const guestData = {
+      ...req.body,
+      createdBy: req.userId
+    };
+    const guest = await Guest.create(guestData);
+    if (guest) {
+      const event = await Event.findOne({ event_id: guest.event_id });
+      if (guest.email && event) {
+        const emailEventData = {
+          title: event.name_title,
+          date: event.date,
+          time: event.time,
+          location: event.street_address
+        };
+        await emailService.sendGuestInvitationEmail(guest.email,guest,emailEventData);
+      }
+      sendSuccess(res, guest, 'Guest created successfully', 201);
+    }
   } catch (error) {
     throw error;
   }
@@ -43,7 +63,7 @@ const getAllGuests = asyncHandler(async (req, res) => {
         { mobileno: { $regex: search, $options: 'i' } }
       ];
     }
-  
+
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -113,7 +133,7 @@ const getGuestsByAuth = asyncHandler(async (req, res) => {
         { mobileno: { $regex: search, $options: 'i' } }
       ];
     }
-  
+
     if (event_id) {
       filter.event_id = parseInt(event_id);
     }
@@ -163,7 +183,7 @@ const getGuestsByEventId = asyncHandler(async (req, res) => {
         { mobileno: { $regex: search, $options: 'i' } }
       ];
     }
-  
+
     if (role_id) {
       filter.role_id = parseInt(role_id);
     }
