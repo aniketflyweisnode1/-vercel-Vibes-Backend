@@ -1,43 +1,31 @@
 const VibeFundingCampaign = require('../models/vibe_funding_campaign.model');
 const User = require('../models/user.model');
 const VibeFundCampaign = require('../models/vibe_fund_campaign.model');
+const Transaction = require('../models/transaction.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
+const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
 
-/**
- * Create a new vibe funding campaign contribution
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
 const createVibeFundingCampaign = asyncHandler(async (req, res) => {
   try {
     const fundingData = {
       ...req.body,
       created_by: req.userId || 1
     };
-
     const funding = await VibeFundingCampaign.create(fundingData);
-
-    // Manually populate fundby_user_id
     const fundbyUser = await User.findOne({ user_id: funding.fundby_user_id }).select('user_id name email mobile user_img');
     const campaign = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: funding.vibe_fund_campaign_id }).select('vibe_fund_campaign_id title funding_goal');
-
+    if (campaign) {
+      await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, { $set: { fund_amount: campaign.fund_amount + funding.fund_amount, fund_still_Needed: campaign.funding_goal - (campaign.fund_amount + funding.fund_amount) } }, { new: true });
+    }
     const fundingWithDetails = funding.toObject();
     fundingWithDetails.fundby_user = fundbyUser;
     fundingWithDetails.campaign = campaign;
-
- 
-      sendSuccess(res, fundingWithDetails, 'Funding contribution created successfully', 201);
+    sendSuccess(res, fundingWithDetails, 'Funding contribution created successfully', 201);
   } catch (error) {
     throw error
   }
 });
-
-/**
- * Get all vibe funding campaigns with pagination and filtering
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
 const getAllVibeFundingCampaign = asyncHandler(async (req, res) => {
   try {
     const {
@@ -60,7 +48,7 @@ const getAllVibeFundingCampaign = asyncHandler(async (req, res) => {
       filter.fundby_user_id = parseInt(fundby_user_id);
     }
 
-  
+
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -114,19 +102,13 @@ const getAllVibeFundingCampaign = asyncHandler(async (req, res) => {
       hasPrevPage
     };
 
-    
+
 
     sendPaginated(res, fundingsWithDetails, pagination, 'Funding contributions retrieved successfully');
   } catch (error) {
-  throw error
+    throw error
   }
 });
-
-/**
- * Get vibe funding campaign by ID
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
 const getVibeFundingCampaignById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
@@ -147,18 +129,12 @@ const getVibeFundingCampaignById = asyncHandler(async (req, res) => {
 
 
 
-      sendSuccess(res, fundingWithDetails, 'Funding contribution retrieved successfully');
+    sendSuccess(res, fundingWithDetails, 'Funding contribution retrieved successfully');
   } catch (error) {
-    
+
     throw error
   }
 });
-
-/**
- * Update vibe funding campaign by ID
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
 const updateVibeFundingCampaign = asyncHandler(async (req, res) => {
   try {
     const { id } = req.body;
@@ -172,8 +148,8 @@ const updateVibeFundingCampaign = asyncHandler(async (req, res) => {
     const funding = await VibeFundingCampaign.findOneAndUpdate(
       { vibe_funding_campaign_id: parseInt(id) },
       updateData,
-      { 
-        new: true, 
+      {
+        new: true,
         runValidators: true
       }
     );
@@ -190,27 +166,21 @@ const updateVibeFundingCampaign = asyncHandler(async (req, res) => {
     fundingWithDetails.fundby_user = fundbyUser;
     fundingWithDetails.campaign = campaign;
 
-    
+
 
     sendSuccess(res, fundingWithDetails, 'Funding contribution updated successfully');
   } catch (error) {
-    
-        throw error
+
+    throw error
   }
 });
-
-/**
- * Delete vibe funding campaign by ID (soft delete)
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
 const deleteVibeFundingCampaign = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
     const funding = await VibeFundingCampaign.findOneAndUpdate(
       { vibe_funding_campaign_id: parseInt(id) },
-      { 
+      {
         status: false,
         updated_by: req.userId,
         updated_at: new Date()
@@ -222,19 +192,205 @@ const deleteVibeFundingCampaign = asyncHandler(async (req, res) => {
       return sendNotFound(res, 'Funding contribution not found');
     }
 
-    
+
 
     sendSuccess(res, funding, 'Funding contribution deleted successfully');
   } catch (error) {
     throw error
   }
 });
+const eventPayment = asyncHandler(async (req, res) => {
+  try {
+    const { amount, payment_method_id, billingDetails, description = 'Event payment', vibe_funding_campaign_id } = req.body;
+    if (amount === undefined || amount === null) {
+      return sendError(res, 'Amount is required', 400);
+    }
+    if (!payment_method_id) {
+      return sendError(res, 'payment_method_id is required', 400);
+    }
+    const normalizedAmount = Number(amount);
+    if (Number.isNaN(normalizedAmount)) {
+      return sendError(res, 'Invalid amount. It must be a numeric value.', 400);
+    }
+    if (normalizedAmount <= 0) {
+      return sendError(res, 'Amount must be greater than 0', 400);
+    }
+    const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
+    const baseAmount = normalizedAmount; // Base amount (what event host should receive)
+    const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
+    const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
+    const eventHostAmount = baseAmount; // Event host receives base amount only
+    let vibeHostId = null;
+    if (vibe_funding_campaign_id) {
+      const event = await VibeFundingCampaign.findOne({ vibe_funding_campaign_id: parseInt(vibe_funding_campaign_id) });
+      vibeHostId = event ? event.created_by : null;
+    }
+    const user = await User.findOne({ user_id: req.userId }).select('email name');
+    if (!user || !user.email) {
+      return sendError(res, 'User email not found for Stripe receipt', 400);
+    }
+    const customerId = undefined;
+    let paymentIntent = null;
+    try {
+      const paymentOptions = {
+        amount: Math.round(totalAmount), // Customer pays total (base + platform fee)
+        billingDetails,
+        currency: 'usd',
+        customerEmail: user.email,
+        metadata: {
+          user_id: req.userId,
+          vibe_funding_campaign_id: vibe_funding_campaign_id || '',
+          payment_type: 'event_payment',
+          description
+        }
+      };
 
-module.exports = {
-  createVibeFundingCampaign,
-  getAllVibeFundingCampaign,
-  getVibeFundingCampaignById,
-  updateVibeFundingCampaign,
-  deleteVibeFundingCampaign
-};
+      paymentIntent = await createPaymentIntent(paymentOptions);
+    } catch (paymentError) {
+      return sendError(res, `Payment intent creation failed: ${paymentError.message}`, 400);
+    }
+    const transactionData = {
+      user_id: req.userId,
+      amount: totalAmount, // Customer pays total (base + platform fee)
+      status: paymentIntent.status,
+      payment_method_id: payment_method_id,
+      transactionType: 'EventPayment',
+      transaction_date: new Date(),
+      reference_number: paymentIntent.paymentIntentId,
+      coupon_code_id: null,
+      CGST: 0,
+      SGST: 0,
+      TotalGST: 0,
+      metadata: JSON.stringify({
+        stripe_payment_intent_id: paymentIntent.paymentIntentId,
+        stripe_client_secret: paymentIntent.clientSecret,
+        vibe_funding_campaign_id: vibe_funding_campaign_id || null,
+        vibe_host_id: vibeHostId,
+        base_amount: baseAmount,
+        platform_fee: platformFeeAmount,
+        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+        event_host_amount: eventHostAmount,
+        description
+      }),
+      created_by: req.userId
+    };
 
+    const customerTransaction = await Transaction.create(transactionData);
+    if (vibeHostId && eventHostAmount > 0) {
+      const eventHostUser = await User.findOne({ user_id: vibeHostId, status: true });
+      if (eventHostUser) {
+        const eventHostTransactionData = {
+          user_id: vibeHostId, // Event host user ID
+          amount: eventHostAmount, // Event host receives baseAmount only
+          status: paymentIntent.status,
+          payment_method_id: parseInt(payment_method_id, 10),
+          transactionType: 'EventPayment',
+          transaction_date: new Date(),
+          reference_number: `EVENT_HOST_PAYMENT_${paymentIntent.paymentIntentId}`,
+          coupon_code_id: null,
+          CGST: 0,
+          SGST: 0,
+          TotalGST: 0,
+          metadata: JSON.stringify({
+            payment_intent_id: paymentIntent.paymentIntentId,
+            stripe_payment_intent_id: paymentIntent.paymentIntentId,
+            vibe_funding_campaign_id: vibe_funding_campaign_id || null,
+            vibe_host_id: vibeHostId,
+            customer_user_id: req.userId,
+            base_amount: baseAmount,
+            platform_fee: platformFeeAmount,
+            platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+            event_host_amount: eventHostAmount, // Event host receives baseAmount
+            total_amount: totalAmount,
+            customer_transaction_id: customerTransaction.transaction_id,
+            description: 'Event host receives base amount from event payment'
+          }),
+          created_by: req.userId
+        };
+
+        await Transaction.create(eventHostTransactionData);
+      }
+    }
+    const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
+    if (adminUser && platformFeeAmount > 0) {
+      const adminTransactionData = {
+        user_id: adminUser.user_id,
+        amount: platformFeeAmount, // Admin receives only platform fee (7%)
+        status: paymentIntent.status,
+        payment_method_id: parseInt(payment_method_id, 10),
+        transactionType: 'EventPayment',
+        transaction_date: new Date(),
+        reference_number: `PLATFORM_FEE_${paymentIntent.paymentIntentId}`,
+        coupon_code_id: null,
+        CGST: 0,
+        SGST: 0,
+        TotalGST: 0,
+        metadata: JSON.stringify({
+          payment_intent_id: paymentIntent.paymentIntentId,
+          stripe_payment_intent_id: paymentIntent.paymentIntentId,
+          vibe_funding_campaign_id: vibe_funding_campaign_id || null,
+          vibe_host_id: vibeHostId,
+          customer_user_id: req.userId,
+          base_amount: baseAmount,
+          platform_fee: platformFeeAmount,
+          platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+          event_host_amount: eventHostAmount, // Event host receives baseAmount
+          total_amount: totalAmount,
+          customer_transaction_id: customerTransaction.transaction_id,
+          description: 'Platform fee (7%) from event payment - Admin receives platform fee'
+        }),
+        created_by: req.userId
+      };
+
+      await Transaction.create(adminTransactionData);
+    }
+    return sendSuccess(res, {
+      customer_transaction_id: customerTransaction.transaction_id,
+      payment_intent_id: paymentIntent.paymentIntentId,
+      client_secret: paymentIntent.clientSecret,
+      payment_breakdown: {
+        total_amount: totalAmount, // Customer pays this (baseAmount + platformFeeAmount)
+        base_amount: baseAmount, // Event host receives this
+        platform_fee: platformFeeAmount, // Admin receives this (7%)
+        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
+        event_host_amount: eventHostAmount // Event host receives baseAmount only
+      },
+      transactions: {
+        customer: {
+          transaction_id: customerTransaction.transaction_id,
+          user_id: req.userId,
+          amount: totalAmount,
+          description: 'Customer payment for event (baseAmount + platformFee)'
+        },
+        event_host: {
+          user_id: vibeHostId,
+          amount: eventHostAmount, // baseAmount
+          description: 'Event host receives base amount'
+        },
+        admin: {
+          user_id: adminUser ? adminUser.user_id : null,
+          amount: platformFeeAmount,
+          description: 'Admin receives 7% platform fee'
+        }
+      },
+      currency: 'USD',
+      status: paymentIntent.status,
+      paymentIntent: {
+        id: paymentIntent.paymentIntentId,
+        clientSecret: paymentIntent.clientSecret,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: paymentIntent.status
+      },
+      vibe_funding_campaign_id: vibe_funding_campaign_id || null
+    }, 'Event payment processed successfully. Three transactions created: Customer pays total amount, Event host receives base amount, Admin receives 7% platform fee.');
+  } catch (error) {
+    throw error;
+  }
+});
+
+
+
+
+
+module.exports = { createVibeFundingCampaign, getAllVibeFundingCampaign, getVibeFundingCampaignById, updateVibeFundingCampaign, deleteVibeFundingCampaign };

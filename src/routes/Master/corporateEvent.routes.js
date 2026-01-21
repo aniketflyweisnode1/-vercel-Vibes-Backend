@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { createEvent, getAllEvents, getEventById, updateEvent,deleteEvent,getEventsByAuth,getEventsExcludingAuth,eventPayment} = require('../../controllers/event.controller'); 
+const { createEvent, getAllEvents, getEventById, updateEvent,deleteEvent,getEventsByAuth,getAllStaffEvents,acceptStaffEvent,rejectStaffEvent, getEventsExcludingAuth,eventPayment} = require('../../controllers/corporateEvent.controller'); 
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
 const { createEventSchema, updateEventSchema, getEventByIdSchema, getAllEventsSchema } = require('../../../validators/event.validator');
 router.post('/create', auth, createEvent);
 router.get('/getAll', getAllEvents);
 router.get('/getByAuth', auth, validateQuery(getAllEventsSchema), getEventsByAuth);
+router.get('/getAllStaffEvents', auth, validateQuery(getAllEventsSchema), getAllStaffEvents);
+router.post('/events/:eventId/staff/accept', auth, acceptStaffEvent);
+router.post('/events/:eventId/staff/reject', auth, rejectStaffEvent);
 router.get('/getExcludingAuth', auth, validateQuery(getAllEventsSchema), getEventsExcludingAuth);
 router.get('/getById/:id', auth, validateParams(getEventByIdSchema), getEventById);
 router.put('/updateById', auth,  updateEvent);

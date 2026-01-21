@@ -12,6 +12,7 @@ const countryRoutes = require('./routes/Admin/country.routes.js');
 const stateRoutes = require('./routes/Admin/state.routes.js');
 const cityRoutes = require('./routes/Admin/city.routes.js');
 const eventRoutes = require('./routes/User/event.routes.js');
+const corporateEventRoutes = require('./routes/Master/corporateEvent.routes.js');
 
 const packageRoutes = require('./routes/Admin/package.js');
 // Import Admin route modules
@@ -84,6 +85,7 @@ const staffEventBookRoutes = require('./routes/Master/staff_event_book.routes.js
 const staffCategoryRoutes = require('./routes/Master/staff_category.routes.js');
 const staffWorkingPriceRoutes = require('./routes/Master/staff_working_price.routes.js');
 const staffRoutes = require('./routes/Master/staff.routes.js');
+const corporateStaffRoutes = require('./routes/Master/corporateStaff.routes.js');
 const cateringMarketplaceCategoryRoutes = require('./routes/Master/catering_marketplace_category.routes.js');
 const cateringMarketplaceRoutes = require('./routes/Master/catering_marketplace.routes.js');
 const cateringMarketplaceBookingRoutes = require('./routes/Master/catering_marketplace_booking.routes.js');
@@ -153,6 +155,7 @@ router.use('/countries', countryRoutes);
 router.use('/states', stateRoutes);
 router.use('/cities', cityRoutes);
 router.use('/events', eventRoutes);
+router.use('/corporateEvents', corporateEventRoutes);
 
 // Mount Admin route modules
 router.use('/admin', adminRoutes);
@@ -224,6 +227,7 @@ router.use('/master/staff-event-book', staffEventBookRoutes);
 router.use('/master/staff-category', staffCategoryRoutes);
 router.use('/master/staff-working-price', staffWorkingPriceRoutes);
 router.use('/master/staff', staffRoutes);
+router.use('/master/corporateStaff', corporateStaffRoutes);
 router.use('/master/catering-marketplace-category', cateringMarketplaceCategoryRoutes);
 router.use('/master/catering-marketplace', cateringMarketplaceRoutes);
 router.use('/master/catering-marketplace-booking', cateringMarketplaceBookingRoutes);

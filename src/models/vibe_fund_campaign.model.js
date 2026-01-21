@@ -38,6 +38,14 @@ const vibeFundCampaignSchema = new mongoose.Schema({
     required: [true, 'Funding goal is required'],
     min: [0, 'Funding goal must be a positive number']
   },
+  fund_amount: {
+    type: Number,
+    default: 0,
+  },
+  fund_still_Needed: {
+    type: Number,
+    default: 0,
+  },
   campaign_duration: {
     type: String,
     trim: true,

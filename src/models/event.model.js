@@ -175,6 +175,39 @@ const eventSchema = new mongoose.Schema({
   transaction_status: {
     type: String,
   },
+  employees: [{
+    employee_id: {
+      type: Number,
+      ref: 'User',
+      required: [true, 'Created by is required']
+    },
+    status: {
+      type: String,
+      enum: ['Pending', 'Accepted', 'Rejected'],
+      default: 'Pending'
+    }
+  }],
+  employeesRequested: [{
+    type: Number,
+    ref: 'User',
+    required: [true, 'Created by is required']
+  }],
+  totalStaff: {
+    type: Number,
+    default: 0,
+  },
+  pendingStaff: {
+    type: Number,
+    default: 0,
+  },
+  acceptStaff: {
+    type: Number,
+    default: 0,
+  },
+  rejectStaff: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: false, // We're using custom timestamp fields
   versionKey: false

@@ -1392,6 +1392,167 @@ END:VCALENDAR`;
   `;
   }
 
+  async sendStaffEventAcceptanceEmail(to, staffData, eventData, acceptUrl, rejectUrl) {
+    try {
+      const { user: emailUser, pass: emailPass } = this.emailCredentials;
+
+      if (!emailUser || !emailPass) {
+        logger.warn('Email credentials not configured. Cannot send staff acceptance email.');
+        return false;
+      }
+
+      if (!this.transporter) {
+        this.transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: emailUser,
+            pass: emailPass
+          }
+        });
+      }
+
+      const mailOptions = {
+        from: emailUser,
+        to,
+        subject: `Staff Assignment: ${eventData?.title || 'Event'} - Mr. Vibes`,
+        html: this.generateStaffAcceptanceEmailTemplate(
+          staffData,
+          eventData,
+          acceptUrl,
+          rejectUrl
+        ),
+        text: `You have been assigned to an event "${eventData?.title}". Please accept or reject the assignment.`
+      };
+
+      await this.transporter.sendMail(mailOptions);
+
+      logger.info('Staff acceptance email sent successfully', { to });
+      return true;
+    } catch (error) {
+      logger.error('Failed to send staff acceptance email', {
+        to,
+        error: error.message
+      });
+      return false;
+    }
+  }
+  generateStaffAcceptanceEmailTemplate(staff, event, acceptUrl, rejectUrl) {
+    const formatDate = (date) => {
+      if (!date) return 'TBD';
+      return new Date(date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Staff Assignment - Mr. Vibes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      background: #ffffff;
+      margin: auto;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .header {
+      background: #667eea;
+      color: #fff;
+      text-align: center;
+      padding: 25px;
+    }
+    .content {
+      padding: 30px;
+      color: #333;
+    }
+    .event-box {
+      background: #f9f9f9;
+      padding: 20px;
+      border-left: 4px solid #667eea;
+      margin: 20px 0;
+    }
+    .actions {
+      text-align: center;
+      margin-top: 30px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      margin: 10px;
+      text-decoration: none;
+      color: white;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .btn-accept {
+      background-color: #4CAF50;
+    }
+    .btn-reject {
+      background-color: #e53935;
+    }
+    .footer {
+      text-align: center;
+      padding: 15px;
+      font-size: 13px;
+      color: #777;
+      background: #f1f1f1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>👔 Staff Assignment</h1>
+    </div>
+
+    <div class="content">
+      <h2>Hello ${staff?.name || 'Staff Member'},</h2>
+
+      <p>You have been assigned to work at the following event on <strong>Mr. Vibes</strong>.</p>
+
+      <div class="event-box">
+        <p><strong>📌 Event:</strong> ${event?.title || 'Event'}</p>
+        <p><strong>📅 Date:</strong> ${formatDate(event?.date)}</p>
+        <p><strong>⏰ Time:</strong> ${event?.time || 'TBD'}</p>
+        <p><strong>📍 Location:</strong> ${event?.location || 'TBD'}</p>
+      </div>
+
+      <p>Please confirm your availability by clicking one of the options below:</p>
+
+      <div class="actions">
+        <a href="${acceptUrl}" class="btn btn-accept">✅ Accept</a>
+        <a href="${rejectUrl}" class="btn btn-reject">❌ Reject</a>
+      </div>
+
+      <p style="margin-top: 30px;">
+        If you have any questions, please contact the event organizer.
+      </p>
+
+      <p>Best regards,<br/><strong>Mr. Vibes Team</strong></p>
+    </div>
+
+    <div class="footer">
+      <p>This is an automated email. Please do not reply.</p>
+      <p>&copy; 2024 Mr. Vibes</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+  }
+
 }
 
 module.exports = new EmailService();
