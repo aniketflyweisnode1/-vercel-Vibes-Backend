@@ -1,4 +1,5 @@
 const User = require('../models/user.model');
+const Package = require("../models/package");
 const OTP = require('../models/otp.model');
 const Transaction = require('../models/transaction.model');
 const StaffWorkingPrice = require('../models/staff_working_price.model');
@@ -20,7 +21,7 @@ const { asyncHandler } = require('../../middleware/errorHandler');
 const { generateOTP } = require('../../utils/helpers');
 const emailService = require('../../utils/emailService');
 const { createPaymentIntent, createCustomer } = require('../../utils/stripe');
-
+const stripe1 = require('stripe')('sk_test_51QkIm6IG3GnT9n5tlvKodmyGrRhlTmre4QtC1QXJxYAVj1hsVPAEwIGyi8nXZ3Fbc2HGyTwhEeJ79cq8mX0SUUaU00lr2JkZbF');
 const PROFILE_COMPLETION_REQUIREMENTS = [
   'name',
   'email',
@@ -1516,8 +1517,1045 @@ const updateStaffProfile = asyncHandler(async (req, res) => {
     throw error;
   }
 });
-
+const checkOutPackageById = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data1 = await User.findOne({ _id: req.user.id, });
+    if (data1) {
+      const shipment = await Package.findById({ _id: id });
+      if (!shipment) {
+        return res.status(404).json({ message: "Package Not Found", status: 404, data: {} });
+      } else {
+        let amount = shipment.price;
+        let id = await reffralCode();
+        let obj = {
+          user: data1.user_id,
+          packageId: shipment._id,
+          id: id,
+          transaction_date: Date.now(),
+          amount: shipment.price,
+          status: "pending",
+          type: "Package"
+        }
+        const data = await Transaction.create(obj);
+        if (data) {
+          let line_items = [];
+          line_items.push({
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Package Order`,
+              },
+              unit_amount: `${Math.round(amount * 100)}`,
+            },
+            quantity: 1,
+          })
+          let stripeCustomerId;
+          const customer = await stripe1.customers.list({ email: data1.email });
+          if (customer.data.length > 0) {
+            stripeCustomerId = customer.data[0].id;
+          } else {
+            const customer = await stripe1.customers.create({ email: data1.email, name: `${data1.firstName} ${data1.lastName}` });
+            stripeCustomerId = customer.id;
+          }
+          if (line_items.length > 0) {
+            const session = await stripe1.checkout.sessions.create({
+              payment_method_types: ["card"],
+              success_url: `https://dispax-wep-app.netlify.app/thankspackage/${data._id}`,
+              cancel_url: `https://dispax-wep-app.netlify.app/failed/${data._id}`,
+              customer: stripeCustomerId,
+              client_reference_id: (data1._id).toString(),
+              line_items: line_items,
+              mode: "payment",
+              payment_intent_data: {
+                setup_future_usage: 'off_session',
+              }
+            });
+            return res.status(200).json({ status: "success", session: session, });
+          }
+        }
+      }
+    } else {
+      return res.status(404).json({ status: 404, message: "No data found", data: {} });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(501).send({ status: 501, message: "server error.", data: {}, });
+  }
+});
+const verifyPackageById = asyncHandler(async (req, res) => {
+  try {
+    let findTransaction = await Transaction.findById({ _id: req.params.transactionId, type: "Package", Status: "pending" });
+    if (findTransaction) {
+      const user = await User.findOne({ _id: findTransaction.user });
+      if (!user) {
+        return res.status(404).send({ status: 404, message: "User not found." });
+      } else {
+        if (req.body.Status == "Paid") {
+          let update = await Transaction.findByIdAndUpdate({ _id: findTransaction._id }, { $set: { status: "completed" } }, { new: true });
+          if (update) {
+            const shipment = await Package.findById({ _id: findTransaction.packageId });
+            if (!shipment) {
+              return res.status(404).json({ message: "SponsorsPackage Not Found", status: 404, data: {} });
+            }
+            let xy;
+            if (shipment.duration == "Month") {
+              xy = 30 * 24 * 60 * 60 * 1000;
+            } else {
+              xy = 365 * 24 * 60 * 60 * 1000;
+            }
+            const now = new Date();
+            let packageExpiration = new Date(now);
+            packageExpiration.setTime(packageExpiration.getTime() + xy);
+            let update1 = await User.findByIdAndUpdate({ _id: findTransaction.user }, { $set: { packageId: shipment._id, isPackageExpired: true, packageExpiration: packageExpiration, } }, { new: true });
+            return res.status(200).send({ status: 200, message: 'subscription subscribe successfully.', data: update })
+          }
+        }
+        if (req.body.Status == "failed") {
+          let update = await Transaction.findByIdAndUpdate({ _id: findTransaction._id }, { $set: { status: "failed" } }, { new: true });
+          if (update) {
+            return res.status(200).send({ status: 200, message: 'subscription not subscribe successfully.', data: update });
+          }
+        }
+      }
+    } else {
+      return res.status(404).send({ status: 404, message: "Transaction not found" });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send({ status: 500, message: "Server error" + error.message });
+  }
+});
+const webhookPackage = asyncHandler(async (req, res) => {
+  try {
+    const payload = req.body;
+    console.log("payload============================", payload)
+    const invoice = payload.data.object;
+    if (payload.type === "checkout.session.completed") {
+      console.log("payload====checkout.session.completed======", payload)
+      const invoice = payload.data.object;
+      const subscription = payload.data.object;
+      console.log(`subscription`, subscription);
+      if (invoice.payment_status === 'paid') {
+        let findSubscription = await Package.findOne({ price: subscription.amount_total / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1616------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, paymentFailedMail: false, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      } else {
+        let findSubscription = await Package.findOne({ price: subscription.amount_total / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1616------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, paymentFailedMail: false, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      }
+    }
+    if (payload.type === "customer.subscription.deleted") {
+      console.log("payload====customer.subscription.deleted======", payload)
+      const invoice = payload.data.object;
+      let subscription = payload.data.object;
+      const customer = await stripe1.customers.retrieve(invoice.customer);
+      if (customer) {
+        const user = await User.findOne({ email: customer.email });
+        if (user) {
+          const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id });
+          if (customerSubscriptions.data.length > 0) {
+            const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+              console.log("1616------------------", subscription)
+              const creationTime = subscription.created * 1000;
+              const currentTime = Date.now();
+              const timeDifference = currentTime - creationTime;
+              if (timeDifference > 2 * 60 * 1000) {
+                if (subscription.status === 'active' || subscription.status === 'trialing') {
+                  const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                  console.log(`Subscription ${subscription.id} was canceled.`);
+                  return cancellation;
+                }
+                console.log(`Subscription ${subscription.id} was canceled.`);
+                let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+                if (findSubscription) {
+                  if ((findSubscription._id).toString() == (user.packageId).toString()) {
+                    let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                  }
+                }
+                return cancellation;
+              }
+            });
+            await Promise.all(cancellationPromises);
+          }
+        }
+      }
+    }
+    if (payload.type === "customer.subscription.created") {
+      console.log("payload====customer.subscription.created======", payload)
+      const invoice = payload.data.object;
+      const subscription = payload.data.object;
+      if (invoice.payment_status === 'paid') {
+        let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1643------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let date = subscription.current_period_end;
+            let packageExpiration = new Date(date * 1000);
+            packageExpiration.setUTCHours(0, 0, 0, 0);
+            console.log(packageExpiration);
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, packageExpiration: packageExpiration, paymentFailedMail: false, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      } else {
+        let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1673------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let date = subscription.current_period_end;
+            let packageExpiration = new Date(date * 1000);
+            packageExpiration.setUTCHours(0, 0, 0, 0);
+            console.log(packageExpiration);
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, paymentFailedMail: false, packageExpiration: packageExpiration, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      }
+    }
+    if (payload.type === "customer.subscription.updated") {
+      const invoice = payload.data.object;
+      const subscription = payload.data.object;
+      console.log(subscription)
+      const isTrialPeriod = subscription.trial_end && subscription.trial_end > Date.now() / 1000;
+      if (isTrialPeriod) {
+        if (subscription.cancel_at_period_end) {
+          const customer = await stripe1.customers.retrieve(invoice.customer);
+          if (customer) {
+            console.log(customer)
+            const user = await User.findOne({ email: customer.email });
+            if (user) {
+              const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+              if (customerSubscriptions.data.length > 1) {
+                const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                  console.log("1709------------------", subscription)
+                  const creationTime = subscription.created * 1000;
+                  const currentTime = Date.now();
+                  const timeDifference = currentTime - creationTime;
+                  if (timeDifference > 2 * 60 * 1000) {
+                    if (subscription.status === 'active' || subscription.status === 'trialing') {
+                      const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                      console.log(`Subscription ${subscription.id} was canceled.`);
+                      let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                      return cancellation;
+                    }
+                  }
+                });
+                await Promise.all(cancellationPromises);
+              }
+            }
+          }
+          console.log(`Subscription ${subscription.id} was canceled.`);
+        } else if (subscription.status === 'active' && !subscription.cancel_at_period_end) {
+          const subscriptionStartDate = new Date(subscription.start_date * 1000);
+          const currentTime = new Date();
+          const elapsedMonths = Math.floor((currentTime - subscriptionStartDate) / (30 * 24 * 60 * 60 * 1000)); // Assuming 30 days per month
+          console.log("elapsedMonths================", elapsedMonths)
+          if (elapsedMonths >= 6) {
+            await stripe1.subscriptions.update(subscription.id, { cancel_at_period_end: true });
+            const customer = await stripe1.customers.retrieve(invoice.customer);
+            if (customer) {
+              console.log(customer)
+              const user = await User.findOne({ email: customer.email });
+              if (user) {
+                const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                if (customerSubscriptions.data.length > 1) {
+                  const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                    console.log("1740------------------", subscription)
+                    const creationTime = subscription.created * 1000;
+                    const currentTime = Date.now();
+                    const timeDifference = currentTime - creationTime;
+                    if (timeDifference > 2 * 60 * 1000) {
+                      if (subscription.status === 'active' || subscription.status === 'trialing') {
+                        const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                        console.log(`Subscription ${subscription.id} was canceled.`);
+                        let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                        return cancellation;
+                      }
+                    }
+                  });
+                  await Promise.all(cancellationPromises);
+                }
+              }
+            }
+            console.log(`Subscription ${subscription.id} will be canceled at the end of the current period.`);
+          } else {
+            const invoice = payload.data.object;
+            const subscription = payload.data.object;
+            if (invoice.payment_status === 'paid') {
+              let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+              const customer = await stripe1.customers.retrieve(invoice.customer);
+              if (customer) {
+                const user = await User.findOne({ email: customer.email });
+                if (user) {
+                  const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                  if (customerSubscriptions.data.length > 1) {
+                    const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                      console.log("1740------------------", subscription)
+                      const creationTime = subscription.created * 1000;
+                      const currentTime = Date.now();
+                      const timeDifference = currentTime - creationTime;
+                      if (timeDifference > 2 * 60 * 1000) {
+                        if (subscription.status === 'active' || subscription.status === 'trialing') {
+                          const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                          console.log(`Subscription ${subscription.id} was canceled.`);
+                          return cancellation;
+                        }
+                      }
+                    });
+                    await Promise.all(cancellationPromises);
+                  }
+                  let date = subscription.current_period_end;
+                  let packageExpiration = new Date(date * 1000);
+                  packageExpiration.setUTCHours(0, 0, 0, 0);
+                  console.log(packageExpiration);
+                  let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, packageExpiration: packageExpiration, paymentFailedMail: false, emptyContainerListCount: 0 } }, { new: true });
+                }
+              }
+            } else {
+              let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+              const customer = await stripe1.customers.retrieve(invoice.customer);
+              if (customer) {
+                const user = await User.findOne({ email: customer.email });
+                if (user) {
+                  const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                  if (customerSubscriptions.data.length > 1) {
+                    const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                      console.log("1740------------------", subscription)
+                      const creationTime = subscription.created * 1000;
+                      const currentTime = Date.now();
+                      const timeDifference = currentTime - creationTime;
+                      if (timeDifference > 2 * 60 * 1000) {
+                        if (subscription.status === 'active' || subscription.status === 'trialing') {
+                          const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                          console.log(`Subscription ${subscription.id} was canceled.`);
+                          return cancellation;
+                        }
+                      }
+                    });
+                    await Promise.all(cancellationPromises);
+                  }
+                  let date = subscription.current_period_end;
+                  let packageExpiration = new Date(date * 1000);
+                  packageExpiration.setUTCHours(0, 0, 0, 0);
+                  console.log(packageExpiration);
+                  let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, packageExpiration: packageExpiration, paymentFailedMail: false, emptyContainerListCount: 0 } }, { new: true });
+                }
+              }
+            }
+          }
+        } else {
+          if (invoice.payment_status === 'paid') {
+            let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+            const customer = await stripe1.customers.retrieve(invoice.customer);
+            if (customer) {
+              console.log(customer)
+              const user = await User.findOne({ email: customer.email });
+              if (user) {
+                const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                if (customerSubscriptions.data.length > 1) {
+                  const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                    console.log("1709------------------", subscription)
+                    const creationTime = subscription.created * 1000;
+                    const currentTime = Date.now();
+                    const timeDifference = currentTime - creationTime;
+                    if (timeDifference > 2 * 60 * 1000) {
+                      if (subscription.status === 'active' || subscription.status === 'trialing') {
+                        const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                        console.log(`Subscription ${subscription.id} was canceled.`);
+                        return cancellation;
+                      }
+                    }
+                  });
+                  await Promise.all(cancellationPromises);
+                }
+                let date = subscription.current_period_end;
+                let packageExpiration = new Date(date * 1000);
+                packageExpiration.setUTCHours(0, 0, 0, 0);
+                console.log(packageExpiration);
+                let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, paymentFailedMail: false, packageExpiration: packageExpiration, emptyContainerListCount: 0 } }, { new: true });
+              }
+            }
+            console.log(`Subscription ${subscription.id} was restarted.`);
+          } else {
+            let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+            const customer = await stripe1.customers.retrieve(invoice.customer);
+            if (customer) {
+              console.log(customer)
+              const user = await User.findOne({ email: customer.email });
+              if (user) {
+                const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                if (customerSubscriptions.data.length > 1) {
+                  const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                    console.log("1709------------------", subscription)
+                    const creationTime = subscription.created * 1000;
+                    const currentTime = Date.now();
+                    const timeDifference = currentTime - creationTime;
+                    if (timeDifference > 2 * 60 * 1000) {
+                      if (subscription.status === 'active' || subscription.status === 'trialing') {
+                        const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                        console.log(`Subscription ${subscription.id} was canceled.`);
+                        return cancellation;
+                      }
+                    }
+                  });
+                  await Promise.all(cancellationPromises);
+                }
+                let date = subscription.current_period_end;
+                let packageExpiration = new Date(date * 1000);
+                packageExpiration.setUTCHours(0, 0, 0, 0);
+                console.log(packageExpiration);
+                let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, paymentFailedMail: false, packageExpiration: packageExpiration, emptyContainerListCount: 0 } }, { new: true });
+              }
+            }
+            console.log(`Subscription ${subscription.id} was restarted.`);
+          }
+        }
+      } else {
+        if (subscription.cancel_at_period_end) {
+          const customer = await stripe1.customers.retrieve(invoice.customer);
+          if (customer) {
+            console.log(customer)
+            const user = await User.findOne({ email: customer.email });
+            if (user) {
+              const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+              if (customerSubscriptions.data.length > 1) {
+                const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                  console.log("1709------------------", subscription)
+                  const creationTime = subscription.created * 1000;
+                  const currentTime = Date.now();
+                  const timeDifference = currentTime - creationTime;
+                  if (timeDifference > 2 * 60 * 1000) {
+                    if (subscription.status === 'active' || subscription.status === 'trialing') {
+                      const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                      console.log(`Subscription ${subscription.id} was canceled.`);
+                      let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                      return cancellation;
+                    }
+                  }
+                });
+                await Promise.all(cancellationPromises);
+              }
+            }
+          }
+          console.log(`Subscription ${subscription.id} was canceled.`);
+        } else if (subscription.status === 'active' && !subscription.cancel_at_period_end) {
+          const subscriptionStartDate = new Date(subscription.start_date * 1000);
+          const currentTime = new Date();
+          const elapsedMonths = Math.floor((currentTime - subscriptionStartDate) / (30 * 24 * 60 * 60 * 1000)); // Assuming 30 days per month
+          console.log("elapsedMonths================", elapsedMonths)
+          if (elapsedMonths >= 6) {
+            await stripe1.subscriptions.update(subscription.id, { cancel_at_period_end: true });
+            const customer = await stripe1.customers.retrieve(invoice.customer);
+            if (customer) {
+              console.log(customer)
+              const user = await User.findOne({ email: customer.email });
+              if (user) {
+                const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                if (customerSubscriptions.data.length > 1) {
+                  const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                    console.log("1740------------------", subscription)
+                    const creationTime = subscription.created * 1000;
+                    const currentTime = Date.now();
+                    const timeDifference = currentTime - creationTime;
+                    if (timeDifference > 2 * 60 * 1000) {
+                      if (subscription.status === 'active' || subscription.status === 'trialing') {
+                        const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                        console.log(`Subscription ${subscription.id} was canceled.`);
+                        let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                        return cancellation;
+                      }
+                    }
+                  });
+                  await Promise.all(cancellationPromises);
+                }
+              }
+            }
+            console.log(`Subscription ${subscription.id} will be canceled at the end of the current period.`);
+          } else {
+            const invoice = payload.data.object;
+            const subscription = payload.data.object;
+            if (invoice.payment_status === 'paid') {
+              let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+              const customer = await stripe1.customers.retrieve(invoice.customer);
+              if (customer) {
+                const user = await User.findOne({ email: customer.email });
+                if (user) {
+                  const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                  if (customerSubscriptions.data.length > 1) {
+                    const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                      console.log("1740------------------", subscription)
+                      const creationTime = subscription.created * 1000;
+                      const currentTime = Date.now();
+                      const timeDifference = currentTime - creationTime;
+                      if (timeDifference > 2 * 60 * 1000) {
+                        if (subscription.status === 'active' || subscription.status === 'trialing') {
+                          const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                          console.log(`Subscription ${subscription.id} was canceled.`);
+                          return cancellation;
+                        }
+                      }
+                    });
+                    await Promise.all(cancellationPromises);
+                  }
+                  let date = subscription.current_period_end;
+                  let packageExpiration = new Date(date * 1000);
+                  packageExpiration.setUTCHours(0, 0, 0, 0);
+                  let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, paymentFailedMail: false, packageExpiration: packageExpiration, emptyContainerListCount: 0 } }, { new: true });
+                }
+              }
+            } else {
+              let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+              const customer = await stripe1.customers.retrieve(invoice.customer);
+              if (customer) {
+                const user = await User.findOne({ email: customer.email });
+                if (user) {
+                  const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                  if (customerSubscriptions.data.length > 1) {
+                    const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                      console.log("1740------------------", subscription)
+                      const creationTime = subscription.created * 1000;
+                      const currentTime = Date.now();
+                      const timeDifference = currentTime - creationTime;
+                      if (timeDifference > 2 * 60 * 1000) {
+                        if (subscription.status === 'active' || subscription.status === 'trialing') {
+                          const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                          console.log(`Subscription ${subscription.id} was canceled.`);
+                          return cancellation;
+                        }
+                      }
+                    });
+                    await Promise.all(cancellationPromises);
+                  }
+                  let date = subscription.current_period_end;
+                  let packageExpiration = new Date(date * 1000);
+                  packageExpiration.setUTCHours(0, 0, 0, 0);
+                  let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, packageExpiration: packageExpiration, paymentFailedMail: false, emptyContainerListCount: 0 } }, { new: true });
+                }
+              }
+            }
+          }
+        } else {
+          if (invoice.payment_status === 'paid') {
+            let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+            const customer = await stripe1.customers.retrieve(invoice.customer);
+            if (customer) {
+              console.log(customer)
+              const user = await User.findOne({ email: customer.email });
+              if (user) {
+                const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                if (customerSubscriptions.data.length > 1) {
+                  const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                    console.log("1709------------------", subscription)
+                    const creationTime = subscription.created * 1000;
+                    const currentTime = Date.now();
+                    const timeDifference = currentTime - creationTime;
+                    if (timeDifference > 2 * 60 * 1000) {
+                      if (subscription.status === 'active' || subscription.status === 'trialing') {
+                        const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                        console.log(`Subscription ${subscription.id} was canceled.`);
+                        return cancellation;
+                      }
+                    }
+                  });
+                  await Promise.all(cancellationPromises);
+                }
+                let date = subscription.current_period_end;
+                let packageExpiration = new Date(date * 1000);
+                packageExpiration.setUTCHours(0, 0, 0, 0);
+                let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, packageExpiration: packageExpiration, paymentFailedMail: false, emptyContainerListCount: 0 } }, { new: true });
+              }
+            }
+            console.log(`Subscription ${subscription.id} was restarted.`);
+          } else {
+            let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+            const customer = await stripe1.customers.retrieve(invoice.customer);
+            if (customer) {
+              console.log(customer)
+              const user = await User.findOne({ email: customer.email });
+              if (user) {
+                const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+                if (customerSubscriptions.data.length > 1) {
+                  const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                    console.log("1709------------------", subscription)
+                    const creationTime = subscription.created * 1000;
+                    const currentTime = Date.now();
+                    const timeDifference = currentTime - creationTime;
+                    if (timeDifference > 2 * 60 * 1000) {
+                      if (subscription.status === 'active' || subscription.status === 'trialing') {
+                        const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                        console.log(`Subscription ${subscription.id} was canceled.`);
+                        return cancellation;
+                      }
+                    }
+                  });
+                  await Promise.all(cancellationPromises);
+                }
+                let date = subscription.current_period_end;
+                let packageExpiration = new Date(date * 1000);
+                packageExpiration.setUTCHours(0, 0, 0, 0);
+                let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, packageExpiration: packageExpiration, paymentFailedMail: false, emptyContainerListCount: 0 } }, { new: true });
+              }
+            }
+            console.log(`Subscription ${subscription.id} was restarted.`);
+          }
+        }
+      }
+    }
+    if (payload.type === "invoice.payment_failed") {
+      const invoice = payload.data.object;
+      const subscription = payload.data.object;
+      if (subscription.description == "Subscription update") {
+        let findSubscription = await Package.findOne({ price: subscription.total / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          console.log(customer)
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            if (user.paymentFailedMail == false) {
+              let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { paymentFailedMail: true } }, { new: true });
+            }
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1709------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      } else if (subscription.description == "Subscription creation") {
+        let findSubscription = await Package.findOne({ price: subscription.total / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          console.log(customer)
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            if (user.paymentFailedMail == false) {
+              let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { paymentFailedMail: true } }, { new: true });
+            }
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1709------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      } else if (subscription.subscription != (null || undefined)) {
+        let findSubscription = await Package.findOne({ price: subscription.total / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          console.log(customer)
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            if (user.paymentFailedMail == false) {
+              let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { paymentFailedMail: true } }, { new: true });
+            }
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1709------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      }
+    }
+    if (payload.type === "charge.failed") {
+      const invoice = payload.data.object;
+      const subscription = payload.data.object;
+      if (subscription.description == "Subscription update") {
+        let findSubscription = await Package.findOne({ price: subscription.amount / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          console.log(customer)
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            if (user.paymentFailedMail == false) {
+              let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { paymentFailedMail: true } }, { new: true });
+            }
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1709------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      } else if (subscription.description == "Subscription creation") {
+        let findSubscription = await Package.findOne({ price: subscription.amount / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          console.log(customer)
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            if (user.paymentFailedMail == false) {
+              let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { paymentFailedMail: true } }, { new: true });
+            }
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1709------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      } else if (subscription.subscription != (null || undefined)) {
+        let findSubscription = await Package.findOne({ price: subscription.amount / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          console.log(customer)
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            if (user.paymentFailedMail == false) {
+              let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { paymentFailedMail: true } }, { new: true });
+            }
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1709------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      }
+    }
+    if (payload.type === "checkout.session.async_payment_failed") {
+      const invoice = payload.data.object;
+      const subscription = payload.data.object;
+      let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
+      const customer = await stripe1.customers.retrieve(invoice.customer);
+      if (customer) {
+        console.log(customer)
+        const user = await User.findOne({ email: customer.email });
+        if (user) {
+          if (user.paymentFailedMail == false) {
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { paymentFailedMail: true } }, { new: true });
+          }
+          const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+          if (customerSubscriptions.data.length > 1) {
+            const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+              console.log("1709------------------", subscription)
+              const creationTime = subscription.created * 1000;
+              const currentTime = Date.now();
+              const timeDifference = currentTime - creationTime;
+              if (timeDifference > 2 * 60 * 1000) {
+                if (subscription.status === 'active' || subscription.status === 'trialing') {
+                  const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                  console.log(`Subscription ${subscription.id} was canceled.`);
+                  return cancellation;
+                }
+              }
+            });
+            await Promise.all(cancellationPromises);
+          }
+          let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+        }
+      }
+    }
+    if (payload.type === "invoice.payment_succeeded") {
+      const invoice = payload.data.object;
+      const subscription = payload.data.object;
+      if (subscription.subscription != (null || undefined)) {
+        let findSubscription = await Package.findOne({ price: subscription.amount_paid / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          console.log(customer)
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1709------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, creditPoint: parseFloat(user.creditPoint) + parseFloat(findSubscription.price), isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      } else if (subscription.billing_reason = "subscription_cycle") {
+        let findSubscription = await Package.findOne({ price: subscription.amount_paid / 100 });
+        const customer = await stripe1.customers.retrieve(invoice.customer);
+        if (customer) {
+          console.log(customer)
+          const user = await User.findOne({ email: customer.email });
+          if (user) {
+            const customerSubscriptions = await stripe1.subscriptions.list({ customer: customer.id, status: 'active', limit: 2, });
+            if (customerSubscriptions.data.length > 1) {
+              const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+                console.log("1709------------------", subscription)
+                const creationTime = subscription.created * 1000;
+                const currentTime = Date.now();
+                const timeDifference = currentTime - creationTime;
+                if (timeDifference > 2 * 60 * 1000) {
+                  if (subscription.status === 'active' || subscription.status === 'trialing') {
+                    const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                    console.log(`Subscription ${subscription.id} was canceled.`);
+                    return cancellation;
+                  }
+                }
+              });
+              await Promise.all(cancellationPromises);
+            }
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: findSubscription._id, creditPoint: parseFloat(user.creditPoint) + parseFloat(findSubscription.price), isPackage: true, emptyContainerListCount: 0 } }, { new: true });
+          }
+        }
+      }
+    }
+    return res.status(200).end();
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ status: 500, message: "Server error" + error.message });
+  }
+});
+const cancelPackageMemberShip = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.findOne({ _id: req.user._id }).populate('packageId');
+    if (!user) {
+      return res.status(404).send({ status: 404, message: "User not found." });
+    } else {
+      if (user.packageId) {
+        let packageId1 = user.packageId._id, packageExpiration = user.packageExpiration;
+        const customerEmail = user.email;
+        const stripeCustomer = await stripe1.customers.list({ email: customerEmail });
+        if (stripeCustomer.data.length === 0) {
+          let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+          if (updateUser) {
+            return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
+          }
+        } else {
+          const customerSubscriptions = await stripe1.subscriptions.list({ customer: stripeCustomer.data[0].id });
+          if (customerSubscriptions.data.length === 0) {
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+            if (updateUser) {
+              return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
+            }
+          } else {
+            console.log(customerSubscriptions.data)
+            const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+              if (subscription.status === 'active' || subscription.status === 'trialing') {
+                const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                return cancellation;
+              }
+              return null;
+            });
+            await Promise.all(cancellationPromises);
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+            if (updateUser) {
+              return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
+            }
+          }
+        }
+      } else {
+        const customerEmail = user.email;
+        const stripeCustomer = await stripe1.customers.list({ email: customerEmail });
+        if (stripeCustomer.data.length === 0) {
+          let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+          if (updateUser) {
+            return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
+          }
+        } else {
+          const customerSubscriptions = await stripe1.subscriptions.list({ customer: stripeCustomer.data[0].id });
+          if (customerSubscriptions.data.length === 0) {
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+            if (updateUser) {
+              return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
+            }
+          } else {
+            const cancellationPromises = customerSubscriptions.data.map(async subscription => {
+              if (subscription.status === 'active' || subscription.status === 'trialing') {
+                const cancellation = await stripe1.subscriptions.cancel(subscription.id);
+                return cancellation;
+              }
+            });
+            await Promise.all(cancellationPromises);
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+            if (updateUser) {
+              return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({ status: 500, message: "Server error" + error.message });
+  }
+});
+const reffralCode = async () => {
+  var digits = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let OTP = '';
+  for (let i = 0; i < 9; i++) {
+    OTP += digits[Math.floor(Math.random() * 36)];
+  }
+  return OTP;
+}
 module.exports = {
+  checkOutPackageById,
+  verifyPackageById,
+  cancelPackageMemberShip,
+  webhookPackage,
   createUser,
   getAllUsers,
   getUserById,

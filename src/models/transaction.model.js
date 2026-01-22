@@ -6,6 +6,9 @@ const transactionSchema = new mongoose.Schema({
     type: Number,
     unique: true
   },
+  id: {
+    type: String,
+  },
   user_id: {
     type: Number,
     ref: 'User',
@@ -15,6 +18,10 @@ const transactionSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Amount is required'],
     min: [0, 'Amount cannot be negative']
+  },
+  packageId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "package"
   },
   status: {
     type: String,
@@ -28,7 +35,7 @@ const transactionSchema = new mongoose.Schema({
   },
   transactionType: {
     type: String,
-    enum: ['Registration_fee', 'deposit',  'Venue payment', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking', 'CateringBooking', 'VendorBooking', 'Refund', 'Cancellation', 'EscrowPayment', 'EscrowCancellation', "vibePayment"],
+    enum: ['Registration_fee', "Package", 'deposit', 'Venue payment', 'withdraw', 'RechargeByAdmin', 'EventPayment', 'Package_Buy', 'Recharge', 'TicketBooking', 'StaffBooking', 'CateringBooking', 'VendorBooking', 'Refund', 'Cancellation', 'EscrowPayment', 'EscrowCancellation', "vibePayment"],
     required: [true, 'Transaction type is required']
   },
   escrow_transaction_id: {

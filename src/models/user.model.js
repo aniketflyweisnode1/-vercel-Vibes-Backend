@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-   // match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Please enter a valid email']
+    // match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 'Please enter a valid email']
   },
   password: {
     type: String,
@@ -211,7 +211,13 @@ const userSchema = new mongoose.Schema({
   updated_on: {
     type: Date,
     default: Date.now
-  }
+  },
+  packageId: { type: mongoose.Schema.Types.ObjectId, ref: "package" },
+  packageExpiration: { type: Date, },
+  isPackageExpired: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: false, // We're using custom timestamp fields
   versionKey: false
@@ -230,7 +236,7 @@ userSchema.methods.toJSON = function () {
 userSchema.methods.createStaff = async function (staffCategoryId, price, reviewCount = 0, createdBy) {
   try {
     const StaffWorkingPrice = require('./staff_working_price.model');
-    
+
     const staffData = {
       staff_id: this.user_id,
       staff_category_id: staffCategoryId,
@@ -251,7 +257,7 @@ userSchema.methods.createStaff = async function (staffCategoryId, price, reviewC
 userSchema.statics.createStaffForUser = async function (userId, staffCategoryId, price, reviewCount = 0, createdBy) {
   try {
     const StaffWorkingPrice = require('./staff_working_price.model');
-    
+
     // Verify user exists
     const user = await this.findOne({ user_id: userId });
     if (!user) {
@@ -279,19 +285,19 @@ userSchema.methods.getStaffInfo = async function () {
   try {
     const StaffWorkingPrice = require('./staff_working_price.model');
     const StaffCategory = require('./staff_category.model');
-    
-    const staffRecords = await StaffWorkingPrice.find({ 
-      staff_id: this.user_id, 
-      status: true 
+
+    const staffRecords = await StaffWorkingPrice.find({
+      staff_id: this.user_id,
+      status: true
     }).sort({ created_at: -1 });
 
     // Populate staff category information for each record
     const populatedStaffRecords = await Promise.all(
       staffRecords.map(async (staff) => {
-        const category = await StaffCategory.findOne({ 
-          staff_category_id: staff.staff_category_id 
+        const category = await StaffCategory.findOne({
+          staff_category_id: staff.staff_category_id
         });
-        
+
         return {
           ...staff.toObject(),
           staff_category_info: category ? {
@@ -313,12 +319,12 @@ userSchema.methods.getStaffInfo = async function () {
 userSchema.methods.isStaff = async function () {
   try {
     const StaffWorkingPrice = require('./staff_working_price.model');
-    
-    const staffCount = await StaffWorkingPrice.countDocuments({ 
-      staff_id: this.user_id, 
-      status: true 
+
+    const staffCount = await StaffWorkingPrice.countDocuments({
+      staff_id: this.user_id,
+      status: true
     });
-    
+
     return staffCount > 0;
   } catch (error) {
     throw new Error(`Failed to check staff status: ${error.message}`);
@@ -329,10 +335,10 @@ userSchema.methods.isStaff = async function () {
 userSchema.methods.getStaffStatistics = async function () {
   try {
     const StaffWorkingPrice = require('./staff_working_price.model');
-    
-    const staffRecords = await StaffWorkingPrice.find({ 
-      staff_id: this.user_id, 
-      status: true 
+
+    const staffRecords = await StaffWorkingPrice.find({
+      staff_id: this.user_id,
+      status: true
     });
 
     if (staffRecords.length === 0) {
@@ -347,7 +353,7 @@ userSchema.methods.getStaffStatistics = async function () {
 
     const prices = staffRecords.map(record => record.price);
     const totalReviews = staffRecords.reduce((sum, record) => sum + record.review_count, 0);
-    
+
     return {
       is_staff: true,
       total_categories: staffRecords.length,
