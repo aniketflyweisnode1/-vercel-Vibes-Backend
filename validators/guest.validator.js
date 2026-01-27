@@ -93,11 +93,11 @@ const querySchema = Joi.object({
     'number.integer': 'Event ID must be an integer',
     'number.min': 'Event ID must be greater than 0'
   }),
-  role_id: Joi.string().required().trim().min(1).max(255).messages({
-    'string.empty': 'Guest name is required',
-    'string.min': 'Guest name must be at least 1 character long',
-    'string.max': 'Guest name cannot exceed 255 characters',
-    'any.required': 'Guest name is required'
+  role_id: Joi.string().optional().trim().min(1).max(255).messages({
+    'string.empty': 'Role name is required',
+    'string.min': 'Role name must be at least 1 character long',
+    'string.max': 'Role name cannot exceed 255 characters',
+    'any.required': 'Role name is required'
   })
 });
 

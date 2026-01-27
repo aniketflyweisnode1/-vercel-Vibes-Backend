@@ -69,7 +69,7 @@ const getAllGuests = asyncHandler(async (req, res) => {
       filter.event_id = parseInt(event_id);
     }
     if (role_id) {
-      filter.role_id = parseInt(role_id);
+      filter.role_id = role_id;
     }
 
     // Get guests with pagination
@@ -139,7 +139,7 @@ const getGuestsByAuth = asyncHandler(async (req, res) => {
       filter.event_id = parseInt(event_id);
     }
     if (role_id) {
-      filter.role_id = parseInt(role_id);
+      filter.role_id = role_id;
     }
 
     // Get guests with pagination
@@ -186,7 +186,7 @@ const getGuestsByEventId = asyncHandler(async (req, res) => {
     }
 
     if (role_id) {
-      filter.role_id = parseInt(role_id);
+      filter.role_id = role_id;
     }
 
     // Get guests with pagination
