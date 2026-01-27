@@ -99,6 +99,11 @@ const vibeFundCampaignSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
+  savedUser: [{
+    type: Number,
+    ref: 'User',
+    default: null
+  }],
   updated_at: {
     type: Date,
     default: Date.now
