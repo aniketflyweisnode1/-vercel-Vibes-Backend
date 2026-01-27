@@ -14,7 +14,7 @@ const createGuestSchema = Joi.object({
     'string.max': 'Guest name cannot exceed 255 characters',
     'any.required': 'Guest name is required'
   }),
-  mobileno: Joi.string().required().trim().min(10).max(15).pattern(/^[+]?[\d\s\-\(\)]+$/).messages({
+  mobileno: Joi.string().required().trim().min(8).max(15).pattern(/^[+]?[\d\s\-\(\)]+$/).messages({
     'string.empty': 'Mobile number is required',
     'string.min': 'Mobile number must be at least 10 characters long',
     'string.max': 'Mobile number cannot exceed 15 characters',
@@ -58,7 +58,7 @@ const updateGuestSchema = Joi.object({
     'string.min': 'Guest name must be at least 1 character long',
     'string.max': 'Guest name cannot exceed 255 characters'
   }),
-  mobileno: Joi.string().trim().min(10).max(15).pattern(/^[+]?[\d\s\-\(\)]+$/).messages({
+  mobileno: Joi.string().trim().min(8).max(15).pattern(/^[+]?[\d\s\-\(\)]+$/).messages({
     'string.min': 'Mobile number must be at least 10 characters long',
     'string.max': 'Mobile number cannot exceed 15 characters',
     'string.pattern.base': 'Mobile number must contain only digits, spaces, hyphens, parentheses, and optional + sign'

@@ -1,4 +1,5 @@
 const Guest = require('../models/guest.model');
+const Event = require('../models/event.model');
 const { sendSuccess, sendError, sendNotFound, sendPaginated } = require('../../utils/response');
 const { asyncHandler } = require('../../middleware/errorHandler');
 const emailService = require('../../utils/emailService');
