@@ -35,7 +35,7 @@ const createGuest = asyncHandler(async (req, res) => {
           time: event.time,
           location: event.street_address
         };
-        await emailService.sendGuestInvitationEmail(guest.email,guest,emailEventData);
+        await emailService.sendGuestInvitationEmail(guest.email, guest, emailEventData);
       }
       sendSuccess(res, guest, 'Guest created successfully', 201);
     }

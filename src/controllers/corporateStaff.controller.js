@@ -288,17 +288,17 @@ const createStaff = asyncHandler(async (req, res) => {
       return sendError(res, 'User not found', 404);
     }
     const createUser = await User.create(userData);
-    console.log(createUser);
-    const staff = await StaffWorkingPrice.create({
-      staff_id: createUser.user_id,
-      staff_category_id: req.body.staff_category_id,
-      price: req.body.price,
-      review_count: req.body.review_count,
-      created_by: req.userId
-    });
-    const populatedStaff = await populateStaffData(staff);
+    // console.log(createUser);
+    // const staff = await StaffWorkingPrice.create({
+    //   staff_id: createUser.user_id,
+    //   staff_category_id: req.body.staff_category_id,
+    //   price: req.body.price,
+    //   review_count: req.body.review_count,
+    //   created_by: req.userId
+    // });
+    // const populatedStaff = await populateStaffData(staff);
 
-    sendSuccess(res, populatedStaff, 'Staff created successfully', 201);
+    sendSuccess(res, createUser, 'Staff created successfully', 201);
   } catch (error) {
     throw error;
   }

@@ -17,6 +17,9 @@ const userSchema = new mongoose.Schema({
     // trim: true,
     // match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number']
   },
+  departmentName: {
+    type: String,
+  },
   email: {
     type: String,
     required: [true, 'Email is required'],

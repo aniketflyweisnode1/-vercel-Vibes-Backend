@@ -6,9 +6,7 @@ const guestSchema = new mongoose.Schema({
     unique: true
   },
   role_id: {
-    type: Number,
-    ref: 'Role',
-    default: null
+    type: String,
   },
   name: {
     type: String,
