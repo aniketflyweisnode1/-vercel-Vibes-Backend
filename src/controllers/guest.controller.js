@@ -258,6 +258,57 @@ const deleteGuest = asyncHandler(async (req, res) => {
     throw error;
   }
 });
+const getGuestCountsByEventId = asyncHandler(async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    const result = await Guest.aggregate([
+      {
+        $match: {
+          event_id: parseInt(eventId),
+          status: true
+        }
+      },
+      {
+        $group: {
+          _id: "$role_id",     // 👈 role name directly
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalGuests: { $sum: "$count" },
+          roles: {
+            $push: {
+              name: "$_id",
+              count: "$count"
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalGuests: 1,
+          roles: 1
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Guest counts fetched successfully",
+      data: result[0] || { totalGuests: 0, roles: [] }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Failed to fetch guest counts",
+      error: error.message
+    });
+  }
+});
 
 module.exports = {
   createGuest,
@@ -266,5 +317,6 @@ module.exports = {
   getGuestsByAuth,
   getGuestsByEventId,
   updateGuest,
-  deleteGuest
+  deleteGuest,
+  getGuestCountsByEventId
 };

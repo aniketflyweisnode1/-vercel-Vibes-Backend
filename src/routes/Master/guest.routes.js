@@ -3,7 +3,7 @@ const router = express.Router();
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
 const { createGuestSchema, updateGuestSchema, querySchema, idSchema, eventIdSchema } = require('../../../validators/guest.validator');
-const { createGuest, getAllGuests, getGuestById, getGuestsByAuth, getGuestsByEventId, updateGuest, deleteGuest } = require('../../controllers/guest.controller');
+const { createGuest, getAllGuests, getGuestById, getGuestsByAuth, getGuestsByEventId, updateGuest, deleteGuest, getGuestCountsByEventId } = require('../../controllers/guest.controller');
 
 // Create guest (with auth)
 router.post('/create', auth, validateBody(createGuestSchema), createGuest);
@@ -26,4 +26,5 @@ router.put('/update', auth, validateBody(updateGuestSchema), updateGuest);
 // Delete guest (with auth)
 router.delete('/delete/:id', auth, deleteGuest);
 
+router.get('/getGuestCountsByEventId/:eventId', auth, getGuestCountsByEventId);
 module.exports = router;

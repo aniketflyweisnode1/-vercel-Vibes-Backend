@@ -1559,22 +1559,38 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
             stripeCustomerId = customer.id;
           }
           if (line_items.length > 0) {
-            const session = await stripe1.checkout.sessions.create({
-              payment_method_types: ["card"],
-              success_url: `https://dispax-wep-app.netlify.app/thankspackage/${data._id}`,
-              cancel_url: `https://dispax-wep-app.netlify.app/failed/${data._id}`,
-              customer: stripeCustomerId,
-              client_reference_id: (data1._id).toString(),
-              line_items: line_items,
-              mode: "payment",
-              payment_intent_data: {
-                setup_future_usage: 'off_session',
-              }
-            });
+                    const session = await stripe1.paymentIntents.create({
+                        amount: amount,
+                        currency: "usd",
+                        customer: stripeCustomerId,
+                        description: `Package Order #${data.id}`,
+                        metadata: {
+                            appointmentId: appointment._id.toString(),
+                            userId:  (data1._id).toString(),
+                            // professionalId: appointment.professionalId.toString()
+                        },
+                        setup_future_usage: "off_session",
+                    });
+            
+            
+            // const session = await stripe1.checkout.sessions.create({
+            //   payment_method_types: ["card"],
+            //   success_url: `https://dispax-wep-app.netlify.app/thankspackage/${data._id}`,
+            //   cancel_url: `https://dispax-wep-app.netlify.app/failed/${data._id}`,
+            //   customer: stripeCustomerId,
+            //   client_reference_id: (data1._id).toString(),
+            //   line_items: line_items,
+            //   mode: "payment",
+            //   payment_intent_data: {
+            //     setup_future_usage: 'off_session',
+            //   }
+            // });
             return res.status(200).json({ status: "success", session: session, });
           }
         }
       }
+
+
     } else {
       return res.status(404).json({ status: 404, message: "No data found", data: {} });
     }
