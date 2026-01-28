@@ -35,6 +35,7 @@ const corsOptions = {
     'https://vercel-vibes-frontend.vercel.app', // Add your production frontend URL
     'https://vercel-vibes.vercel.app',
     'https://vibes-webapp.vercel.app',
+    'https://vibe-test1.netlify.app',
     'https://vibes-admin-panel.netlify.app' // Add your production frontend URL if different
   ],
   credentials: true,
