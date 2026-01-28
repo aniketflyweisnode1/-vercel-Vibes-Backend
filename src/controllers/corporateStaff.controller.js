@@ -320,33 +320,6 @@ const getAllStaff = asyncHandler(async (req, res) => {
       filter.status = status === 'true';
     }
 
-    // If staff_category_id is provided, get staff_ids that have this category first
-    let staffIdsWithCategory = null;
-    if (staff_category_id) {
-      const categoryId = parseInt(staff_category_id);
-      const staffWorkingPrices = await StaffWorkingPrice.find({
-        staff_category_id: categoryId,
-        status: true
-      });
-      staffIdsWithCategory = staffWorkingPrices.map(swp => swp.staff_id);
-
-      // If no staff found with this category, return empty result
-      if (staffIdsWithCategory.length === 0) {
-        const paginationInfo = {
-          current_page: parseInt(page),
-          total_pages: 0,
-          total_items: 0,
-          items_per_page: parseInt(limit),
-          has_next_page: false,
-          has_prev_page: false
-        };
-        return sendPaginated(res, [], 'Staff retrieved successfully', paginationInfo);
-      }
-
-      // Filter by staff_ids that have the category
-      filter.user_id = { $in: staffIdsWithCategory };
-    }
-
     // Build sort object
     const sort = {};
     sort[sort_by] = sort_order === 'desc' ? -1 : 1;
@@ -364,70 +337,6 @@ const getAllStaff = asyncHandler(async (req, res) => {
       .limit(parseInt(limit))
       .select('-password');
 
-    // Populate staff data with working prices and categories
-    const populatedStaffList = await Promise.all(
-      staffUsers.map(async (user) => {
-        // Get staff working prices for this user
-        const staffWorkingPrices = await StaffWorkingPrice.find({
-          staff_id: user.user_id,
-          status: true
-        });
-
-        // Get staff categories for the working prices
-        const staffCategories = await Promise.all(
-          staffWorkingPrices.map(async (price) => {
-            const category = await StaffCategory.findOne({
-              staff_category_id: price.staff_category_id
-            });
-            return {
-              ...price.toObject(),
-              category_details: category
-            };
-          })
-        );
-
-        // Format response similar to populateStaffData
-        return {
-          staff_working_price_id: staffWorkingPrices[0]?.staff_working_price_id || null,
-          staff_id: user.user_id,
-          staff_category_id: staffWorkingPrices[0]?.staff_category_id || null,
-          price: staffWorkingPrices[0]?.price || null,
-          review_count: staffWorkingPrices[0]?.review_count || 0,
-          status: user.status,
-          created_by: user.created_by || null,
-          created_at: user.created_at || user.createdAt,
-          updated_by: user.updated_by || null,
-          updated_at: user.updated_at || user.updatedAt,
-          staff_info: {
-            user_id: user.user_id,
-            name: user.name,
-            email: user.email,
-            mobile: user.mobile,
-            user_img: user.user_img,
-            gender: user.gender,
-            address: user.address,
-            postal_code: user.postal_code,
-            online_status: user.online_status,
-            status: user.status,
-            country_id: user.country_id,
-            state_id: user.state_id,
-            city_id: user.city_id,
-            business_name: user.business_name,
-            business_category_id: user.business_category_id,
-            business_type_id: user.business_type_id,
-            business_description: user.business_description,
-            business_address: user.business_address,
-            business_website: user.business_website
-          },
-          staff_category: staffCategories[0]?.category_details || null,
-          working_prices: staffCategories,
-          created_by_info: user.created_by ? await User.findOne({ user_id: user.created_by }).select('user_id name email') : null,
-          updated_by_info: user.updated_by ? await User.findOne({ user_id: user.updated_by }).select('user_id name email') : null
-        };
-      })
-    );
-
-    // Calculate pagination info
     const totalPages = Math.ceil(total / parseInt(limit));
     const hasNextPage = parseInt(page) < totalPages;
     const hasPrevPage = parseInt(page) > 1;
@@ -441,7 +350,7 @@ const getAllStaff = asyncHandler(async (req, res) => {
       has_prev_page: hasPrevPage
     };
 
-    sendPaginated(res, populatedStaffList, 'Staff retrieved successfully', paginationInfo);
+    sendPaginated(res, staffUsers, 'Staff retrieved successfully', paginationInfo);
   } catch (error) {
     throw error;
   }
