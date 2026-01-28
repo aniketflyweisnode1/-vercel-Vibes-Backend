@@ -314,7 +314,7 @@ const getAllStaff = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, staff_category_id, status, sort_by = 'created_at', sort_order = 'desc' } = req.query;
 
     // Build filter object for User model (role_id = 4 for staff)
-    const filter = { role_id: 4, created_by: req.userId };
+    const filter = { role_id: 7, created_by: req.userId };
 
     if (status !== undefined) {
       filter.status = status === 'true';
