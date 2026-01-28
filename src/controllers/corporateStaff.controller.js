@@ -326,7 +326,6 @@ const getAllStaff = asyncHandler(async (req, res) => {
 
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-
     // Get total count of staff users
     const total = await User.countDocuments(filter);
 
