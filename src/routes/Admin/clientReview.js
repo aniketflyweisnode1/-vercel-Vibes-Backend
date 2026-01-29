@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const authJwt = require('../../controllers/ClientReview');
+const { auth } = require('../../../middleware/auth');
+router.post("/addclientReview", auth, authJwt.createClientReview);
+router.put("/put/:id", auth, authJwt.updateClientReview);
+router.get("/All", authJwt.getAllClientReviews);
+router.delete("/:id", auth, authJwt.removeClientReview);
+router.get("/get/:id", auth, authJwt.getClientReviewById);
+router.post("/createReviewByClient", auth, authJwt.createClientReviewByClient);
+router.get("/ForAdmin", authJwt.getAllClientReviewsForAdmin);
+module.exports = router;

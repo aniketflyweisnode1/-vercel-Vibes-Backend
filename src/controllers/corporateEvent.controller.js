@@ -507,7 +507,7 @@ const getAllStaffEvents = asyncHandler(async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized staff access' });
     }
     const { page = 1, limit = 10, search = '', staffStatus, Event_type, sortBy = 'created_at', sortOrder = 'desc' } = req.query;
-    const filter = {employees: { $elemMatch: { employee_id: staffId } }};
+    const filter = { employees: { $elemMatch: { employee_id: staffId } } };
     if (staffStatus) {
       filter.employees.$elemMatch.status = staffStatus;
     }
@@ -523,7 +523,7 @@ const getAllStaffEvents = asyncHandler(async (req, res) => {
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
     const skip = (page - 1) * limit;
-    const [events, total] = await Promise.all([Event.find(filter).sort(sort).skip(skip).limit(parseInt(limit)),Event.countDocuments(filter)]);
+    const [events, total] = await Promise.all([Event.find(filter).sort(sort).skip(skip).limit(parseInt(limit)), Event.countDocuments(filter)]);
     const staffEvents = events.map(event => {
       const eventObj = event.toObject();
       const staffEntry = eventObj.employees.find(e => e.employee_id === staffId);
@@ -539,7 +539,7 @@ const getAllStaffEvents = asyncHandler(async (req, res) => {
       hasNextPage: page < totalPages,
       hasPrevPage: page > 1
     };
-    return sendPaginated(res,staffEvents,pagination,'Staff events retrieved successfully');
+    return sendPaginated(res, staffEvents, pagination, 'Staff events retrieved successfully');
   } catch (error) {
     console.error(error);
     throw error;
@@ -574,7 +574,7 @@ const acceptStaffEvent = asyncHandler(async (req, res) => {
 
     // Update status
     event.employees[staffIndex].status = 'Accepted';
-
+    event.employees[staffIndex].respondedAt = new Date();
     // Recalculate counters
     event.totalStaff = event.employees.length;
     event.acceptStaff = event.employees.filter(e => e.status === 'Accepted').length;
@@ -622,7 +622,7 @@ const rejectStaffEvent = asyncHandler(async (req, res) => {
 
     // Update status
     event.employees[staffIndex].status = 'Rejected';
-
+    event.employees[staffIndex].respondedAt = new Date();
     // Recalculate counters
     event.totalStaff = event.employees.length;
     event.acceptStaff = event.employees.filter(e => e.status === 'Accepted').length;
@@ -1650,6 +1650,37 @@ const getEventsExcludingAuth = asyncHandler(async (req, res) => {
     throw error;
   }
 });
+const corporateDashboard = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.userId;
+    const totalEmployee = await User.countDocuments({ role_id: 7, created_by: userId });
+    const activeEvents = await Event.countDocuments({ created_by: userId, status: true });
+    const acceptedAgg = await Event.aggregate([{ $match: { created_by: userId } }, { $unwind: "$employees" }, { $match: { "employees.status": "Accepted" } }, { $count: "total" }]);
+    const pendingAgg = await Event.aggregate([{ $match: { created_by: userId } }, { $unwind: "$employees" }, { $match: { "employees.status": "Pending" } }, { $count: "total" }]);
+    let data = { totalEmployees: totalEmployee, activeEvents, acceptedInvitations: acceptedAgg[0]?.total || 0, pendingResponses: pendingAgg[0]?.total || 0 }
+    return sendSuccess(res, data, 'Corporate dashboard successfully', 200);
+  } catch (error) {
+    throw error;
+  }
+});
+const getEventInviteMemberById = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const eventInvites = await Event.aggregate([{ $match: { event_id: parseInt(id) } }, { $unwind: "$employees" }, { $lookup: { from: "users", localField: "employees.employee_id", foreignField: "user_id", as: "employee" } }, { $unwind: "$employee" },
+    {
+      $project: { _id: 0, name: "$employee.fullName", email: "$employee.email", department: "$employee.department", status: "$employees.status", respondedAt: { $cond: [{ $eq: ["$employees.status", "Pending"] }, null, "$updated_at"] } }
+    }
+    ]);
+    if (!eventInvites.length) {
+      return sendNotFound(res, "Event or invitations not found");
+    }
+    sendSuccess(res, eventInvites, "Event invitations retrieved successfully");
+  } catch (error) {
+    throw error;
+  }
+});
+
+
 
 module.exports = {
   createEvent,
@@ -1662,6 +1693,8 @@ module.exports = {
   eventPayment,
   getAllStaffEvents,
   rejectStaffEvent,
-  acceptStaffEvent
+  acceptStaffEvent,
+  corporateDashboard,
+  getEventInviteMemberById
 };
 

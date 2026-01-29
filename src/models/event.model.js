@@ -185,6 +185,10 @@ const eventSchema = new mongoose.Schema({
       type: String,
       enum: ['Pending', 'Accepted', 'Rejected'],
       default: 'Pending'
+    },
+    respondedAt: {
+      type: Date,
+      default: null
     }
   }],
   employeesRequested: [{

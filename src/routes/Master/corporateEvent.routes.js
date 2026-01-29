@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createEvent, getAllEvents, getEventById, updateEvent,deleteEvent,getEventsByAuth,getAllStaffEvents,acceptStaffEvent,rejectStaffEvent, getEventsExcludingAuth,eventPayment} = require('../../controllers/corporateEvent.controller'); 
+const { createEvent, getAllEvents, getEventInviteMemberById, getEventById, updateEvent,deleteEvent,getEventsByAuth,getAllStaffEvents,acceptStaffEvent,rejectStaffEvent,corporateDashboard, getEventsExcludingAuth,eventPayment} = require('../../controllers/corporateEvent.controller'); 
 const { auth } = require('../../../middleware/auth');
 const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
 const { createEventSchema, updateEventSchema, getEventByIdSchema, getAllEventsSchema } = require('../../../validators/event.validator');
@@ -15,4 +15,6 @@ router.get('/getById/:id', auth, validateParams(getEventByIdSchema), getEventByI
 router.put('/updateById', auth,  updateEvent);
 router.delete('/deleteById/:id', auth, validateParams(getEventByIdSchema), deleteEvent);
 router.post('/EventPayment', auth, eventPayment);
+router.get('/corporateDashboard', auth, corporateDashboard);
+router.get('/getEventInviteMemberById/:id', auth,  getEventInviteMemberById);
 module.exports = router;

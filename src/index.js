@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router();
-
-// Import route modules
 const userRoutes = require('./routes/User/user.routes.js');
 const walletRoutes = require('./routes/User/wallet.routes.js');
 const fileUploadRoutes = require('./routes/User/file_upload.routes.js');
@@ -13,9 +11,7 @@ const stateRoutes = require('./routes/Admin/state.routes.js');
 const cityRoutes = require('./routes/Admin/city.routes.js');
 const eventRoutes = require('./routes/User/event.routes.js');
 const corporateEventRoutes = require('./routes/Master/corporateEvent.routes.js');
-
 const packageRoutes = require('./routes/Admin/package.js');
-// Import Admin route modules
 const adminRoutes = require('./routes/Admin/admin.routes.js');
 const otpTypeRoutes = require('./routes/Admin/otp_type.routes.js');
 const otpRoutes = require('./routes/Admin/otp.routes.js');
@@ -34,8 +30,6 @@ const notificationRoutes = require('./routes/Admin/notification.routes.js');
 const couponCodeRoutes = require('./routes/Admin/coupon_code.routes.js');
 const compaignTypeRoutes = require('./routes/Admin/compaign_type.routes.js');
 const categoriesFeesRoutes = require('./routes/Admin/categories_fees.routes.js');
-
-// Import Master route modules
 const transactionRoutes = require('./routes/Master/transaction.routes.js');
 const messagesRoutes = require('./routes/Master/messages.routes.js');
 const ticketTypeRoutes = require('./routes/Master/ticket_type.routes.js');
@@ -96,8 +90,6 @@ const vendorPayoutRoutes = require('./routes/Master/vendor_payout.routes.js');
 const emailTemplateRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/email_template.routes.js');
 const metamaskRoutes = require('./routes/Integration/metamask.routes.js');
 const escrowRoutes = require('./routes/Integration/escrow.routes.js');
-
-// Import Vendor route modules
 const vendorBusinessInformationRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/vendor_business_information.routes.js');
 const crmVendorOutreachDashboardRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/crm_vendor_outreach_Dashboard.routes.js');
 const leadDiscoveredRoutes = require('./routes/Vendor/crm_vendor_outreach_Dashboard/lead_discovered.routes.js');
@@ -112,15 +104,10 @@ const corporateDashboardRoutes = require('./routes/Vendor/corporate_Dashboard.ro
 const premiumDashboardRoutes = require('./routes/Vendor/premium_Dashboard.routes.js');
 const vendorBookingRoutes = require('./routes/Vendor/vendor_booking.routes.js');
 const vendorBookingCancellationRoutes = require('./routes/Vendor/vendor_booking_cancellation.routes.js');
-
-// Import middleware
+const clientReviewRoutes = require('./routes/Admin/clientReview');
+const uploadEmployeeRoutes = require('./routes/Master/uploadEmployee');
 const { sendSuccess } = require('../utils/response.js');
 
-/**
- * @route   GET /api
- * @desc    API health check
- * @access  Public
- */
 router.get('/', (req, res) => {
   sendSuccess(res, {
     message: 'Welcome to Node.js API',
@@ -157,8 +144,10 @@ router.use('/cities', cityRoutes);
 router.use('/events', eventRoutes);
 router.use('/corporateEvents', corporateEventRoutes);
 
+router.use('/uploadEmployee', uploadEmployeeRoutes);
 // Mount Admin route modules
 router.use('/admin', adminRoutes);
+router.use('/clientReviews', clientReviewRoutes);
 router.use('/admin/otp-types', otpTypeRoutes);
 router.use('/admin/otps', otpRoutes);
 router.use('/admin/vendor-service-types', vendorServiceTypeRoutes);
