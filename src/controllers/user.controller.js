@@ -439,14 +439,10 @@ const deleteUser = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return sendError(res, 'User not found with this email address', 404);
     }
-
-    // Check if user is active
     if (!user.status) {
       return sendError(res, 'Account is deactivated', 401);
     }
@@ -454,23 +450,8 @@ const login = asyncHandler(async (req, res) => {
     if (user.password != password) {
       return sendError(res, 'Password does not match.', 403);
     }
-    // Generate new OTP
     const otpCode = generateOTP();
-
-    // Deactivate any existing OTPs for this email and login type
-    await OTP.updateMany(
-      {
-        email: email.toLowerCase(),
-        otp_type: 1, // Login OTP type
-        status: true
-      },
-      {
-        status: false,
-        updated_at: new Date()
-      }
-    );
-
-    // Create new OTP
+    await OTP.updateMany({ email: email.toLowerCase(), otp_type: 1, status: true }, { status: false, updated_at: new Date() });
     const otpData = {
       otp: otpCode,
       email: email.toLowerCase(),
@@ -479,23 +460,9 @@ const login = asyncHandler(async (req, res) => {
       expires_at: new Date(Date.now() + 2 * 60 * 1000), // 10 minutes
       created_by: null // No user created this OTP
     };
-
     const otp = await OTP.create(otpData);
-
-    // Send OTP via email with HTML template
-    // const emailSent = await emailService.sendOTPEmail(email, otpCode, user.name || 'User');
-    // if (!emailSent) {
-    // If email fails, deactivate the OTP
-    // await OTP.findOneAndUpdate({ otp_id: otp.otp_id });
-    //   return sendError(res, 'Failed to send OTP email. Please try again.', 500);
-    // }
-    await emailService.sendOTPEmail(email, otpCode, user.name || 'User');
-    sendSuccess(res, {
-      message: 'OTP sent successfully to your email address. Please verify to complete login.',
-      expiresIn: '10 minutes',
-      nextStep: 'verify-otp',
-      otp: otpCode,
-    }, 'OTP sent successfully');
+    let x = emailService.sendOTPEmail(email, otpCode, user.name || 'User');
+    sendSuccess(res, { message: 'OTP sent successfully to your email address. Please verify to complete login.', expiresIn: '2 minutes', nextStep: 'verify-otp', otp: otpCode, }, 'OTP sent successfully');
   } catch (error) {
 
     throw error;
@@ -1559,20 +1526,20 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
             stripeCustomerId = customer.id;
           }
           if (line_items.length > 0) {
-                    const session = await stripe1.paymentIntents.create({
-                        amount: amount,
-                        currency: "usd",
-                        customer: stripeCustomerId,
-                        description: `Package Order #${data.id}`,
-                        metadata: {
-                            appointmentId: appointment._id.toString(),
-                            userId:  (data1._id).toString(),
-                            // professionalId: appointment.professionalId.toString()
-                        },
-                        setup_future_usage: "off_session",
-                    });
-            
-            
+            const session = await stripe1.paymentIntents.create({
+              amount: amount,
+              currency: "usd",
+              customer: stripeCustomerId,
+              description: `Package Order #${data.id}`,
+              metadata: {
+                appointmentId: appointment._id.toString(),
+                userId: (data1._id).toString(),
+                // professionalId: appointment.professionalId.toString()
+              },
+              setup_future_usage: "off_session",
+            });
+
+
             // const session = await stripe1.checkout.sessions.create({
             //   payment_method_types: ["card"],
             //   success_url: `https://dispax-wep-app.netlify.app/thankspackage/${data._id}`,
