@@ -1574,7 +1574,7 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
 });
 const verifyPackageById = asyncHandler(async (req, res) => {
   try {
-    let findTransaction = await Transaction.findOne({ payment_intent_id: req.params.transactionId, type: "Package", Status: "pending" });
+    let findTransaction = await Transaction.findOne({ payment_intent_id: req.params.transactionId, transactionType: "Package", status: "pending" });
     if (findTransaction) {
       const user = await User.findOne({ user_id: findTransaction.user_id });
       if (!user) {
