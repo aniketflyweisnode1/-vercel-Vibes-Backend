@@ -27,8 +27,11 @@ exports.importEmployeeFromExcel = async (req, res) => {
                                         created_by: req.userId || null
                                 };
                                 console.log("===============================", appointmentObj)
-                                const createUser = await User.create(appointmentObj);
-                                created++;
+                                let findUser = await User.findOne(appointmentObj);
+                                if (!findUser) {
+                                        const createUser = await User.create(appointmentObj);
+                                        created++;
+                                }
                         } catch (err) {
                                 console.log("Row error:", err);
                                 skipped++;
