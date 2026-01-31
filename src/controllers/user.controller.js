@@ -1541,8 +1541,9 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
               setup_future_usage: "off_session",
             });
             if (session) {
-              let update = await Transaction.findByIdAndUpdate({ _id: data._id }, { paymentIntentId: session.id }, { new: true });
+              let update = await Transaction.findByIdAndUpdate({ _id: data._id }, { $set: { payment_intent_id: session.id } }, { new: true });
               if (update) {
+                console.log("update", update);
                 // const session = await stripe1.checkout.sessions.create({
                 //   payment_method_types: ["card"],
                 //   success_url: `https://dispax-wep-app.netlify.app/thankspackage/${data._id}`,
@@ -1573,7 +1574,7 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
 });
 const verifyPackageById = asyncHandler(async (req, res) => {
   try {
-    let findTransaction = await Transaction.findOne({ paymentIntentId: req.params.transactionId, type: "Package", Status: "pending" });
+    let findTransaction = await Transaction.findOne({ payment_intent_id: req.params.transactionId, type: "Package", Status: "pending" });
     if (findTransaction) {
       const user = await User.findOne({ user_id: findTransaction.user_id });
       if (!user) {
