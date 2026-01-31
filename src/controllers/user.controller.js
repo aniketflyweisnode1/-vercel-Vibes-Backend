@@ -476,7 +476,7 @@ const login = asyncHandler(async (req, res) => {
  */
 const getProfile = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id).populate('packageId').select('-password');
     if (!user) {
       return sendNotFound(res, 'User not found');
     }
