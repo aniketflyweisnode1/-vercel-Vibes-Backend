@@ -436,21 +436,18 @@ const updateStaff = asyncHandler(async (req, res) => {
       updated_at: new Date()
     };
 
-    const staff = await StaffWorkingPrice.findOneAndUpdate(
-      { staff_working_price_id: parseInt(staff_working_price_id) },
+    const staff = await User.findOneAndUpdate(
+      { user_id: parseInt(staff_working_price_id) },
       updateData,
       {
         new: true,
         runValidators: true
       }
     );
-
     if (!staff) {
       return sendNotFound(res, 'Staff not found');
     }
-
-    const populatedStaff = await populateStaffData(staff);
-    sendSuccess(res, populatedStaff, 'Staff updated successfully');
+    sendSuccess(res, staff, 'Staff updated successfully');
   } catch (error) {
     throw error;
   }
