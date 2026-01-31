@@ -1496,14 +1496,16 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
         let amount = shipment.price;
         let id = await reffralCode();
         let obj = {
-          user: data1.user_id,
+          user_id: data1.user_id,
+          created_by: data1.user_id,
           packageId: shipment._id,
           id: id,
           transaction_date: Date.now(),
           amount: shipment.price,
           status: "pending",
-          type: "Package"
+          transactionType: "Package"
         }
+        console.log("-------------obj----------", obj)
         const data = await Transaction.create(obj);
         if (data) {
           let line_items = [];
@@ -1532,7 +1534,7 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
               customer: stripeCustomerId,
               description: `Package Order #${data.id}`,
               metadata: {
-                appointmentId: appointment._id.toString(),
+                transactionId: data._id.toString(),
                 userId: (data1._id).toString(),
                 // professionalId: appointment.professionalId.toString()
               },
@@ -1570,7 +1572,7 @@ const verifyPackageById = asyncHandler(async (req, res) => {
   try {
     let findTransaction = await Transaction.findById({ _id: req.params.transactionId, type: "Package", Status: "pending" });
     if (findTransaction) {
-      const user = await User.findOne({ _id: findTransaction.user });
+      const user = await User.findOne({ user_id: findTransaction.user_id });
       if (!user) {
         return res.status(404).send({ status: 404, message: "User not found." });
       } else {
@@ -1590,7 +1592,7 @@ const verifyPackageById = asyncHandler(async (req, res) => {
             const now = new Date();
             let packageExpiration = new Date(now);
             packageExpiration.setTime(packageExpiration.getTime() + xy);
-            let update1 = await User.findByIdAndUpdate({ _id: findTransaction.user }, { $set: { packageId: shipment._id, isPackageExpired: true, packageExpiration: packageExpiration, } }, { new: true });
+            let update1 = await User.findByIdAndUpdate({ _id: user._id }, { $set: { packageId: shipment._id, isPackageExpired: true, packageExpiration: packageExpiration, } }, { new: true });
             return res.status(200).send({ status: 200, message: 'subscription subscribe successfully.', data: update })
           }
         }

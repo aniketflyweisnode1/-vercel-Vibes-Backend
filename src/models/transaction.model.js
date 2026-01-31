@@ -31,7 +31,6 @@ const transactionSchema = new mongoose.Schema({
   payment_method_id: {
     type: Number,
     ref: 'PaymentMethods',
-    required: [true, 'Payment method ID is required']
   },
   transactionType: {
     type: String,
