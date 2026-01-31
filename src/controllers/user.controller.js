@@ -477,8 +477,8 @@ const login = asyncHandler(async (req, res) => {
  */
 const getProfile = asyncHandler(async (req, res) => {
   try {
-    const userId = req.user._id; // ✅ use single source of truth
-    const user = await User.findById(userId).populate('packageId').select('-password');
+    const userId = req.user.user_id; // ✅ use single source of truth
+    const user = await User.findById(req.user._id).populate('packageId').select('-password');
     if (!user) {
       return sendNotFound(res, 'User not found');
     }
@@ -492,7 +492,6 @@ const getProfile = asyncHandler(async (req, res) => {
     throw error;
   }
 });
-
 const getStaffWorkingPrice = asyncHandler(async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
