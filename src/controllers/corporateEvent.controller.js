@@ -54,7 +54,7 @@ const createEvent = asyncHandler(async (req, res) => {
 
     /* -------------------- Fetch Staff -------------------- */
     const staffUsers = await User.find({
-      role_id: 4,
+      role_id: 7,
       created_by: req.userId
     }).select('user_id name email');
     let staffIds = staffUsers.map(staff => staff.user_id);
