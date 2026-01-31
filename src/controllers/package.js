@@ -4,32 +4,94 @@ const User = require("../models/user.model");
 const stripe1 = require('stripe')('sk_test_51QkIm6IG3GnT9n5tlvKodmyGrRhlTmre4QtC1QXJxYAVj1hsVPAEwIGyi8nXZ3Fbc2HGyTwhEeJ79cq8mX0SUUaU00lr2JkZbF');
 exports.createPackage = async (req, res) => {
     try {
-        const { name, nameDescription, price, isFree, description, duration, totalEvents, totalEmployee } = req.body;
-        const policies = await Package.findOne({ name: name, duration: duration });
-        if (policies) {
-            return res.status(409).json({ status: 409, message: "Package already exists", data: policies });
-        } else {
-            const normalizedDuration = duration === "Annual" ? "Annual" : "Month";
-            const newPackage = new Package({ name, price, nameDescription, totalEvents, totalEmployee, isFree, description, duration: normalizedDuration });
-            await newPackage.save();
-            if (isFree == true) {
-                return res.status(200).json({ status: 200, message: "Package entry created successfully", data: newPackage });
-            } else {
-                let stripeProduct;
-                try {
-                    stripeProduct = await stripe1.products.create({ name: `${name}`, description: req.body.description || 'No description provided', });
-                    console.log("Stripe product created:", stripeProduct);
-                    const stripePrice = await stripe1.prices.create({ unit_amount: req.body.price * 100, currency: 'usd', recurring: { interval: normalizedDuration }, product: stripeProduct.id, });
-                    console.log("Stripe price created:", stripePrice);
-                } catch (stripeError) {
-                    await Package.findByIdAndDelete(newPackage._id);
-                    return res.status(500).send({ status: 500, message: "Error creating product on Stripe.", data: {} });
-                }
-                return res.status(200).json({ status: 200, message: "Package entry created successfully", data: newPackage });
-            }
+        const {
+            name,
+            nameDescription,
+            price,
+            isFree,
+            description,
+            duration,
+            totalEvents,
+            totalEmployee
+        } = req.body;
+
+        const existing = await Package.findOne({ name, duration });
+        if (existing) {
+            return res.status(409).json({
+                status: 409,
+                message: "Package already exists",
+                data: existing
+            });
         }
+
+        const normalizedDuration = duration === "Annual" ? "Annual" : "Month";
+
+        const newPackage = new Package({
+            name,
+            price,
+            nameDescription,
+            totalEvents,
+            totalEmployee,
+            isFree,
+            description,
+            duration: normalizedDuration
+        });
+
+        await newPackage.save();
+
+        // ✅ If free package → no Stripe
+        if (isFree === true) {
+            return res.status(200).json({
+                status: 200,
+                message: "Package entry created successfully",
+                data: newPackage
+            });
+        }
+
+        try {
+            // ✅ Stripe interval mapping
+            const stripeInterval = duration === "Annual" ? "year" : "month";
+
+            const stripeProduct = await stripe1.products.create({
+                name,
+                description: description || "No description provided"
+            });
+
+            const stripePrice = await stripe1.prices.create({
+                unit_amount: Math.round(price * 100), // cents
+                currency: "usd",
+                recurring: { interval: stripeInterval },
+                product: stripeProduct.id
+            });
+
+            console.log("Stripe product:", stripeProduct.id);
+            console.log("Stripe price:", stripePrice.id);
+
+        } catch (stripeError) {
+            console.error("Stripe Error:", stripeError.message);
+
+            // rollback DB
+            await Package.findByIdAndDelete(newPackage._id);
+
+            return res.status(500).json({
+                status: 500,
+                message: "Error creating product on Stripe",
+                error: stripeError.message
+            });
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: "Package entry created successfully",
+            data: newPackage
+        });
+
     } catch (error) {
-        return res.status(500).json({ status: 500, message: "Error creating Package entry", error: error.message });
+        return res.status(500).json({
+            status: 500,
+            message: "Error creating Package entry",
+            error: error.message
+        });
     }
 };
 exports.getAllPackage = async (req, res) => {
@@ -91,8 +153,9 @@ exports.updatePackage = async (req, res) => {
             for (const product of stripeProducts.data) {
                 let name12 = `${name1}`
                 if (product.name === name12) {
+                    const stripeInterval = duration === "Annual" ? "year" : "month";
                     const productId = product.id;
-                    newPrice = await stripe1.prices.create({ unit_amount: price * 100, currency: 'usd', recurring: { interval: normalizedDuration }, product: productId });
+                    newPrice = await stripe1.prices.create({ unit_amount: price * 100, currency: 'usd', recurring: { interval: stripeInterval }, product: productId });
                     await stripe1.products.update(productId, { default_price: newPrice.id });
                     const stripePrices = await stripe1.prices.list({ product: productId });
                     for (const stripePrice of stripePrices.data) {
