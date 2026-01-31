@@ -1540,21 +1540,24 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
               },
               setup_future_usage: "off_session",
             });
-
-
-            // const session = await stripe1.checkout.sessions.create({
-            //   payment_method_types: ["card"],
-            //   success_url: `https://dispax-wep-app.netlify.app/thankspackage/${data._id}`,
-            //   cancel_url: `https://dispax-wep-app.netlify.app/failed/${data._id}`,
-            //   customer: stripeCustomerId,
-            //   client_reference_id: (data1._id).toString(),
-            //   line_items: line_items,
-            //   mode: "payment",
-            //   payment_intent_data: {
-            //     setup_future_usage: 'off_session',
-            //   }
-            // });
-            return res.status(200).json({ status: "success", session: session, });
+            if (session) {
+              let update = await Transaction.findByIdAndUpdate({ _id: data._id }, { paymentIntentId: session.id }, { new: true });
+              if (update) {
+                // const session = await stripe1.checkout.sessions.create({
+                //   payment_method_types: ["card"],
+                //   success_url: `https://dispax-wep-app.netlify.app/thankspackage/${data._id}`,
+                //   cancel_url: `https://dispax-wep-app.netlify.app/failed/${data._id}`,
+                //   customer: stripeCustomerId,
+                //   client_reference_id: (data1._id).toString(),
+                //   line_items: line_items,
+                //   mode: "payment",
+                //   payment_intent_data: {
+                //     setup_future_usage: 'off_session',
+                //   }
+                // });
+                return res.status(200).json({ status: "success", session: session, });
+              }
+            }
           }
         }
       }
@@ -1570,7 +1573,7 @@ const checkOutPackageById = asyncHandler(async (req, res) => {
 });
 const verifyPackageById = asyncHandler(async (req, res) => {
   try {
-    let findTransaction = await Transaction.findById({ _id: req.params.transactionId, type: "Package", Status: "pending" });
+    let findTransaction = await Transaction.findOne({ paymentIntentId: req.params.transactionId, type: "Package", Status: "pending" });
     if (findTransaction) {
       const user = await User.findOne({ user_id: findTransaction.user_id });
       if (!user) {

@@ -104,6 +104,10 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  payment_intent_id: {
+    type: String,
+    default: null
+  },
   bank_id: {
     type: Number,
     ref: 'BankName'
