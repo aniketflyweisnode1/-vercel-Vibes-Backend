@@ -63,7 +63,7 @@ const createEvent = asyncHandler(async (req, res) => {
     }
     eventData.employees = staffUsers.map(staff => ({
       employee_id: staff.user_id,
-      status: 'PENDING'
+      status: 'Pending'
     }));
     eventData.pendingStaff = staffUsers.length;
     eventData.totalStaff = staffUsers.length;
