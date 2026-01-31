@@ -97,8 +97,8 @@ exports.createPackage = async (req, res) => {
 exports.getAllPackage = async (req, res) => {
     try {
         let query = {};
-        if (req.query.type) {
-            query.type = req.query.type;
+        if (req.query.duration) {
+            query.duration = req.query.duration;
         }
         const policies = await Package.find(query).sort({ price: 1 });
         if (policies.length > 0) {
