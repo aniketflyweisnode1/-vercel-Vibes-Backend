@@ -20,6 +20,14 @@ const staticContent = mongoose.Schema({
     description: {
         type: String,
     },
+    totalEmployee: {
+        type: Number,
+        default: 0
+    },
+    totalEvents: {
+        type: Number,
+        default: 0
+    },
     duration: {
         type: String,
         enum: ["Month", "Annual"],

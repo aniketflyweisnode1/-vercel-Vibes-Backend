@@ -4,13 +4,13 @@ const User = require("../models/user.model");
 const stripe1 = require('stripe')('sk_test_51QkIm6IG3GnT9n5tlvKodmyGrRhlTmre4QtC1QXJxYAVj1hsVPAEwIGyi8nXZ3Fbc2HGyTwhEeJ79cq8mX0SUUaU00lr2JkZbF');
 exports.createPackage = async (req, res) => {
     try {
-        const { name, nameDescription, price, isFree, description, duration } = req.body;
+        const { name, nameDescription, price, isFree, description, duration, totalEvents, totalEmployee } = req.body;
         const policies = await Package.findOne({ name: name, duration: duration });
         if (policies) {
             return res.status(409).json({ status: 409, message: "Package already exists", data: policies });
         } else {
             const normalizedDuration = duration === "Annual" ? "Annual" : "Month";
-            const newPackage = new Package({ name, price, nameDescription, truck, isFree, description, duration: normalizedDuration });
+            const newPackage = new Package({ name, price, nameDescription, totalEvents, totalEmployee, isFree, description, duration: normalizedDuration });
             await newPackage.save();
             if (isFree == true) {
                 return res.status(200).json({ status: 200, message: "Package entry created successfully", data: newPackage });
@@ -50,7 +50,7 @@ exports.getAllPackage = async (req, res) => {
 };
 exports.updatePackage = async (req, res) => {
     try {
-        const { name, price, nameDescription, isFree, description, truck, duration } = req.body;
+        const { name, price, nameDescription, isFree, description, totalEvents, totalEmployee, duration } = req.body;
         const policies = await Package.findById(req.params.id);
         if (!policies) {
             return res.status(404).json({ status: 404, message: "Package entry not found" });
@@ -77,7 +77,8 @@ exports.updatePackage = async (req, res) => {
         policies.nameDescription = nameDescription ?? policies.nameDescription;
         policies.description = description ?? policies.description;
         policies.isFree = isFree ?? policies.isFree;
-        policies.truck = truck ?? policies.truck;
+        policies.totalEmployee = totalEmployee ?? policies.totalEmployee;
+        policies.totalEvents = totalEvents ?? policies.totalEvents;
         await policies.save();
         if (policies.price === price) {
             const updatedSubscription = await policies.save();
