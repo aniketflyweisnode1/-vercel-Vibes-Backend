@@ -1,6 +1,7 @@
 const User = require('../models/user.model');
 const Package = require("../models/package");
 const OTP = require('../models/otp.model');
+const Event = require('../models/event.model');
 const Transaction = require('../models/transaction.model');
 const StaffWorkingPrice = require('../models/staff_working_price.model');
 const StaffCategory = require('../models/staff_category.model');
@@ -476,15 +477,22 @@ const login = asyncHandler(async (req, res) => {
  */
 const getProfile = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('packageId').select('-password');
+    const userId = req.user._id; // ✅ use single source of truth
+    const user = await User.findById(userId).populate('packageId').select('-password');
     if (!user) {
       return sendNotFound(res, 'User not found');
     }
+    const filter = { created_by: userId };
+    const filterEmployee = { role_id: 7, created_by: userId };
+    const [totalEmployee, totalEvents] = await Promise.all([User.countDocuments(filterEmployee), Event.countDocuments(filter)]);
+    user._doc.totalEmployee = totalEmployee;
+    user._doc.totalEvents = totalEvents;
     sendSuccess(res, user, 'Profile retrieved successfully');
   } catch (error) {
     throw error;
   }
 });
+
 const getStaffWorkingPrice = asyncHandler(async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
