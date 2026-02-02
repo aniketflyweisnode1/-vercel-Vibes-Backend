@@ -12,11 +12,12 @@ const createVibeFundingCampaign = asyncHandler(async (req, res) => {
       ...req.body,
       created_by: req.userId || 1
     };
+    console.log(fundingData);
     const funding = await VibeFundingCampaign.create(fundingData);
     const fundbyUser = await User.findOne({ user_id: funding.fundby_user_id }).select('user_id name email mobile user_img');
-    const campaign = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: funding.vibe_fund_campaign_id }).select('vibe_fund_campaign_id title funding_goal');
+    const campaign = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: funding.vibe_fund_campaign_id }).select('vibe_fund_campaign_id title funding_goal fund_amount');
     if (campaign) {
-      await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, { $set: { fund_amount: campaign.fund_amount + funding.fund_amount, fund_still_Needed: campaign.funding_goal - (campaign.fund_amount + funding.fund_amount) } }, { new: true });
+      const campaign1 = await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, {$set: {fund_amount: campaign.fund_amount + funding.fund_amount,fund_still_Needed: campaign.funding_goal - (campaign.fund_amount + funding.fund_amount)}}, { new: true });
     }
     const fundingWithDetails = funding.toObject();
     fundingWithDetails.fundby_user = fundbyUser;
