@@ -207,15 +207,15 @@ const vibePayment = asyncHandler(async (req, res) => {
     }
     let vibeHostId = null, ownerId = null, fund_amount = 0;
     if (vibe_funding_campaign_id) {
-      const vibe = await VibeFundingCampaign.findOne({ vibe_funding_campaign_id: parseInt(vibe_funding_campaign_id) });
+      const vibe = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: parseInt(vibe_funding_campaign_id) });
       if (vibe) {
-        const vibe34 = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: vibe.vibe_fund_campaign_id });
+        const vibe34 = await VibeFundingCampaign.findOne({ vibe_fund_campaign_id: vibe.vibe_fund_campaign_id });
         if (vibe34) {
           ownerId = vibe34.created_by;
+          fund_amount = vibe ? vibe.fund_amount : 0;
+          vibeHostId = vibe ? vibe.created_by : null;
         }
       }
-      fund_amount= vibe ? vibe.fund_amount : 0;
-      vibeHostId = vibe ? vibe.created_by : null;
     }
     const normalizedAmount = Number(amount);
     if (Number.isNaN(normalizedAmount)) {
@@ -229,7 +229,7 @@ const vibePayment = asyncHandler(async (req, res) => {
     const platformFeeAmount = baseAmount * PLATFORM_FEE_PERCENTAGE;
     const totalAmount = baseAmount + platformFeeAmount; // Customer pays: base + 7% platform fee
     const vibeHostAmount = baseAmount; // vibe host receives base amount only
-    const user = await User.findOne({ user_id: req.userId }).select('email name');
+    const user = await User.findOne({ user_id: ownerId }).select('email name');
     if (!user || !user.email) {
       return sendError(res, 'User email not found for Stripe receipt', 400);
     }
@@ -242,7 +242,7 @@ const vibePayment = asyncHandler(async (req, res) => {
         currency: 'usd',
         customerEmail: user.email,
         metadata: {
-          user_id: req.userId,
+          user_id: ownerId,
           vibe_funding_campaign_id: vibe_funding_campaign_id || '',
           payment_type: 'vibe_payment',
           description

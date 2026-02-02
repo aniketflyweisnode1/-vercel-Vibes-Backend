@@ -117,3 +117,4 @@ vibeFundCampaignSchema.plugin(AutoIncrement, { inc_field: 'vibe_fund_campaign_id
 
 module.exports = mongoose.model('VibeFundCampaign', vibeFundCampaignSchema);
 
+
