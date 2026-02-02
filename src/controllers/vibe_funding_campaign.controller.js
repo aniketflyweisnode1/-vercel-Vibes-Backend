@@ -201,7 +201,7 @@ const deleteVibeFundingCampaign = asyncHandler(async (req, res) => {
 });
 const vibePayment = asyncHandler(async (req, res) => {
   try {
-    const { payment_method_id, billingDetails, description = 'vibe payment', vibe_funding_campaign_id } = req.body;
+    const { payment_method_id, billingDetails, description = 'vibe payment', vibe_funding_campaign_id, amount } = req.body;
     if (!payment_method_id) {
       return sendError(res, 'payment_method_id is required', 400);
     }
@@ -217,7 +217,7 @@ const vibePayment = asyncHandler(async (req, res) => {
       fund_amount= vibe ? vibe.fund_amount : 0;
       vibeHostId = vibe ? vibe.created_by : null;
     }
-    const normalizedAmount = Number(fund_amount);
+    const normalizedAmount = Number(amount);
     if (Number.isNaN(normalizedAmount)) {
       return sendError(res, 'Invalid amount. It must be a numeric value.', 400);
     }
