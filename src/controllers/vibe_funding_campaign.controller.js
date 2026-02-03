@@ -150,15 +150,26 @@ const updateVibeFundingCampaign = asyncHandler(async (req, res) => {
     }
     const fundbyUser = await User.findOne({ user_id: funding.fundby_user_id }).select('user_id name email mobile user_img');
     const campaign = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: funding.vibe_fund_campaign_id }).select('vibe_fund_campaign_id title funding_goal fund_amount');
+    console.log(campaign, "funding.status=======", funding.status == true)
     if (funding.status == true) {
       if (campaign) {
         const campaign1 = await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, { $set: { fund_amount: campaign.fund_amount + funding.fund_amount, fund_still_Needed: campaign.funding_goal - (campaign.fund_amount + funding.fund_amount) } }, { new: true });
+        const fundingWithDetails = funding.toObject();
+        fundingWithDetails.fundby_user = fundbyUser;
+        fundingWithDetails.campaign = campaign1;
+        sendSuccess(res, fundingWithDetails, 'Funding contribution updated successfully');
+      } else {
+        const fundingWithDetails = funding.toObject();
+        fundingWithDetails.fundby_user = fundbyUser;
+        fundingWithDetails.campaign = campaign;
+        sendSuccess(res, fundingWithDetails, 'Funding contribution updated successfully');
       }
+    } else {
+      const fundingWithDetails = funding.toObject();
+      fundingWithDetails.fundby_user = fundbyUser;
+      fundingWithDetails.campaign = campaign;
+      sendSuccess(res, fundingWithDetails, 'Funding contribution updated successfully');
     }
-    const fundingWithDetails = funding.toObject();
-    fundingWithDetails.fundby_user = fundbyUser;
-    fundingWithDetails.campaign = campaign;
-    sendSuccess(res, fundingWithDetails, 'Funding contribution updated successfully');
   } catch (error) {
 
     throw error
