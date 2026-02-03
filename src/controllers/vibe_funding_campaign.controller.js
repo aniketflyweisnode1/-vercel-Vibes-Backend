@@ -16,9 +16,9 @@ const createVibeFundingCampaign = asyncHandler(async (req, res) => {
     const funding = await VibeFundingCampaign.create(fundingData);
     const fundbyUser = await User.findOne({ user_id: funding.fundby_user_id }).select('user_id name email mobile user_img');
     const campaign = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: funding.vibe_fund_campaign_id }).select('vibe_fund_campaign_id title funding_goal fund_amount');
-    if (campaign) {
-      const campaign1 = await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, {$set: {fund_amount: campaign.fund_amount + funding.fund_amount,fund_still_Needed: campaign.funding_goal - (campaign.fund_amount + funding.fund_amount)}}, { new: true });
-    }
+    // if (campaign) {
+    //   const campaign1 = await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, {$set: {fund_amount: campaign.fund_amount + funding.fund_amount,fund_still_Needed: campaign.funding_goal - (campaign.fund_amount + funding.fund_amount)}}, { new: true });
+    // }
     const fundingWithDetails = funding.toObject();
     fundingWithDetails.fundby_user = fundbyUser;
     fundingWithDetails.campaign = campaign;
@@ -139,36 +139,25 @@ const getVibeFundingCampaignById = asyncHandler(async (req, res) => {
 const updateVibeFundingCampaign = asyncHandler(async (req, res) => {
   try {
     const { id } = req.body;
-
     const updateData = {
       ...req.body,
       updated_by: req.userId,
       updated_at: new Date()
     };
-
-    const funding = await VibeFundingCampaign.findOneAndUpdate(
-      { vibe_funding_campaign_id: parseInt(id) },
-      updateData,
-      {
-        new: true,
-        runValidators: true
-      }
-    );
-
+    const funding = await VibeFundingCampaign.findOneAndUpdate({ vibe_funding_campaign_id: parseInt(id) }, updateData, { new: true, runValidators: true });
     if (!funding) {
       return sendNotFound(res, 'Funding contribution not found');
     }
-
-    // Manually populate fundby_user_id
     const fundbyUser = await User.findOne({ user_id: funding.fundby_user_id }).select('user_id name email mobile user_img');
-    const campaign = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: funding.vibe_fund_campaign_id }).select('vibe_fund_campaign_id title funding_goal');
-
+    const campaign = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: funding.vibe_fund_campaign_id }).select('vibe_fund_campaign_id title funding_goal fund_amount');
+    if (funding.status == true) {
+      if (campaign) {
+        const campaign1 = await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, { $set: { fund_amount: campaign.fund_amount + funding.fund_amount, fund_still_Needed: campaign.funding_goal - (campaign.fund_amount + funding.fund_amount) } }, { new: true });
+      }
+    }
     const fundingWithDetails = funding.toObject();
     fundingWithDetails.fundby_user = fundbyUser;
     fundingWithDetails.campaign = campaign;
-
-
-
     sendSuccess(res, fundingWithDetails, 'Funding contribution updated successfully');
   } catch (error) {
 
