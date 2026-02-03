@@ -19,7 +19,7 @@ const QRCode = require('qrcode');
 const createStaffEventBook = asyncHandler(async (req, res) => {
   try {
     const staffEventBookData = { ...req.body, created_by: req.userId };
-    // const staffEventBook = await StaffEventBook.create(staffEventBookData);
+    const staffEventBook1 = await StaffEventBook.create(staffEventBookData);
     // try {
     //   const startDate = staffEventBook.dateFrom ? new Date(staffEventBook.dateFrom) : null;
     //   const endDate = staffEventBook.dateTo ? new Date(staffEventBook.dateTo) : null;
