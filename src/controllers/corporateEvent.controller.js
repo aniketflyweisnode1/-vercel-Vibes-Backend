@@ -112,7 +112,7 @@ const createEvent = asyncHandler(async (req, res) => {
 
     /* -------------------- Send Staff Acceptance Emails -------------------- */
     try {
-      const frontendUrl = '';
+      const frontendUrl = 'https://vibes-mr.netlify.app';
 
       await Promise.allSettled(
         staffUsers
