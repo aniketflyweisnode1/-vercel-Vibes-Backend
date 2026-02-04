@@ -112,7 +112,7 @@ const createEvent = asyncHandler(async (req, res) => {
 
     /* -------------------- Send Staff Acceptance Emails -------------------- */
     try {
-      const frontendUrl = 'https://vibes-frontend.vercel.app';
+      const frontendUrl = '';
 
       await Promise.allSettled(
         staffUsers
