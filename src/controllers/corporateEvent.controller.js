@@ -549,25 +549,20 @@ const acceptStaffEvent = asyncHandler(async (req, res) => {
   try {
     const staffId = req.body; // Logged-in staff
     const { eventId } = req.params;
-
     if (!staffId) {
       return res.status(401).json({ message: 'Unauthorized staff access' });
     }
-
     const event = await Event.findOne({ event_id: Number(eventId) });
-
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
-
+    const staffIdValue = Number(staffId?.staffId || staffId);
     const staffIndex = event.employees.findIndex(
-      e => e.employee_id === staffId
+      e => Number(e.employee_id) === staffIdValue
     );
-
     if (staffIndex === -1) {
       return res.status(403).json({ message: 'You are not assigned to this event' });
     }
-
     if (event.employees[staffIndex].status === 'Accepted') {
       return res.status(400).json({ message: 'Event already accepted' });
     }
@@ -607,11 +602,10 @@ const rejectStaffEvent = asyncHandler(async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
-
+    const staffIdValue = Number(staffId?.staffId || staffId);
     const staffIndex = event.employees.findIndex(
-      e => e.employee_id === staffId
+      e => Number(e.employee_id) === staffIdValue
     );
-
     if (staffIndex === -1) {
       return res.status(403).json({ message: 'You are not assigned to this event' });
     }
