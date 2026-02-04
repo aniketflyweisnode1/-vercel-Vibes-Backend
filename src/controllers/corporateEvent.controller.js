@@ -547,7 +547,7 @@ const getAllStaffEvents = asyncHandler(async (req, res) => {
 });
 const acceptStaffEvent = asyncHandler(async (req, res) => {
   try {
-    const staffId = req.userId; // Logged-in staff
+    const staffId = req.body; // Logged-in staff
     const { eventId } = req.params;
 
     if (!staffId) {
@@ -595,7 +595,7 @@ const acceptStaffEvent = asyncHandler(async (req, res) => {
 });
 const rejectStaffEvent = asyncHandler(async (req, res) => {
   try {
-    const staffId = req.userId;
+    const staffId = req.body;
     const { eventId } = req.params;
 
     if (!staffId) {
