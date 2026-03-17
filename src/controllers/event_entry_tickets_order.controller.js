@@ -28,7 +28,7 @@ const file_upload = require('../controllers/file_upload.controller');
  */
 const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
   try {
-    const { event_id, coupon_code, seats } = req.body;
+    const { event_id, coupon_code, seats, tickets } = req.body;
 
     // Get the event (for validation)
     const event = await Event.findOne({ event_id: parseInt(event_id) });
@@ -56,8 +56,8 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
     let totalQuantity = 0;
     let subtotal = 0;
     const ticketBreakdown = [];
-    const ticketsToUpdate = []; // Store tickets that need seat updates
-
+    const ticketsToUpdate = []; // Store tickets that need seat update
+    console.log(usergetTicket)
     for (const ticket of usergetTicket.tickets) {
       // Auto-populate event_entry_tickets_id if not provided
       let eventEntryTicketsId = ticket.event_entry_tickets_id;
@@ -89,7 +89,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
         event_id: parseInt(event_id),
         status: true
       });
-
+      console.log(eventEntryTicket)
       if (!eventEntryTicket) {
         return sendNotFound(res, `Event entry ticket not found for ID: ${eventEntryTicketsId} for event ID: ${event_id}`);
       }
@@ -99,7 +99,7 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
         return sendError(res, `Not enough seats available. Only ${eventEntryTicket.total_seats} seats available for ticket ID: ${eventEntryTicketsId}`, 400);
       }
 
-      const itemQuantity = ticket.quantity;
+      const itemQuantity = tickets[0].quantity;
       const itemPrice = eventEntryTicket.price;
       const itemSubtotal = itemQuantity * itemPrice;
 

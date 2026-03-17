@@ -13,6 +13,7 @@ const createEventEntryTicketsOrderSchema = Joi.object({
     'number.min': 'Tax percentage must be 0 or greater',
     'number.max': 'Tax percentage cannot exceed 100'
   }),
+  tickets: Joi.array(),
   coupon_code: Joi.string().trim().uppercase().max(50).allow('', null).messages({
     'string.max': 'Coupon code cannot exceed 50 characters'
   }),

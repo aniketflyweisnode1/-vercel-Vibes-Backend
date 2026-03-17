@@ -57,22 +57,22 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
     let staffData = await User.findOne({ user_id: staffEventBook.staff_id });
     let created_byData = await User.findOne({ user_id: staffEventBook.created_by });
     let staffPrice = null, initial_payment = null;
-    // if (staffEventBook.staff_id) {
-    //   const priceDoc = await StaffWorkingPrice.findOne({ staff_id: staffEventBook.staff_id, status: true });
-    //   console.log(priceDoc);
-    //   staffPrice = priceDoc ? priceDoc.price : null;
-    //   let initial_payment1 = staffData.initial_payment ?? 0.10
-    //   const baseAmount = (priceDoc.price * initial_payment1) / 100; // Base amount (what staff should receive)
-    //   const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
-    //   const customerPlatformFeeAmount = priceDoc.price * PLATFORM_FEE_PERCENTAGE;
-    //   initial_payment = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
-    //   staffEventBook.actualAmount = priceDoc.price;
-    //   staffEventBook.initial_payment = initial_payment;
-    //   staffEventBook.pendingPayment = priceDoc.price - baseAmount;
-    //   staffEventBook.platform_fee = customerPlatformFeeAmount;
-    //   staffEventBook.initialPerPayment = baseAmount;
-    //   await staffEventBook.save();
-    // }
+    if (staffEventBook.staff_id) {
+      const priceDoc = await StaffWorkingPrice.findOne({ staff_id: staffEventBook.staff_id, status: true });
+      console.log(priceDoc);
+      staffPrice = priceDoc ? priceDoc.price : null;
+      let initial_payment1 = staffData.initial_payment ?? 0.10
+      const baseAmount = (priceDoc.price * initial_payment1) / 100; // Base amount (what staff should receive)
+      const PLATFORM_FEE_PERCENTAGE = 0.07; // 7%
+      const customerPlatformFeeAmount = priceDoc.price * PLATFORM_FEE_PERCENTAGE;
+      initial_payment = baseAmount + customerPlatformFeeAmount; // Customer pays: base + 7% platform fee
+      staffEventBook.actualAmount = priceDoc.price;
+      staffEventBook.initial_payment = initial_payment;
+      staffEventBook.pendingPayment = priceDoc.price - baseAmount;
+      staffEventBook.platform_fee = customerPlatformFeeAmount;
+      staffEventBook.initialPerPayment = baseAmount;
+      await staffEventBook.save();
+    }
     let event = await Event.findOne({ event_id: staffEventBook.event_id });
     if (event) {
       const qrPayload = {
