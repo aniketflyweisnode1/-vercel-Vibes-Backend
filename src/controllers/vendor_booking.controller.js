@@ -329,6 +329,7 @@ const createVendorBooking = asyncHandler(async (req, res) => {
       ...req.body,
       user_id: req.body.user_id || req.userId,
       vendor_id: vendorId,
+      Event_id: req.body.Event_id,
       Date_start: startDate,
       End_date: endDate,
       Start_time: req.body.Start_time === '' ? null : req.body.Start_time || null,
