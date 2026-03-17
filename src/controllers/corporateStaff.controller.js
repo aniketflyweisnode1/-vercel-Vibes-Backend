@@ -462,8 +462,8 @@ const deleteStaff = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    const staff = await StaffWorkingPrice.findOneAndUpdate(
-      { staff_working_price_id: parseInt(id) },
+    const staff = await User.findOneAndUpdate(
+      { user_id: parseInt(id) },
       {
         status: false,
         updated_by: req.userId,
