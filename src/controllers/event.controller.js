@@ -468,7 +468,8 @@ const getAllEvents = asyncHandler(async (req, res) => {
           const tickets = await EventTicketsSeats.find({
             event_id: event.event_id,
             status: true
-          }).select('event_tickets_seats_id seat_no firstName lastName email phoneNo promo_code loyalty_points capacity type map status');
+          })
+          // .select('event_tickets_seats_id seat_no firstName lastName email phoneNo promo_code loyalty_points capacity type map status');
           eventObj.ticket_details = tickets || [];
         } catch (error) {
           console.log('Error fetching ticket details for event ID:', event.event_id, error);
@@ -477,6 +478,7 @@ const getAllEvents = asyncHandler(async (req, res) => {
       } else {
         eventObj.ticket_details = [];
       }
+        const TicketType = require('../models/ticket_type.model');
 
       // Calculate total tickets booked for this event
       if (event.event_id) {
@@ -508,7 +510,52 @@ const getAllEvents = asyncHandler(async (req, res) => {
             event_id: event.event_id,
             status: true
           });
-          eventObj.EventTicketsData = tickets || [];
+          const ticketsWithPopulatedIds = await Promise.all(tickets.map(async (ticket) => {
+            const ticketObj = ticket.toObject();
+
+            // Populate ticket_type_id within ticketDateils array
+            if (ticketObj.ticketDateils && Array.isArray(ticketObj.ticketDateils)) {
+              ticketObj.ticketDateils = await Promise.all(ticketObj.ticketDateils.map(async (ticketDetail) => {
+                if (ticketDetail.ticket_type_id) {
+                  try {
+                    const ticketType = await TicketType.findOne({ ticket_type_id: ticketDetail.ticket_type_id });
+                    return {
+                      ...ticketDetail,
+                      ticket_type_id: ticketType
+                    };
+                  } catch (error) {
+                    console.log('TicketType not found for ID:', ticketDetail.ticket_type_id);
+                    return ticketDetail;
+                  }
+                }
+                return ticketDetail;
+              }));
+            }
+
+            // Populate created_by
+            if (ticket.created_by) {
+              try {
+                const createdByUser = await User.findOne({ user_id: ticket.created_by });
+                ticketObj.created_by = createdByUser;
+              } catch (error) {
+                console.log('User not found for created_by ID:', ticket.created_by);
+              }
+            }
+
+            // Populate updated_by
+            if (ticket.updated_by) {
+              try {
+                const updatedByUser = await User.findOne({ user_id: ticket.updated_by });
+                ticketObj.updated_by = updatedByUser;
+              } catch (error) {
+                console.log('User not found for updated_by ID:', ticket.updated_by);
+              }
+            }
+
+            return ticketObj;
+          }));
+
+          eventObj.EventTicketsData = ticketsWithPopulatedIds || [];
         } catch (error) {
           console.log('Error fetching Ticket model details for event ID:', event.event_id, error);
           eventObj.EventTicketsData = [];
