@@ -502,7 +502,50 @@ const getAllEvents = asyncHandler(async (req, res) => {
       } else {
         eventObj.TotalofTicketsBookingbyEvent = 0;
       }
+    if (event.event_id) {
+      try {
+        const EventEntryTickets = require('../models/event_entry_tickets.model');
+        const User = require('../models/user.model');
+        const tickets = await EventEntryTickets.find({
+          event_id: event.event_id,
+          status: true
+        }).select('event_entry_tickets_id title price total_seats facility tag status createdBy updatedBy createdAt updatedAt');
 
+        // Populate createdBy and updatedBy for each ticket
+        const ticketsWithPopulatedIds = await Promise.all(tickets.map(async (ticket) => {
+          const ticketObj = ticket.toObject();
+
+          // Populate createdBy
+          if (ticket.createdBy) {
+            try {
+              const createdByUser = await User.findOne({ user_id: ticket.createdBy });
+              ticketObj.createdBy = createdByUser;
+            } catch (error) {
+              console.log('User not found for createdBy ID:', ticket.createdBy);
+            }
+          }
+
+          // Populate updatedBy
+          if (ticket.updatedBy) {
+            try {
+              const updatedByUser = await User.findOne({ user_id: ticket.updatedBy });
+              ticketObj.updatedBy = updatedByUser;
+            } catch (error) {
+              console.log('User not found for updatedBy ID:', ticket.updatedBy);
+            }
+          }
+
+          return ticketObj;
+        }));
+
+        eventObj.ticket_details = ticketsWithPopulatedIds || [];
+      } catch (error) {
+        console.log('Error fetching ticket details for event ID:', event.event_id, error);
+        eventObj.ticket_details = [];
+      }
+    } else {
+      eventObj.ticket_details = [];
+    }
       // Populate Ticket model full details
       if (event.event_id) {
         try {
