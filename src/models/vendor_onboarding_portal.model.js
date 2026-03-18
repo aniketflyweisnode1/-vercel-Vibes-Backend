@@ -79,7 +79,63 @@ const vendorOnboardingPortalSchema = new mongoose.Schema({
   UpdatedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  bank_account_holder_name: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Bank account holder name cannot exceed 100 characters']
+  },
+  bank_account_no: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Bank account number cannot exceed 20 characters']
+  },
+  bank_name: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Bank name cannot exceed 20 characters']
+  },
+  routing_Number: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Routing number cannot exceed 20 characters']
+  },
+  bank_Address: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Routing number cannot exceed 20 characters']
+  },
+  bank_name_id: {
+    type: Number,
+    ref: 'BankName'
+  },
+
+
+  business_type: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Business Type cannot exceed 500 characters']
+  },
+  business_reg_no: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Business registration number cannot exceed 50 characters']
+  },
+  State_of_registration: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'State of registration cannot exceed 50 characters']
+  },
+  Certificate_of_Incorporation: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Certificate of Incorporation cannot exceed 50 characters']
+  },
+  Business_License: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Business License cannot exceed 50 characters']
+  },
 }, {
   timestamps: false, // We're using custom timestamp fields
   versionKey: false

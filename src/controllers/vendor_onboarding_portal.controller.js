@@ -972,7 +972,20 @@ const createVendorPortal = asyncHandler(async (req, res) => {
         ifConfirm: req.body.ifConfirm !== undefined ? req.body.ifConfirm : false,
         Status: req.body.Status !== undefined ? req.body.Status : true,
         CreateBy: userId,
-        CreateAt: new Date()
+        CreateAt: new Date(),
+        bank_account_holder_name: req.body.bank_account_holder_name || '',
+        bank_account_no: req.body.bank_account_no || '',
+        bank_name: req.body.bank_name || '',
+        routing_Number: req.body.routing_Number || '',
+        bank_Address: req.body.bank_Address || '',
+        bank_name_id: req.body.bank_name_id || null,
+
+        business_type: req.body.business_type || '',
+        business_reg_no: req.body.business_reg_no || '',
+        State_of_registration: req.body.State_of_registration || '',
+        Certificate_of_Incorporation: req.body.Certificate_of_Incorporation || '',
+        Business_License: req.body.Business_License || '',
+
       };
 
       const portal = await VendorOnboardingPortal.create(portalData);

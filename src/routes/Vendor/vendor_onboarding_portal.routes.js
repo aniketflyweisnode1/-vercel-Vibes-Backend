@@ -26,7 +26,7 @@ const {
   findVendorbyCategoryfeePriceSchema
 } = require('../../../validators/vendor_onboarding_portal.validator');
 // Create vendor portal (with auth)
-router.post('/create', auth, validateBody(createVendorPortalSchema), createVendorPortal);
+router.post('/create', auth, createVendorPortal);
 
 // Public vendor details (no auth)
 router.get('/public/vendors', getVendorFullDetailsPublic);
