@@ -315,6 +315,7 @@ const getAllStaff = asyncHandler(async (req, res) => {
       limit = 10,
       staff_category_id,
       status,
+      search,
       sort_by = 'created_on',
       sort_order = 'desc'
     } = req.query;
@@ -327,7 +328,11 @@ const getAllStaff = asyncHandler(async (req, res) => {
     if (status !== undefined) {
       filter.status = status === 'true';
     }
-
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } }
+      ];
+    }
     // If staff_category_id is provided, get staff_ids that have this category first
     let staffIdsWithCategory = null;
     if (staff_category_id) {
@@ -337,7 +342,7 @@ const getAllStaff = asyncHandler(async (req, res) => {
         status: true
       });
       staffIdsWithCategory = staffWorkingPrices.map(swp => swp.staff_id);
-      
+
       // If no staff found with this category, return empty result
       if (staffIdsWithCategory.length === 0) {
         const paginationInfo = {
@@ -350,7 +355,7 @@ const getAllStaff = asyncHandler(async (req, res) => {
         };
         return sendPaginated(res, [], 'Staff retrieved successfully', paginationInfo);
       }
-      
+
       // Filter by staff_ids that have the category
       filter.user_id = { $in: staffIdsWithCategory };
     }
