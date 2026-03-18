@@ -205,6 +205,16 @@ const commonValidations = {
       'string.max': 'Business registration number cannot exceed 50 characters'
     }),
 
+  DOB: Joi.date()
+    .trim()
+    .max(50)
+    .optional()
+    .allow('')
+    .messages({
+      'string.max': 'Date of Birth'
+    }),
+
+
   business_description: Joi.string()
     .trim()
     .max(1000)
@@ -358,7 +368,16 @@ const updateUserSchema = Joi.object({
   bank_name_id: commonValidations.bank_name_id.optional(),
   bank_account_no: commonValidations.bank_account_no.optional(),
   bank_branch_id: commonValidations.bank_branch_id.optional(),
-  status: commonValidations.status.optional()
+  status: commonValidations.status.optional(),
+  bank_name: commonValidations.bank_account_holder_name.optional(),
+  routing_Number: commonValidations.bank_account_holder_name.optional(),
+  bank_Address: commonValidations.bank_account_holder_name.optional(),
+  business_type: commonValidations.business_reg_no.optional(),
+  State_of_registration: commonValidations.business_reg_no.optional(),
+  Certificate_of_Incorporation: commonValidations.business_reg_no.optional(),
+  Business_License: commonValidations.business_reg_no.optional(),
+  DOB: commonValidations.DOB.optional(),
+
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'
 });
@@ -467,8 +486,6 @@ const updateUserByIdBodySchema = Joi.object({
   business_category_id: commonValidations.business_category_id.optional(),
   whatsapp_no: commonValidations.whatsapp_no.optional(),
   business_type_id: commonValidations.business_type_id.optional(),
-  business_website: commonValidations.business_website.optional(),
-  business_reg_no: commonValidations.business_reg_no.optional(),
   business_description: commonValidations.business_description.optional(),
   business_address: commonValidations.business_address.optional(),
   id_proof_owner_img: commonValidations.id_proof_owner_img.optional(),
@@ -477,7 +494,9 @@ const updateUserByIdBodySchema = Joi.object({
   bank_name_id: commonValidations.bank_name_id.optional(),
   bank_account_no: commonValidations.bank_account_no.optional(),
   bank_branch_id: commonValidations.bank_branch_id.optional(),
-  status: commonValidations.status.optional()
+  status: commonValidations.status.optional(),
+  business_website: commonValidations.business_website.optional(),
+  business_reg_no: commonValidations.business_reg_no.optional(),
 }).min(2).messages({
   'object.min': 'At least one field (other than ID) must be provided for update'
 });

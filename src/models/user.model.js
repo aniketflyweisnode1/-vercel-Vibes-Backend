@@ -128,11 +128,7 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^https?:\/\/.+/, 'Please enter a valid URL starting with http:// or https://']
   },
-  business_reg_no: {
-    type: String,
-    trim: true,
-    maxlength: [50, 'Business registration number cannot exceed 50 characters']
-  },
+
   business_description: {
     type: String,
     trim: true,
@@ -143,6 +139,34 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Business address cannot exceed 500 characters']
   },
+
+
+  business_type: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Business Type cannot exceed 500 characters']
+  },
+  business_reg_no: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Business registration number cannot exceed 50 characters']
+  },
+  State_of_registration: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'State of registration cannot exceed 50 characters']
+  },
+  Certificate_of_Incorporation: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Certificate of Incorporation cannot exceed 50 characters']
+  },
+  Business_License: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Business License cannot exceed 50 characters']
+  },
+
   id_proof_owner_img: {
     type: String,
     trim: true,
@@ -170,17 +194,32 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: [100, 'Bank account holder name cannot exceed 100 characters']
   },
+  bank_account_no: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Bank account number cannot exceed 20 characters']
+  },
+  bank_name: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Bank name cannot exceed 20 characters']
+  },
+  routing_Number: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Routing number cannot exceed 20 characters']
+  },
+  bank_Address: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Routing number cannot exceed 20 characters']
+  },
   bank_name_id: {
     type: Number,
     ref: 'BankName'
   },
   initial_payment: {
     type: Number,
-  },
-  bank_account_no: {
-    type: String,
-    trim: true,
-    maxlength: [20, 'Bank account number cannot exceed 20 characters']
   },
   bank_branch_id: {
     type: Number,
