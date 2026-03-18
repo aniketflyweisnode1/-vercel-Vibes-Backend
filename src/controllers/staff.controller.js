@@ -315,7 +315,7 @@ const getAllStaff = asyncHandler(async (req, res) => {
       limit = 10,
       staff_category_id,
       status,
-      sort_by = 'created_at',
+      sort_by = 'created_on',
       sort_order = 'desc'
     } = req.query;
 

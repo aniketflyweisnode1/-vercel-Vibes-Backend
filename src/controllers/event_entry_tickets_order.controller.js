@@ -28,7 +28,7 @@ const file_upload = require('../controllers/file_upload.controller');
  */
 const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
   try {
-    const { event_id, coupon_code, seats, tickets } = req.body;
+    const { event_id, coupon_code, seats, tickets, email } = req.body;
 
     // Get the event (for validation)
     const event = await Event.findOne({ event_id: parseInt(event_id) });
@@ -238,7 +238,8 @@ const createEventEntryTicketsOrder = asyncHandler(async (req, res) => {
       discount_amount: discountAmount,
       final_amount: finalAmount,
       createdBy: req.userId,
-      seats: processedSeats
+      seats: processedSeats,
+      email: email
     };
 
     const order = await EventEntryTicketsOrder.create(orderData);
