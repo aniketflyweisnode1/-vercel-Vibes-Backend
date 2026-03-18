@@ -206,12 +206,10 @@ const commonValidations = {
     }),
 
   DOB: Joi.date()
-    .trim()
-    .max(50)
     .optional()
-    .allow('')
+    .allow(null)
     .messages({
-      'string.max': 'Date of Birth'
+      'date.base': 'Date of Birth must be a valid date'
     }),
 
 
