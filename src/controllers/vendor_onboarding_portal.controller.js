@@ -742,14 +742,14 @@ const deleteVendorOnboardingPortal = asyncHandler(async (req, res) => {
 const getVendorFullDetailsPublic = asyncHandler(async (req, res) => {
   try {
     const { min_price, max_price } = req.query;
-    
+
     const filter = { Status: true };
 
     // If price range is provided, filter vendors by their categories fees
     let priceFilteredCategoriesFeesIds = null;
     if (min_price !== undefined || max_price !== undefined) {
       const priceFilter = { status: true };
-      
+
       if (min_price !== undefined && max_price !== undefined) {
         priceFilter.Price = {
           $gte: parseFloat(min_price),
@@ -763,12 +763,12 @@ const getVendorFullDetailsPublic = asyncHandler(async (req, res) => {
 
       const matchingCategoriesFees = await CategoriesFees.find(priceFilter).select('categories_fees_id');
       priceFilteredCategoriesFeesIds = matchingCategoriesFees.map(fee => fee.categories_fees_id);
-      
+
       // If no categories match the price range, return empty array
       if (priceFilteredCategoriesFeesIds.length === 0) {
         return sendSuccess(res, [], 'Vendor details retrieved successfully');
       }
-      
+
       // Filter vendors that have at least one category fee in the price range
       filter.categories_fees_id = { $in: priceFilteredCategoriesFeesIds };
     }
@@ -976,10 +976,10 @@ const createVendorPortal = asyncHandler(async (req, res) => {
       };
 
       const portal = await VendorOnboardingPortal.create(portalData);
-
-      // Step 6: Populate and return
-      const populatedPortal = await populateVendorOnboardingPortal(portal);
-      sendSuccess(res, populatedPortal, 'Vendor portal created successfully', 201);
+      if (portal) {
+        const user = await User.findOneAndUpdate({ user_id: userId }, { $set: { isKyc: true } }, { new: true, runValidators: true, select: '-password' }); const populatedPortal = await populateVendorOnboardingPortal(portal);
+        sendSuccess(res, populatedPortal, 'Vendor portal created successfully', 201);
+      }
     }
   } catch (error) {
     console.error('Error creating vendor portal:', error);
@@ -996,14 +996,14 @@ const createVendorPortal = asyncHandler(async (req, res) => {
  */
 const findVendorbyCategoryfeePrice = asyncHandler(async (req, res) => {
   try {
-    const { 
-      category_id, 
-      Price, 
-      city_id, 
-      state_id, 
+    const {
+      category_id,
+      Price,
+      city_id,
+      state_id,
       country_id,
-      page = 1, 
-      limit = 10 
+      page = 1,
+      limit = 10
     } = req.query;
 
     // Build filter for CategoriesFees
@@ -1053,7 +1053,7 @@ const findVendorbyCategoryfeePrice = asyncHandler(async (req, res) => {
     // Filter by location if provided
     if (city_id || state_id || country_id) {
       const locationFilteredPortals = [];
-      
+
       for (const portal of portals) {
         // Get business information to check location
         if (portal.business_information_id) {
@@ -1102,7 +1102,7 @@ const findVendorbyCategoryfeePrice = asyncHandler(async (req, res) => {
       })
       .map(portal => {
         const vendorData = { ...portal };
-        
+
         // Add category pricing information
         if (vendorData.categories_fees_details && Array.isArray(vendorData.categories_fees_details)) {
           vendorData.category_pricing = vendorData.categories_fees_details.map(fee => ({

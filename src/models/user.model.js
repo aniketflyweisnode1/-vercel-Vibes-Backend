@@ -257,6 +257,11 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  isKyc: {
+    type: Boolean,
+    default: false,
+  },
+
 }, {
   timestamps: false, // We're using custom timestamp fields
   versionKey: false
