@@ -159,10 +159,23 @@ const getStaffEventBooksByAuth = asyncHandler(async (req, res) => {
   try {
     // Filter by staff_id so staff can see bookings where they are the booked staff member
     // This includes bookings created by vendors or any other users
-    const staffEventBooks = await StaffEventBook.find({ staff_id: req.userId })
-      .sort({ created_at: -1 });
-
-    sendSuccess(res, staffEventBooks, 'Staff event bookings retrieved successfully');
+    const staffEventBooks = await StaffEventBook.find({ staff_id: req.userId }).sort({ created_at: -1 });
+    if (staffEventBooks.length > 0) {
+      let payableAmount = 0, completeJob = 0;
+      const modifiedData = staffEventBooks.map(item => {
+        const obj = item.toObject();
+        console.log(obj.transaction_status, obj.actualAmount)
+        if (obj.transaction_status === "Completed") {
+          completeJob = completeJob + 1;
+        }
+        let payableAmount1 = obj.transaction_status === "Completed" ? obj.actualAmount || 0 : obj.initialPerPayment || 0;
+        payableAmount = payableAmount + payableAmount1;
+        return payableAmount;
+      });
+      sendSuccess(res, { total: payableAmount, completeJob: completeJob, staffEventBooks: staffEventBooks }, 'Staff event bookings retrieved successfully');
+    } else {
+      sendSuccess(res, staffEventBooks, 'Staff event bookings retrieved successfully');
+    }
   } catch (error) {
     throw error;
   }
