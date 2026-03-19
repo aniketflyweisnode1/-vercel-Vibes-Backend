@@ -1283,9 +1283,9 @@ const confirmPayment = asyncHandler(async (req, res) => {
     }
 
     // Check if transaction is already completed
-    if (transaction.status === 'completed') {
-      return sendError(res, 'Payment has already been confirmed and completed', 400);
-    }
+    // if (transaction.status === 'completed') {
+    //   return sendError(res, 'Payment has already been confirmed and completed', 400);
+    // }
 
     // Confirm payment intent with Stripe
     let confirmedPayment = null;
