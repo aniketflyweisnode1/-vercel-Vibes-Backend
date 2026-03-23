@@ -50,10 +50,7 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
     //   console.error('Failed to create availability calendar entry:', availabilityError);
     //   // Do not fail booking if availability log fails; continue
     // }
-    const staffEventBook = await StaffEventBook.findOne({ event_id: req.body.event_id });
-
-
-
+    const staffEventBook = await StaffEventBook.findOne({ event_id: req.body.event_id, staff_id: req.body.staff_id, });
     let staffData = await User.findOne({ user_id: staffEventBook.staff_id });
     let created_byData = await User.findOne({ user_id: staffEventBook.created_by });
     let staffPrice = null, initial_payment = null;
@@ -515,11 +512,7 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
         await Transaction.create(adminTransactionData);
       }
       console.log(customerTransaction)
-      const updatedStaffEventBook = await StaffEventBook.findOneAndUpdate({ staff_event_book_id: parseInt(staff_event_book_id) }, {
-        $set: {
-          initialTransaction_id: customerTransaction.transaction_id, initialTransaction_status: 'Completed', updated_by: req.userId, updated_at: new Date()
-        }
-      }, { new: true });
+      const updatedStaffEventBook = await StaffEventBook.findOneAndUpdate({ staff_event_book_id: parseInt(staff_event_book_id) }, { $set: { initialTransaction_id: customerTransaction.transaction_id, initialTransaction_status: 'Completed', updated_by: req.userId, updated_at: new Date() } }, { new: true });
       if (updatedStaffEventBook) {
         sendSuccess(res, { customer_transaction_id: customerTransaction.transaction_id, payment_intent_id: paymentIntent.paymentIntentId, client_secret: paymentIntent.clientSecret, payment_breakdown: { total_amount: totalAmount, base_amount: baseAmount, customer_platform_fee: customerPlatformFeeAmount, staff_platform_fee: staffPlatformFeeAmount, total_platform_fee: totalPlatformFeeAmount, platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100, staff_amount: staffAmount }, transactions: { customer: { transaction_id: customerTransaction.transaction_id, user_id: req.userId, amount: totalAmount, description: 'Customer payment for staff booking (baseAmount + 7% platform fee)' }, staff: { user_id: staffEventBook.staff_id, amount: staffAmount, description: 'Staff receives base amount minus 7% platform fee' }, admin: { user_id: adminUser ? adminUser.user_id : null, amount: totalPlatformFeeAmount, description: 'Admin receives 7% platform fee from customer + 7% platform fee from staff' } }, currency: 'USD', status: paymentIntent.status, paymentIntent: { id: paymentIntent.paymentIntentId, clientSecret: paymentIntent.clientSecret, amount: paymentIntent.amount, currency: paymentIntent.currency, status: paymentIntent.status }, customer_id: customerId, staff_event_book_id: staff_event_book_id, staff_event_book: { id: updatedStaffEventBook.staff_event_book_id, transaction_id: updatedStaffEventBook.transaction_id, transaction_status: updatedStaffEventBook.transaction_status, event_name: updatedStaffEventBook.event_name, staff_id: updatedStaffEventBook.staff_id } }, 'Staff booking payment processed successfully. Three transactions created: Customer pays total amount, Staff receives base amount, Admin receives 7% platform fee.');
       }
