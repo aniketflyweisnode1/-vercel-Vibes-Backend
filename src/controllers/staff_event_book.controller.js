@@ -514,6 +514,7 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
         };
         await Transaction.create(adminTransactionData);
       }
+      console.log(customerTransaction)
       const updatedStaffEventBook = await StaffEventBook.findOneAndUpdate({ staff_event_book_id: parseInt(staff_event_book_id) }, {
         $set: {
           initialTransaction_id: customerTransaction.transaction_id, initialTransaction_status: 'Completed', updated_by: req.userId, updated_at: new Date()
