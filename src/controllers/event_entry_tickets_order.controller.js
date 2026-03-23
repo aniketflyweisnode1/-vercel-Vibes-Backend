@@ -1268,143 +1268,72 @@ const processPayment = asyncHandler(async (req, res) => {
 const confirmPayment = asyncHandler(async (req, res) => {
   try {
     const { payment_intent_id, payment_method_id } = req.body;
-
     if (!payment_intent_id) {
       return sendError(res, 'Payment intent ID is required', 400);
-    }
-
-    // Find the transaction by payment intent ID
-    const transaction = await Transaction.findOne({
-      reference_number: payment_intent_id,
-    });
-
-    if (!transaction) {
-      return sendNotFound(res, 'Transaction not found for this payment intent');
-    }
-
-    // Check if transaction is already completed
-    // if (transaction.status === 'completed') {
-    //   return sendError(res, 'Payment has already been confirmed and completed', 400);
-    // }
-
-    // Confirm payment intent with Stripe
-    let confirmedPayment = null;
-    try {
-      confirmedPayment = await confirmPaymentIntent(payment_intent_id, payment_method_id);
-    } catch (confirmError) {
-      console.error('Payment confirmation error:', confirmError);
-
-      // Check if the error is because payment is already confirmed
-      if (confirmError.message.includes('already succeeded') ||
-        confirmError.message.includes('already confirmed')) {
-        const updatedTransaction = await Transaction.findOneAndUpdate(
-          { reference_number: payment_intent_id },
-          {
-            status: 'completed',
-            updated_by: req.userId,
-            updated_at: new Date()
-          },
-          { new: true }
-        );
-        console.log("1260//////////////////////////////////////////////", updatedTransaction)
-        if (updatedTransaction) {
-          const updatedTransaction1 = await Transaction.findOneAndUpdate(
-            { reference_number: `STAFF_PAYMENT_${payment_intent_id}` },
-            {
-              status: 'completed',
-              updated_by: req.userId,
-              updated_at: new Date()
-            },
-            { new: true }
-          );
-          console.log("1271//////////////////////////////////////////////", updatedTransaction1)
-
-        }
-        // Return success with status information instead of error
-        return sendSuccess(res, {
-          payment_status: 'already_confirmed',
-          payment_intent_id: payment_intent_id,
-          transaction: transaction,
-          message: 'Payment has already been confirmed and cannot be confirmed again'
-        }, 'Payment status checked - already confirmed', 200);
-      }
-
-      // For other errors, return status instead of error
-      return sendSuccess(res, {
-        payment_status: 'confirmation_failed',
-        error_message: confirmError.message,
-        payment_intent_id: payment_intent_id,
-        message: 'Payment confirmation failed'
-      }, 'Payment confirmation failed', 200);
-    }
-
-    // Update transaction status based on Stripe response
-    const updatedTransaction = await Transaction.findOneAndUpdate(
-      { reference_number: payment_intent_id },
-      {
-        status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed',
-        updated_by: req.userId,
-        updated_at: new Date()
-      },
-      { new: true }
-    );
-    console.log("1260//////////////////////////////////////////////", updatedTransaction)
-    if (updatedTransaction) {
-      const updatedTransaction1 = await Transaction.findOneAndUpdate(
-        { reference_number: `STAFF_PAYMENT_${payment_intent_id}` },
-        {
-          status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed',
-          updated_by: req.userId,
-          updated_at: new Date()
-        },
-        { new: true }
-      );
-      console.log("1271//////////////////////////////////////////////", updatedTransaction1)
-
-    }
-
-    // Populate payment_method_id
-    let populatedTransaction = updatedTransaction.toObject();
-    if (updatedTransaction.payment_method_id) {
-      try {
-
-        const paymentMethod = await PaymentMethods.findOne({
-          payment_methods_id: updatedTransaction.payment_method_id
-        });
-        populatedTransaction.payment_method_id = paymentMethod;
-      } catch (error) {
-        console.log('PaymentMethod not found for ID:', updatedTransaction.payment_method_id);
-      }
-    }
-
-    // Update order status if payment succeeded
-    if (confirmedPayment.status === 'succeeded') {
-      try {
-        let orderId = null;
-        if (transaction.metadata) {
-          const metadata = JSON.parse(transaction.metadata);
-          orderId = metadata.order_id;
-        }
-
-        if (orderId) {
-          await EventEntryTicketsOrder.findOneAndUpdate(
-            { event_entry_tickets_order_id: orderId },
-            {
-              updatedBy: req.userId,
-              updatedAt: new Date()
+    } else {
+      const transaction = await Transaction.findOne({ reference_number: payment_intent_id, });
+      if (!transaction) {
+        return sendNotFound(res, 'Transaction not found for this payment intent');
+      } else {
+        // Check if transaction is already completed
+        // if (transaction.status === 'completed') {
+        //   return sendError(res, 'Payment has already been confirmed and completed', 400);
+        // }
+        let confirmedPayment = null;
+        try {
+          confirmedPayment = await confirmPaymentIntent(payment_intent_id, payment_method_id);
+          if (confirmedPayment) {
+            const updatedTransaction = await Transaction.findOneAndUpdate({ reference_number: payment_intent_id }, { status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed', updated_by: req.userId, updated_at: new Date() }, { new: true });
+            console.log("1260//////////////////////////////////////////////", updatedTransaction)
+            if (updatedTransaction) {
+              const updatedTransaction1 = await Transaction.findOneAndUpdate({ reference_number: `STAFF_PAYMENT_${payment_intent_id}` }, { status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed', updated_by: req.userId, updated_at: new Date() }, { new: true });
+              console.log("1271//////////////////////////////////////////////", updatedTransaction1)
             }
-          );
+            let populatedTransaction = updatedTransaction.toObject();
+            if (updatedTransaction.payment_method_id) {
+              try {
+                const paymentMethod = await PaymentMethods.findOne({ payment_methods_id: updatedTransaction.payment_method_id });
+                populatedTransaction.payment_method_id = paymentMethod;
+              } catch (error) {
+                console.log('PaymentMethod not found for ID:', updatedTransaction.payment_method_id);
+              }
+            }
+            if (confirmedPayment.status === 'succeeded') {
+              try {
+                let orderId = null;
+                if (transaction.metadata) {
+                  const metadata = JSON.parse(transaction.metadata);
+                  orderId = metadata.order_id;
+                }
+                if (orderId) {
+                  await EventEntryTicketsOrder.findOneAndUpdate({ event_entry_tickets_order_id: orderId }, { updatedBy: req.userId, updatedAt: new Date() });
+                }
+              } catch (error) {
+                console.error('Error updating order status:', error);
+              }
+            }
+            sendSuccess(res, { paymentIntent: confirmedPayment, transaction: populatedTransaction, payment_status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed' }, `Payment ${confirmedPayment.status === 'succeeded' ? 'confirmed successfully' : 'confirmation failed'}`, 200);
+          } else {
+            return sendSuccess(res, { payment_status: 'confirmation_failed', error_message: confirmError.message, payment_intent_id: payment_intent_id, message: 'Payment confirmation failed' }, 'Payment confirmation failed', 200);
+          }
+        } catch (confirmError) {
+          console.error('Payment confirmation error:', confirmError);
+          // Check if the error is because payment is already confirmed
+          if (confirmError.message.includes('already succeeded') || confirmError.message.includes('already confirmed')) {
+            const updatedTransaction = await Transaction.findOneAndUpdate({ reference_number: payment_intent_id }, { status: 'completed', updated_by: req.userId, updated_at: new Date() }, { new: true });
+            console.log("1260//////////////////////////////////////////////", updatedTransaction)
+            if (updatedTransaction) {
+              const updatedTransaction1 = await Transaction.findOneAndUpdate({ reference_number: `STAFF_PAYMENT_${payment_intent_id}` }, { status: 'completed', updated_by: req.userId, updated_at: new Date() }, { new: true });
+              console.log("1271//////////////////////////////////////////////", updatedTransaction1)
+            }
+            // Return success with status information instead of error
+            return sendSuccess(res, { payment_status: 'already_confirmed', payment_intent_id: payment_intent_id, transaction: transaction, message: 'Payment has already been confirmed and cannot be confirmed again' }, 'Payment status checked - already confirmed', 200);
+          }
+          // For other errors, return status instead of error
+          return sendSuccess(res, { payment_status: 'confirmation_failed', error_message: confirmError.message, payment_intent_id: payment_intent_id, message: 'Payment confirmation failed' }, 'Payment confirmation failed', 200);
         }
-      } catch (error) {
-        console.error('Error updating order status:', error);
       }
     }
-
-    sendSuccess(res, {
-      paymentIntent: confirmedPayment,
-      transaction: populatedTransaction,
-      payment_status: confirmedPayment.status === 'succeeded' ? 'completed' : 'failed'
-    }, `Payment ${confirmedPayment.status === 'succeeded' ? 'confirmed successfully' : 'confirmation failed'}`, 200);
   } catch (error) {
     throw error;
   }
