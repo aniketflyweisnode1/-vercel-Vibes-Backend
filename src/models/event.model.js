@@ -212,6 +212,24 @@ const eventSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  template: {
+    type: String,
+  },
+  colorScheme: {
+    type: String,
+  },
+  animation: {
+    type: Boolean,
+  },
+  gamification: {
+    type: Boolean,
+  },
+  sustainabilityBadges: {
+    type: Boolean,
+  },
+  templateId: {
+    type: String,
+  }
 }, {
   timestamps: false, // We're using custom timestamp fields
   versionKey: false

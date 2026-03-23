@@ -11,6 +11,7 @@ const stateRoutes = require('./routes/Admin/state.routes.js');
 const cityRoutes = require('./routes/Admin/city.routes.js');
 const eventRoutes = require('./routes/User/event.routes.js');
 const corporateEventRoutes = require('./routes/Master/corporateEvent.routes.js');
+const eventInvitationFlowRoutes = require('./routes/Master/eventInvitationFlow.js');
 const packageRoutes = require('./routes/Admin/package.js');
 const adminRoutes = require('./routes/Admin/admin.routes.js');
 const otpTypeRoutes = require('./routes/Admin/otp_type.routes.js');
@@ -143,7 +144,7 @@ router.use('/states', stateRoutes);
 router.use('/cities', cityRoutes);
 router.use('/events', eventRoutes);
 router.use('/corporateEvents', corporateEventRoutes);
-
+router.use('/eventInvitationFlow', eventInvitationFlowRoutes);
 router.use('/uploadEmployee', uploadEmployeeRoutes);
 // Mount Admin route modules
 router.use('/admin', adminRoutes);

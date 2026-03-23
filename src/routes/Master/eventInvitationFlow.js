@@ -1,0 +1,21 @@
+const express = require('express');
+const router = express.Router();
+const { createEvent, getAllEvents, getEventById, updateEvent, deleteEvent, getEventsByAuth, checkPaymentStatus, getEventsExcludingAuth, eventPayment, getAllStaffEvents, rejectStaffEvent, acceptStaffEvent, getEventInviteMemberById } = require('../../controllers/eventInvitationFlow');
+const { auth } = require('../../../middleware/auth');
+const { validateBody, validateQuery, validateParams } = require('../../../middleware/validation');
+const { createEventSchema, updateEventSchema, getEventByIdSchema, getAllEventsSchema } = require('../../../validators/event.validator');
+router.post('/create', auth, createEvent);
+router.get('/getAll', getAllEvents);
+router.get('/getByAuth', auth, validateQuery(getAllEventsSchema), getEventsByAuth);
+router.get('/getAllStaffEvents', auth, validateQuery(getAllEventsSchema), getAllStaffEvents);
+router.post('/events/:eventId/staff/accept', acceptStaffEvent);
+router.post('/events/:eventId/staff/reject', rejectStaffEvent);
+router.get('/getExcludingAuth', auth, validateQuery(getAllEventsSchema), getEventsExcludingAuth);
+router.get('/getById/:id', auth, validateParams(getEventByIdSchema), getEventById);
+router.put('/updateById', auth, updateEvent);
+router.delete('/deleteById/:id', auth, validateParams(getEventByIdSchema), deleteEvent);
+router.post('/EventPayment', auth, eventPayment);
+router.get('/getEventInviteMemberById/:id', auth, getEventInviteMemberById);
+router.post('/check-payment-status', auth,  checkPaymentStatus);
+
+module.exports = router;
