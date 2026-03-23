@@ -372,9 +372,7 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
     if (!staff_event_book_id || !payment_method_id) {
       return sendError(res, 'staff_event_book_id and payment_method_id are required', 400);
     }
-    const staffEventBook = await StaffEventBook.findOne({
-      staff_event_book_id: parseInt(staff_event_book_id)
-    });
+    const staffEventBook = await StaffEventBook.findOne({ staff_event_book_id: parseInt(staff_event_book_id) });
     if (!staffEventBook) {
       return sendNotFound(res, 'Staff event booking not found');
     }
@@ -397,38 +395,15 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
     }
     let customerId = null;
     try {
-      const customerData = {
-        email: user.email,
-        name: user.name,
-        phone: user.mobile,
-        metadata: {
-          user_id: req.userId,
-          staff_event_book_id: staff_event_book_id
-        }
-      };
-
+      const customerData = { email: user.email, name: user.name, phone: user.mobile, metadata: { user_id: req.userId, staff_event_book_id: staff_event_book_id } };
       const customer = await createCustomer(customerData);
       customerId = customer.customerId;
     } catch (customerError) {
       console.error('Customer creation error:', customerError);
-      // Continue without customer if creation fails
     }
     let paymentIntent = null;
     try {
-      const paymentOptions = {
-        // amount: totalAmount * 100,
-        amount: totalAmount,
-        billingDetails: billingDetails,
-        currency: 'usd',
-        customerEmail: user.email,
-        metadata: {
-          user_id: req.userId,
-          customer_id: customerId,
-          staff_event_book_id: staff_event_book_id,
-          payment_type: billingDetails,
-          description: description
-        }
-      };
+      const paymentOptions = { amount: totalAmount, billingDetails: billingDetails, currency: 'usd', customerEmail: user.email, metadata: { user_id: req.userId, customer_id: customerId, staff_event_book_id: staff_event_book_id, payment_type: billingDetails, description: description } };
       paymentIntent = await createPaymentIntent(paymentOptions);
     } catch (paymentError) {
       console.error('Payment intent creation error:', paymentError);
@@ -500,7 +475,6 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
         }),
         created_by: req.userId
       };
-
       await Transaction.create(staffTransactionData);
     }
     const adminUser = await User.findOne({ role_id: 1, status: true }).sort({ user_id: 1 });
@@ -537,71 +511,10 @@ const StaffBookingPayment = asyncHandler(async (req, res) => {
         }),
         created_by: req.userId
       };
-
       await Transaction.create(adminTransactionData);
     }
-    const updatedStaffEventBook = await StaffEventBook.findOneAndUpdate(
-      { staff_event_book_id: parseInt(staff_event_book_id) },
-      {
-        initialTransaction_id: customerTransaction.transaction_id,
-        initialTransaction_status: 'Completed',
-        updated_by: req.userId,
-        updated_at: new Date()
-      },
-      { new: true }
-    );
-
-    sendSuccess(res, {
-      customer_transaction_id: customerTransaction.transaction_id,
-      payment_intent_id: paymentIntent.paymentIntentId,
-      client_secret: paymentIntent.clientSecret,
-      payment_breakdown: {
-        total_amount: totalAmount, // Customer pays this (baseAmount + 7% platform fee)
-        base_amount: baseAmount,
-        customer_platform_fee: customerPlatformFeeAmount, // 7% from customer
-        staff_platform_fee: staffPlatformFeeAmount, // 7% from staff (deducted from staff payment)
-        total_platform_fee: totalPlatformFeeAmount, // Admin receives this (7% from customer + 7% from staff)
-        platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100,
-        staff_amount: staffAmount // Staff receives: baseAmount - 7% platform fee
-      },
-      transactions: {
-        customer: {
-          transaction_id: customerTransaction.transaction_id,
-          user_id: req.userId,
-          amount: totalAmount,
-          description: 'Customer payment for staff booking (baseAmount + 7% platform fee)'
-        },
-        staff: {
-          user_id: staffEventBook.staff_id,
-          amount: staffAmount, // baseAmount - 7% platform fee
-          description: 'Staff receives base amount minus 7% platform fee'
-        },
-        admin: {
-          user_id: adminUser ? adminUser.user_id : null,
-          amount: totalPlatformFeeAmount,
-          description: 'Admin receives 7% platform fee from customer + 7% platform fee from staff'
-        }
-      },
-      currency: 'USD',
-      status: paymentIntent.status,
-      paymentIntent: {
-        id: paymentIntent.paymentIntentId,
-        clientSecret: paymentIntent.clientSecret,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        status: paymentIntent.status
-      },
-      customer_id: customerId,
-      staff_event_book_id: staff_event_book_id,
-      staff_event_book: {
-        id: updatedStaffEventBook.staff_event_book_id,
-        transaction_id: updatedStaffEventBook.transaction_id,
-        transaction_status: updatedStaffEventBook.transaction_status,
-        event_name: updatedStaffEventBook.event_name,
-        staff_id: updatedStaffEventBook.staff_id
-      }
-    }, 'Staff booking payment processed successfully. Three transactions created: Customer pays total amount, Staff receives base amount, Admin receives 7% platform fee.');
-
+    const updatedStaffEventBook = await StaffEventBook.findOneAndUpdate({ staff_event_book_id: parseInt(staff_event_book_id) }, { initialTransaction_id: customerTransaction.transaction_id, initialTransaction_status: 'Completed', updated_by: req.userId, updated_at: new Date() }, { new: true });
+    sendSuccess(res, { customer_transaction_id: customerTransaction.transaction_id, payment_intent_id: paymentIntent.paymentIntentId, client_secret: paymentIntent.clientSecret, payment_breakdown: { total_amount: totalAmount, base_amount: baseAmount, customer_platform_fee: customerPlatformFeeAmount, staff_platform_fee: staffPlatformFeeAmount, total_platform_fee: totalPlatformFeeAmount, platform_fee_percentage: PLATFORM_FEE_PERCENTAGE * 100, staff_amount: staffAmount }, transactions: { customer: { transaction_id: customerTransaction.transaction_id, user_id: req.userId, amount: totalAmount, description: 'Customer payment for staff booking (baseAmount + 7% platform fee)' }, staff: { user_id: staffEventBook.staff_id, amount: staffAmount, description: 'Staff receives base amount minus 7% platform fee' }, admin: { user_id: adminUser ? adminUser.user_id : null, amount: totalPlatformFeeAmount, description: 'Admin receives 7% platform fee from customer + 7% platform fee from staff' } }, currency: 'USD', status: paymentIntent.status, paymentIntent: { id: paymentIntent.paymentIntentId, clientSecret: paymentIntent.clientSecret, amount: paymentIntent.amount, currency: paymentIntent.currency, status: paymentIntent.status }, customer_id: customerId, staff_event_book_id: staff_event_book_id, staff_event_book: { id: updatedStaffEventBook.staff_event_book_id, transaction_id: updatedStaffEventBook.transaction_id, transaction_status: updatedStaffEventBook.transaction_status, event_name: updatedStaffEventBook.event_name, staff_id: updatedStaffEventBook.staff_id } }, 'Staff booking payment processed successfully. Three transactions created: Customer pays total amount, Staff receives base amount, Admin receives 7% platform fee.');
   } catch (error) {
     console.error('Staff booking payment error:', error);
     throw error;
