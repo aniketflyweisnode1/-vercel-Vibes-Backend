@@ -15,7 +15,7 @@ router.get('/getByCategoryId/:id', validate(getStaffByCategoryIdSchema, 'params'
 // Get staff by user ID (staff_id)
 router.get('/getByUserId/:id', validate(getStaffByIdSchema, 'params'), getStaffByUserId);
 // Update staff (with auth)
-router.put('/update', auth, validate(updateStaffSchema), updateStaff);
+router.put('/update', auth, updateStaff);
 // Delete staff (with auth)
 router.delete('/delete/:id', auth, validate(deleteStaffSchema, 'params'), deleteStaff);
 // Get staff statistics
