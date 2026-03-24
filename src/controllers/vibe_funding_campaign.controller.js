@@ -145,11 +145,11 @@ const updateVibeFundingCampaign = asyncHandler(async (req, res) => {
       updated_by: req.userId,
       updated_at: new Date()
     };
-    const funding = await VibeFundingCampaign.findOneAndUpdate({ vibe_fund_campaign_id: parseInt(id) }, updateData, { new: true, runValidators: true });
+    const funding = await VibeFundingCampaign.findOneAndUpdate({ _id: id }, updateData, { new: true, runValidators: true });
     if (!funding) {
       return sendNotFound(res, 'Funding contribution not found');
     }
-    console.log("funding--------",funding)
+    console.log("funding--------", funding)
     const fundbyUser = await User.findOne({ user_id: funding.fundby_user_id }).select('user_id name email mobile user_img');
     const campaign = await VibeFundCampaign.findOne({ vibe_fund_campaign_id: funding.vibe_fund_campaign_id }).select('vibe_fund_campaign_id title funding_goal fund_amount');
     console.log(campaign, "funding.status=======", funding.status == true)
