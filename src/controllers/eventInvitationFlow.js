@@ -47,15 +47,17 @@ const createEvent = asyncHandler(async (req, res) => {
             ExpectedGuestCount: toNumber(req.body.ExpectedGuestCount)
         };
         let employeesRequested = [], employees = [], staffUsers = [];
-        for (let i = 0; i < req.body.guestIds.length; i++) {
-            const element = req.body.guestIds[i];
-            const staffUsers1 = await User.findOne({ user_id: element }).select('user_id name email');
-            if (staffUsers1) {
-                employeesRequested.push(staffUsers1.user_id);
-                employees.push({
-                    employee_id: staffUsers1.user_id,
-                    status: 'Pending'
-                })
+        if (req.body.guestIds.length > 0) {
+            for (let i = 0; i < req.body.guestIds.length; i++) {
+                const element = req.body.guestIds[i];
+                const staffUsers1 = await User.findOne({ user_id: element }).select('user_id name email');
+                if (staffUsers1) {
+                    employeesRequested.push(staffUsers1.user_id);
+                    employees.push({
+                        employee_id: staffUsers1.user_id,
+                        status: 'Pending'
+                    })
+                }
                 staffUsers.push(staffUsers1);
             }
         }
@@ -870,7 +872,30 @@ const getEventById = asyncHandler(async (req, res) => {
 const updateEvent = asyncHandler(async (req, res) => {
     try {
         const { id } = req.body;
+        const event1 = await Event.findOne({ event_id: parseInt(id) });
 
+        if (!event1) {
+            return sendNotFound(res, 'Event not found');
+        }
+        let employeesRequested = [], employees = [], staffUsers = [];
+        if (req.body.guestIds.length > 0) {
+            for (let i = 0; i < req.body.guestIds.length; i++) {
+                const element = req.body.guestIds[i];
+                const staffUsers1 = await User.findOne({ user_id: element }).select('user_id name email');
+                if (staffUsers1) {
+                    employeesRequested.push(staffUsers1.user_id);
+                    employees.push({
+                        employee_id: staffUsers1.user_id,
+                        status: 'Pending'
+                    })
+                }
+                staffUsers.push(staffUsers1);
+            }
+        }
+        req.body.employeesRequested = employeesRequested ?? event1.employeesRequested;
+        req.body.employees = employees ?? event1.employeesRequested;
+        req.body.pendingStaff = employeesRequested.length ?? event1.pendingStaff;
+        req.body.totalStaff = employeesRequested.length ?? event1.totalStaff;
         // Add update metadata
         const updateData = {
             ...req.body,
