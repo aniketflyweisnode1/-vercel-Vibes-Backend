@@ -12,7 +12,7 @@ const createTemplate = asyncHandler(async (req, res) => {
     // Create Template
     const Template1 = await Template.create(TemplateData);
 
-    sendSuccess(res, Template, 'Template created successfully', 201);
+    sendSuccess(res, Template1, 'Template created successfully', 201);
   } catch (error) {
     throw error;
   }
