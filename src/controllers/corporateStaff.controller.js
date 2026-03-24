@@ -461,21 +461,10 @@ const updateStaff = asyncHandler(async (req, res) => {
 const deleteStaff = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
-
-    const staff = await User.findOneAndUpdate(
-      { user_id: parseInt(id) },
-      {
-        status: false,
-        updated_by: req.userId,
-        updated_at: new Date()
-      },
-      { new: true }
-    );
-
+    const staff = await User.findOneAndDelete({ user_id: parseInt(id) },);
     if (!staff) {
       return sendNotFound(res, 'Staff not found');
     }
-
     const populatedStaff = await populateStaffData(staff);
     sendSuccess(res, populatedStaff, 'Staff deleted successfully');
   } catch (error) {

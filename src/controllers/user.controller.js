@@ -1711,7 +1711,7 @@ const webhookPackage = asyncHandler(async (req, res) => {
                 let findSubscription = await Package.findOne({ price: subscription.plan.amount / 100 });
                 if (findSubscription) {
                   if ((findSubscription._id).toString() == (user.packageId).toString()) {
-                    let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                    let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
                   }
                 }
                 return cancellation;
@@ -1811,7 +1811,7 @@ const webhookPackage = asyncHandler(async (req, res) => {
                     if (subscription.status === 'active' || subscription.status === 'trialing') {
                       const cancellation = await stripe1.subscriptions.cancel(subscription.id);
                       console.log(`Subscription ${subscription.id} was canceled.`);
-                      let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                      let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
                       return cancellation;
                     }
                   }
@@ -1844,7 +1844,7 @@ const webhookPackage = asyncHandler(async (req, res) => {
                       if (subscription.status === 'active' || subscription.status === 'trialing') {
                         const cancellation = await stripe1.subscriptions.cancel(subscription.id);
                         console.log(`Subscription ${subscription.id} was canceled.`);
-                        let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                        let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
                         return cancellation;
                       }
                     }
@@ -2004,7 +2004,7 @@ const webhookPackage = asyncHandler(async (req, res) => {
                     if (subscription.status === 'active' || subscription.status === 'trialing') {
                       const cancellation = await stripe1.subscriptions.cancel(subscription.id);
                       console.log(`Subscription ${subscription.id} was canceled.`);
-                      let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                      let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
                       return cancellation;
                     }
                   }
@@ -2037,7 +2037,7 @@ const webhookPackage = asyncHandler(async (req, res) => {
                       if (subscription.status === 'active' || subscription.status === 'trialing') {
                         const cancellation = await stripe1.subscriptions.cancel(subscription.id);
                         console.log(`Subscription ${subscription.id} was canceled.`);
-                        let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+                        let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
                         return cancellation;
                       }
                     }
@@ -2476,14 +2476,14 @@ const cancelPackageMemberShip = asyncHandler(async (req, res) => {
         const customerEmail = user.email;
         const stripeCustomer = await stripe1.customers.list({ email: customerEmail });
         if (stripeCustomer.data.length === 0) {
-          let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+          let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
           if (updateUser) {
             return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
           }
         } else {
           const customerSubscriptions = await stripe1.subscriptions.list({ customer: stripeCustomer.data[0].id });
           if (customerSubscriptions.data.length === 0) {
-            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
             if (updateUser) {
               return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
             }
@@ -2497,7 +2497,7 @@ const cancelPackageMemberShip = asyncHandler(async (req, res) => {
               return null;
             });
             await Promise.all(cancellationPromises);
-            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
             if (updateUser) {
               return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
             }
@@ -2507,14 +2507,14 @@ const cancelPackageMemberShip = asyncHandler(async (req, res) => {
         const customerEmail = user.email;
         const stripeCustomer = await stripe1.customers.list({ email: customerEmail });
         if (stripeCustomer.data.length === 0) {
-          let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+          let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
           if (updateUser) {
             return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
           }
         } else {
           const customerSubscriptions = await stripe1.subscriptions.list({ customer: stripeCustomer.data[0].id });
           if (customerSubscriptions.data.length === 0) {
-            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
             if (updateUser) {
               return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
             }
@@ -2526,7 +2526,7 @@ const cancelPackageMemberShip = asyncHandler(async (req, res) => {
               }
             });
             await Promise.all(cancellationPromises);
-            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackage: false, packageId: null } }, { new: true });
+            let updateUser = await User.findByIdAndUpdate({ _id: user._id }, { $set: { isPackageExpired: false, packageId: null } }, { new: true });
             if (updateUser) {
               return res.status(200).send({ status: 200, message: 'Subscription canceled successfully.', data: updateUser });
             }

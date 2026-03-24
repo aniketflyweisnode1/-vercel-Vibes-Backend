@@ -27,6 +27,9 @@ const templateSchema = new mongoose.Schema({
     image: {
         type: String,
     },
+    webUrl: {
+        type: String,
+    },
 }, { timestamps: true });
 templateSchema.plugin(AutoIncrement, { inc_field: 'template_id' });
 module.exports = mongoose.model('template', templateSchema);
