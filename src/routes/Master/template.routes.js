@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const { createTemplate, getAllTemplate, getTemplateById, updateTemplate, deleteTemplate } = require('../../controllers/template.controller');
+const { auth } = require('../../../middleware/auth');
+router.post('/create', auth, createTemplate);
+router.get('/getTemplateById/:id', auth, getTemplateById);
+router.get('/getTemplateByAuth', auth, getAllTemplate);
+router.put('/updateTemplateById', auth, updateTemplate);
+router.delete('/deleteTemplateById/:id', auth, deleteTemplate);
+module.exports = router;

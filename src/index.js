@@ -52,6 +52,7 @@ const vibeFundCampaignRoutes = require('./routes/Master/vibe_fund_campaign.route
 const vibeFundingCampaignRoutes = require('./routes/Master/vibe_funding_campaign.routes.js');
 const eventTasksRoutes = require('./routes/Master/event_tasks.routes.js');
 const eventDiscussionChatRoutes = require('./routes/Master/event_discussion_chat.routes.js');
+const templateRoutes = require('./routes/Master/template.routes.js');
 const itemCategoryRoutes = require('./routes/Master/item_category.routes.js');
 const itemsRoutes = require('./routes/Master/items.routes.js');
 const budgetItemsRoutes = require('./routes/Master/budget_items.routes.js');
@@ -133,6 +134,7 @@ router.get('/health', (req, res) => {
 });
 
 // Mount route modules
+router.use('/master/template', templateRoutes);
 router.use('/users', userRoutes);
 router.use('/wallets', walletRoutes);
 router.use('/file-upload', fileUploadRoutes);
