@@ -11,7 +11,7 @@ router.get('/getAll', getAllVibeFundingCampaign);
 // Get vibe funding campaign by ID (with auth)
 router.get('/getVibeFundingCampaignById/:id', auth, validateParams(getVibeFundingCampaignByIdSchema), getVibeFundingCampaignById);
 // Update vibe funding campaign by ID (with auth)
-router.put('/updateVibeFundingCampaignById', auth, validateBody(updateVibeFundingCampaignSchema), updateVibeFundingCampaign);
+router.put('/updateVibeFundingCampaignById', auth,  updateVibeFundingCampaign);
 // Delete vibe funding campaign by ID (with auth)
 router.delete('/deleteVibeFundingCampaignById/:id', auth, validateParams(getVibeFundingCampaignByIdSchema), deleteVibeFundingCampaign);
 router.post('/VibePayment', auth, vibePayment);
