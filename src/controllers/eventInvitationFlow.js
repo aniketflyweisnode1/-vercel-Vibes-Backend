@@ -872,13 +872,14 @@ const getEventById = asyncHandler(async (req, res) => {
 const updateEvent = asyncHandler(async (req, res) => {
     try {
         const { id } = req.body;
+        console.log(id)
         const event1 = await Event.findOne({ event_id: parseInt(id) });
 
         if (!event1) {
             return sendNotFound(res, 'Event not found');
         }
         let employeesRequested = [], employees = [], staffUsers = [];
-        if (req.body.guestIds.length > 0) {
+        if ( req.body.guestIds != (null || undefined) && req.body.guestIds.length > 0) {
             for (let i = 0; i < req.body.guestIds.length; i++) {
                 const element = req.body.guestIds[i];
                 const staffUsers1 = await User.findOne({ user_id: element }).select('user_id name email');

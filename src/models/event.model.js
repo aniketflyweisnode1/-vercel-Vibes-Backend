@@ -228,8 +228,9 @@ const eventSchema = new mongoose.Schema({
     type: Boolean,
   },
   templateId: {
-    type: String,
-  }
+    type: Number,
+    ref: 'template'
+  },
 }, {
   timestamps: false, // We're using custom timestamp fields
   versionKey: false
