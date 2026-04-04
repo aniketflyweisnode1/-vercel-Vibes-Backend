@@ -47,36 +47,6 @@ const createStaffEventBook = asyncHandler(async (req, res) => {
       sendSuccess(res, response, 'Staff event booking already exist', 409);
     } else {
       const staffEventBook1 = await StaffEventBook.create(staffEventBookData);
-      // try {
-      //   const startDate = staffEventBook.dateFrom ? new Date(staffEventBook.dateFrom) : null;
-      //   const endDate = staffEventBook.dateTo ? new Date(staffEventBook.dateTo) : null;
-      //   if (startDate && !Number.isNaN(startDate.getTime())) {
-      //     const availabilityPayload = {
-      //       Year: startDate.getFullYear(),
-      //       Month: startDate.getMonth() + 1,
-      //       Date_start: startDate,
-      //       End_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
-      //       Start_time: staffEventBook.timeFrom || null,
-      //       End_time: staffEventBook.timeTo || null,
-      //       user_id: staffEventBook.staff_id,
-      //       Event_id: staffEventBook.event_id,
-      //       User_availabil: 'Book',
-      //       Status: true,
-      //       CreateBy: req.userId,
-      //       UpdatedBy: null
-      //     };
-
-      //     // Ensure Month within range in case of invalid dates
-      //     if (availabilityPayload.Month < 1 || availabilityPayload.Month > 12) {
-      //       availabilityPayload.Month = Math.min(Math.max(availabilityPayload.Month, 1), 12);
-      //     }
-
-      //     await AvailabilityCalender.create(availabilityPayload);
-      //   }
-      // } catch (availabilityError) {
-      //   console.error('Failed to create availability calendar entry:', availabilityError);
-      //   // Do not fail booking if availability log fails; continue
-      // }
       const staffEventBook = await StaffEventBook.findOne({ event_id: req.body.event_id, staff_id: req.body.staff_id, });
       let staffData = await User.findOne({ user_id: staffEventBook.staff_id });
       let created_byData = await User.findOne({ user_id: staffEventBook.created_by });
@@ -193,7 +163,13 @@ const getStaffEventBooksByAuth = asyncHandler(async (req, res) => {
         if (obj.transaction_status === "Completed") {
           completeJob = completeJob + 1;
         }
-        let payableAmount1 = obj.transaction_status === "Completed" ? obj.actualAmount || 0 : obj.initialPerPayment || 0;
+        const calculatePayable = (amount) => {
+          if (!amount || isNaN(amount)) return 0;
+          return amount - (amount * 0.07);
+        };
+
+        const payableAmount1 = calculatePayable(obj.transaction_status === "Completed" ? obj.actualAmount : obj.initialPerPayment);
+        // let payableAmount1 = obj.transaction_status === "Completed" ? (obj.actualAmount - (obj.actualAmount * 0.07)) || 0 : (obj.initialPerPayment - (obj.initialPerPayment * 0.07)) || 0;
         payableAmount = payableAmount + payableAmount1;
         return payableAmount;
       });

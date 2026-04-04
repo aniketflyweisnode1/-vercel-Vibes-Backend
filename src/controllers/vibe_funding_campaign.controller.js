@@ -155,7 +155,13 @@ const updateVibeFundingCampaign = asyncHandler(async (req, res) => {
     console.log(campaign, "funding.status=======", funding.status == true)
     if (funding.status == true) {
       if (campaign) {
-        const campaign1 = await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, { $set: { fund_amount: campaign.fund_amount + funding.fund_amount, fund_still_Needed: campaign.funding_goal - (campaign.fund_amount + funding.fund_amount) } }, { new: true });
+        let fund_amount23 = funding.fund_amount - (funding.fund_amount * 0.07)
+        const campaign1 = await VibeFundCampaign.findByIdAndUpdate({ _id: campaign._id }, {
+          $set: {
+            fund_amount: campaign.fund_amount + fund_amount23,
+            fund_still_Needed: campaign.funding_goal - (fund_amount23 + funding.fund_amount)
+          }
+        }, { new: true });
         const fundingWithDetails = funding.toObject();
         fundingWithDetails.fundby_user = fundbyUser;
         fundingWithDetails.campaign = campaign1;

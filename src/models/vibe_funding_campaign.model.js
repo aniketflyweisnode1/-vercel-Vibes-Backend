@@ -16,6 +16,9 @@ const vibeFundingCampaignSchema = new mongoose.Schema({
     required: [true, 'Fund amount is required'],
     min: [0, 'Fund amount must be a positive number']
   },
+  extraAmount: {
+    type: Number,
+  },
   fundby_user_id: {
     type: Number,
     ref: 'User',
